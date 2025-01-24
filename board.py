@@ -1,7 +1,6 @@
 import random
-import time
 
-def moore_neighborhood(field, rows, columns):
+def moore_neighborhood(field : tuple[int,int], rows : int, columns : int) -> set[tuple[int,int]]:
     x, y = field
     fields = set()
 
@@ -12,7 +11,7 @@ def moore_neighborhood(field, rows, columns):
 
     return fields
 
-def all_fields(rows, columns, field):
+def all_fields(rows : int, columns : int, field : tuple[int,int]) -> list[tuple[int,int]]:
     fields = set()
     excluded = moore_neighborhood(field, rows, columns).union(set((field,)))
     
@@ -26,13 +25,13 @@ def all_fields(rows, columns, field):
     return list(fields)
 
 class Board:
-    def __naive_mined_fields(self):
+    def __naive_mined_fields(self) -> list[tuple[int,int]]:
         fields = all_fields(self.rows,self.columns,self.start_field)
         random.shuffle(fields)
 
         return fields[:self.mine_count]
     
-    def __generate_board(self):
+    def __generate_board(self) -> list[list[int]]:
         board = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
 
         for i in range(len(self.mined_fields)):
@@ -45,7 +44,7 @@ class Board:
         
         return board
 
-    def __init__(self,rows,columns,start_field,mine_count):
+    def __init__(self, rows : int, columns : int, start_field : tuple[int,int], mine_count : int) -> None:
         self.rows = rows
         self.columns = columns
         self.start_field = start_field
@@ -54,7 +53,7 @@ class Board:
         self.mined_fields = self.__naive_mined_fields()
         self.board = self.__generate_board()
     
-    def crossover(self,board1,board2):
+    def crossover(self, board1 : 'Board', board2 : 'Board') -> None:
         self.rows = board1.rows
         self.columns = board1.columns
         self.start_field = board1.start_field
