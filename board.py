@@ -80,7 +80,7 @@ count = 10
 generations = 100
 population_size = 50
 parents_count = 10
-per_random = 10
+random_specimens = 4
 population = [Board(rows,columns,start_field,count) for _ in range(population_size)]
 
 for generation in range(generations):
@@ -92,12 +92,14 @@ for generation in range(generations):
 
     for i in range(population_size):
         if i not in parents:
+            if random.uniform(0,1) < random_specimens/(population_size-parents_count):
+                population[i] = Board(rows,columns,start_field,count)
+                continue
+            
             parent1 = population[parents[random.randint(0,parents_count-1)]]
             parent2 = population[parents[random.randint(0,parents_count-1)]]
             population[i].crossover(parent1,parent2)
-
-            if random.randint(0,per_random-1) == 0:
-                population[i] = Board(rows,columns,start_field,count)
+                
 
 best = population[parents[0]]
 
