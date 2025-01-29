@@ -71,12 +71,15 @@ class Board:
 
 def evaluate(board): # funkcja celu: tutaj dajemy przykładowe zadanie, żeby zmaksymalizować w macierzy wartości w pierwszych trzech wierszach i zminimalizować w pozostałych; zamiast tej funkcji będzie model szacujący, czy plansza jest deterministyczna
     board = board.board
-    return sum(board[0])+sum(board[1])+sum(board[2])-sum(board[3])-sum(board[4])-sum(board[5])-sum(board[6])-sum(board[7])
+    s = sum(board[0])+sum(board[1])+sum(board[2])+sum(board[3])+sum(board[4])+sum(board[5])
+    for i in range(6,len(board)):
+        s -= sum(board[i])
+    return s
 
 start_field = (4,4)
-rows = 9
-columns = 9
-count = 10
+rows = 16
+columns = 30
+count = 99
 generations = 100
 population_size = 50
 parents_count = 10
