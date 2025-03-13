@@ -16,7 +16,10 @@ class Board:
         return board
 
     def model_input(self) -> np.ndarray: # input do modeli, rozwążyć jakąś standaryzację
-        temp = self.board()
+        temp = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
+        for (i, j) in self.mined_fields:
+            temp[i][j] = 1
+
         distances = [[(self.start_field[0]-j)**2+(self.start_field[1]-i)**2 for i in range(self.columns)] for j in range(self.rows)]
         temp.extend(distances)
         
