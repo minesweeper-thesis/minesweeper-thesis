@@ -1,8 +1,3 @@
 # Backend
 ## Run
 `python3 -m uvicorn --reload backend.main:app`
-
-# Frontend
-## Run
-`npm install`
-`npm start`
