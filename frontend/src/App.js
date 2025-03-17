@@ -105,7 +105,7 @@ export default function Game() {
     }, []);
 
     if(data === null){
-        return <div>Ładowanie...</div>;
+        return <div>Ładowanie... (to musi być na 3000, a backend na 8000 i musi być włączony</div>;
     }
   return (
       <div className="game">
