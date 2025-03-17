@@ -1,5 +1,5 @@
-from board import Board
-from all_fields import all_fields
+from algorithms.board import Board
+from algorithms.all_fields import all_fields
 import random
 
 class RandomBoard(Board):

@@ -1,4 +1,4 @@
-from moore import moore_neighborhood
+from algorithms.moore import moore_neighborhood
 
 def all_fields(rows : int, columns : int, field : tuple[int,int]) -> list[tuple[int,int]]:
     fields = set()

@@ -1,4 +1,4 @@
-from moore import moore_neighborhood
+from algorithms.moore import moore_neighborhood
 import numpy as np
 
 class Board:
