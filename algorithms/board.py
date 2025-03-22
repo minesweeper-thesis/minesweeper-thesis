@@ -1,19 +1,9 @@
-from algorithms.moore import moore_neighborhood
 import numpy as np
+from algorithms.grid import Grid
 
 class Board:
-    def board(self) -> list[list[int]]:
-        board = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
-
-        for i in range(len(self.mined_fields)):
-            x, y = self.mined_fields[i]
-            board[x][y] = 9
-
-            neighborhood = moore_neighborhood((x,y),self.rows,self.columns)
-            for x_n, y_n in neighborhood:
-                board[x_n][y_n] = min(9,board[x_n][y_n]+1)
-        
-        return board
+    def grid(self) -> Grid:
+        return Grid(self.rows, self.columns, self.mined_fields)
 
     def model_input(self) -> np.ndarray: # input do modeli, rozwążyć jakąś standaryzację
         temp = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
