@@ -13,7 +13,8 @@ class Grid:
             print('')
         print('\n\n')
 
-    def handle_field_click(self, x : int, y : int) -> None:
+    def handle_field_click(self, field: tuple[int, int]) -> None:
+        x, y = field
         if self.revealed[x][y] or self.flagged[x][y]:
             return
 
@@ -22,7 +23,7 @@ class Grid:
             for r in range(max(0, x-1), min(self.rows, x+2)):
                 for c in range(max(0, y-1), min(self.columns, y+2)):
                     if not self.revealed[r][c]:
-                        self.handle_field_click(r, c)
+                        self.handle_field_click((r, c))
 
     def __init__(self, rows : int, columns : int, mined_fields: list[tuple[int,int]]) -> None:
         self.rows = rows

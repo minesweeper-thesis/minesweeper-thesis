@@ -11,5 +11,5 @@ class RandomBoard(Board):
 a = RandomBoard(10, 10, (4,4), 15)
 b = a.grid()
 b.print()
-b.handle_field_click(4,4)
+b.handle_field_click((4,4))
 b.print()

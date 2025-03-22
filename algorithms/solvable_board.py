@@ -22,14 +22,13 @@ class SolvableBoard(Board):
         while running:
             if not first_click and len(possible_moves) > 0:
                 while len(possible_moves) > 0:
-                    x, y = possible_moves.pop(0)
-                    handle_field_click(grid, revealed, start_field)
+                    grid.handle_field_click(possible_moves.pop(0))
             elif first_click:
                 first_click = False
-                grid = RandomBoard(rows, columns, start_field, mine_count).board()
-                print(grid)
+                self = RandomBoard(rows, columns, start_field, mine_count)
+                grid = self.grid()
 
-                handle_field_click(grid, revealed, start_field)
+                grid.handle_field_click(start_field)
 
                 for i in range(rows):
                     for j in range(columns):
