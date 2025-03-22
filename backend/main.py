@@ -18,4 +18,4 @@ app.add_middleware(
 async def get_board(rows: int, cols: int, start_x: int, start_y: int, mine_count: int):
     print(rows, cols, (start_x, start_y), mine_count)
     board = RandomBoard(rows, cols, (start_x, start_y), mine_count)
-    return board.board()
+    return board.grid().grid
