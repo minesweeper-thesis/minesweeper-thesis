@@ -12,6 +12,13 @@ class Grid:
                     print('-',end='')
             print('')
         print('\n\n')
+    
+    def check_win(self) -> bool:
+        for row in range(self.rows):
+            for col in range(self.columns):
+                if self.grid[row][col] != -1 and not self.revealed[row][col]:
+                    return False
+        return True
 
     def handle_field_click(self, field: tuple[int, int]) -> None:
         x, y = field
