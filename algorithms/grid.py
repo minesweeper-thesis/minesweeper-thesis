@@ -31,6 +31,19 @@ class Grid:
                 for c in range(max(0, y-1), min(self.columns, y+2)):
                     if not self.revealed[r][c]:
                         self.handle_field_click((r, c))
+    
+    def convert_to_save(self) -> list[list[int]]:
+        board = [[-1 for _ in range(self.columns)] for _ in range(self.rows)]
+        for row in range(self.rows):
+            for col in range(self.columns):
+                if self.revealed[row][col]:
+                    if self.grid[row][col] == -1:
+                        board[row][col] = 9
+                    else:
+                        board[row][col] = self.grid[row][col]
+                else:
+                    board[row][col] = -1
+        return board
 
     def __init__(self, rows : int, columns : int, mined_fields: list[tuple[int,int]]) -> None:
         self.rows = rows
