@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="48"
+   height="48"
+   viewBox="0 0 12.7 12.7"
+   version="1.1"
+   id="svg1"
+   inkscape:export-filename="flag.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.4 (86a8ad7, 2024-10-11)"
+   sodipodi:docname="flag.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="11.502694"
+     inkscape:cx="23.950912"
+     inkscape:cy="27.080614"
+     inkscape:window-width="1920"
+     inkscape:window-height="1009"
+     inkscape:window-x="1912"
+     inkscape:window-y="-3"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#000000;stroke:#000000;stroke-width:0.799999;fill-opacity:1"
+       id="rect1"
+       width="9.2697487"
+       height="0.48303905"
+       x="1.6101301"
+       y="10.902882" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.799999"
+       id="rect2"
+       width="7.2915888"
+       height="0.92007434"
+       x="2.5302045"
+       y="10.005809" />
+    <rect
+       style="fill:#000000;fill-opacity:1;stroke:#000000;stroke-width:0.799999"
+       id="rect3"
+       width="0.16101301"
+       height="7.7286248"
+       x="5.7734666"
+       y="2.737221" />
+    <path
+       sodipodi:type="star"
+       style="fill:#ff0000;fill-opacity:1;stroke:#ff0000;stroke-width:0.799999;stroke-opacity:1"
+       id="path3"
+       inkscape:flatsided="true"
+       sodipodi:sides="3"
+       sodipodi:cx="5.6160764"
+       sodipodi:cy="3.4231063"
+       sodipodi:r1="1.7717406"
+       sodipodi:r2="1.3815484"
+       sodipodi:arg1="0.025968194"
+       sodipodi:arg2="1.0731657"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 7.3872197,3.4691099 -2.6965552,1.4648494 0.079681,-3.06771 z"
+       transform="matrix(0.96861319,0,0,0.59040479,2.0600259,1.6935401)" />
+  </g>
+</svg>
