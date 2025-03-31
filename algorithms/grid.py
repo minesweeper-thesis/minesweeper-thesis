@@ -3,13 +3,25 @@ from algorithms.moore import moore_neighborhood
 class Grid:
     def print(self) -> None:
         for i in range(self.rows):
+            print('',end='|')
             for j in range(self.columns):
                 if self.flagged[i][j]:
-                    print('X',end='')
+                    print('X',end='|')
                 elif self.revealed[i][j]:
-                    print(self.grid[i][j],end='')
+                    print(self.grid[i][j],end='|')
                 else:
-                    print('-',end='')
+                    print('-',end='|')
+            print('')
+        print('\n\n')
+    
+    def print_solved(self) -> None:
+        for i in range(self.rows):
+            print('',end='|')
+            for j in range(self.columns):
+                if self.grid[i][j] == -1:
+                    print('H',end='|')
+                else:
+                    print(self.grid[i][j],end='|')
             print('')
         print('\n\n')
     
