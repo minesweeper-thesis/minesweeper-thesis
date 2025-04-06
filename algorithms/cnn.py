@@ -4,6 +4,7 @@ import torchvision.models as models
 
 class CNN(nn.Module):
     def __init__(self):
+        super().__init__()
         self.model = models.resnet18()
 
         self.model.conv1 = nn.Conv2d(
