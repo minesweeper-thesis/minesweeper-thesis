@@ -9,6 +9,7 @@ def all_fields(rows : int, columns : int, field : tuple[int,int]) -> list[tuple[
             fields.add((i,j))
     
     for excluded_field in excluded:
-        fields.remove(excluded_field)
+        if excluded_field in fields:
+            fields.remove(excluded_field)
     
     return list(fields)
