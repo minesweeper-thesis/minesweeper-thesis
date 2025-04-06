@@ -24,7 +24,9 @@ class DataGenerator:
         
         fields = all_fields(self.rows, self.columns, (-2,-2))
 
-        for _ in range(count):
+        for i in range(count):
+            print(i)
+
             start_field = fields[random.randint(0,len(fields)-1)]
             board = RandomBoard(self.rows, self.columns, start_field, self.mine_count)
             solvable = is_solvable(board)
@@ -38,4 +40,4 @@ class DataGenerator:
                 f.write('\n')
 
 a = DataGenerator(10, 10, 15)
-a.generate(970)
+a.generate(2000)
