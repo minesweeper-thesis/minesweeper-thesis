@@ -11,9 +11,8 @@ class Board:
             temp[i][j] = 1
 
         distances = [[(self.start_field[0]-j)**2+(self.start_field[1]-i)**2 for i in range(self.columns)] for j in range(self.rows)]
-        temp.extend(distances)
-        
-        return np.array(temp)
+
+        return np.array([temp,distances])
 
     def __init__(self, rows : int, columns : int, start_field : tuple[int,int], mine_count : int, mined_fields: list[tuple[int,int]]) -> None:
         self.rows = rows
