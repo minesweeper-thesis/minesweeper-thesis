@@ -13,6 +13,15 @@ class Board:
         distances = [[(self.start_field[0]-j)**2+(self.start_field[1]-i)**2 for i in range(self.columns)] for j in range(self.rows)]
 
         return np.array([temp,distances])
+    
+    def to_json(self) -> dict:
+        return {
+            "rows": self.rows,
+            "columns": self.columns,
+            "start_field": list(self.start_field),
+            "mine_count": self.mine_count,
+            "mined_fields": [list(pos) for pos in self.mined_fields]
+        }
 
     def __init__(self, rows : int, columns : int, start_field : tuple[int,int], mine_count : int, mined_fields: list[tuple[int,int]]) -> None:
         self.rows = rows

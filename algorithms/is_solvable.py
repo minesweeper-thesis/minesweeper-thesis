@@ -196,8 +196,6 @@ def is_solvable(board : Board) -> bool:
             return False
 
         if grid.check_win():
-            print("FOUND U")
-            grid.print()
             return True
         else:
             not_mines = [[1 if hint_cache_board[i][j] == FieldState.NOT_MINED.value else 0 for j in range(columns)] for i in range(rows)]
