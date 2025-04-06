@@ -38,4 +38,4 @@ class DataGenerator:
                 f.write('\n')
 
 a = DataGenerator(10, 10, 15)
-a.generate(10)
+a.generate(970)
