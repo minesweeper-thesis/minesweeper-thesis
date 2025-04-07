@@ -44,3 +44,9 @@ img {
 .number-6 { color: cyan; }
 .number-7 { color: black; }
 .number-8 { color: gray; }
+
+.mine-icon{
+    width: 34px;
+    height: 34px;
+    background-color: #ff5858;
+}
