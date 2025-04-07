@@ -7,81 +7,10 @@
 
 body {
   margin: 20px;
-
-}
-
-img {
-  height: 24px;
-  width: 24px;
-}
-
-.square {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #c0c0c0;
-  border: 1px solid #ffffff;
-  float: left;
-  font-size: 24px;
-  font-weight: bold;
-  height: 34px;
-  width: 34px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-
-
-.not-clicked {
-  border: 3px solid #ffffff;
-  border-right-color: #7B7B7B;
-  border-bottom-color: #7B7B7B;
-}
-.not-clicked:hover {
-  background-color: #d3d3d3;
-}
-
-.not-clicked:active {
-  background-color: #b0b0b0;
-}
-
-.clicked{
-  border: 1px solid #ccc;
 }
 
 .game {
   display: flex;
-  flex-direction: row;
-}
-
-.number-1 {
-  color: blue;
-}
-
-.number-2 {
-  color: green;
-}
-
-.number-3 {
-  color: red;
-}
-
-.number-4 {
-  color: darkblue;
-}
-
-.number-5 {
-  color: brown;
-}
-
-.number-6 {
-  color: cyan;
-}
-
-.number-7 {
-  color: black;
-}
-
-.number-8 {
-  color: gray;
+  flex-direction: column;
+  align-items: center;
 }
