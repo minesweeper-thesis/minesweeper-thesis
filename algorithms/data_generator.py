@@ -39,5 +39,7 @@ class DataGenerator:
                 json.dump(instance, f)
                 f.write('\n')
 
-a = DataGenerator(10, 10, 15)
-a.generate(5000)
+for j in range(10):
+    print('\n',j,'\n')
+    a = DataGenerator(16, 16, 40)
+    a.generate(100)
