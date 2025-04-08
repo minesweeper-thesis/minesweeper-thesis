@@ -15,7 +15,10 @@ class DataLoader:
         with open(self.filename,"r") as f:
             for line in f:
                 board_json = json.loads(line)
-                board = Board(self.rows, self.columns, tuple(board_json['start_field']), self.mine_count, [tuple(pos) for pos in board_json['mined_fields']])
-                result.append((board,board_json['solvable']))
+                boards = Board(self.rows, self.columns, tuple(board_json['start_field']), self.mine_count, [tuple(pos) for pos in board_json['mined_fields']]).symmetries()
+                for board in boards:
+                    result.append((board,board_json['solvable']))
+        
+        # balance data
         
         return result

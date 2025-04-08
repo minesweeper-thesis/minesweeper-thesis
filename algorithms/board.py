@@ -1,9 +1,28 @@
 import numpy as np
+from typing import Callable
 from algorithms.grid import Grid
 
 class Board:
     def grid(self) -> Grid:
         return Grid(self.rows, self.columns, self.mined_fields)
+    
+    def __transform(self, function : Callable[[tuple[int,int]],tuple[int,int]], rows : int, columns : int) -> 'Board':
+        start_field = function(self.start_field)
+        mined_fields = [function(field) for field in self.mined_fields]
+        
+        return Board(rows, columns, start_field, self.mine_count, mined_fields)
+    
+    def symmetries(self) -> tuple['Board']:
+        return (
+            self,
+            self.__transform(lambda coords: (coords[0], self.columns - 1 - coords[1]), self.rows, self.columns),
+            self.__transform(lambda coords: (self.rows - 1 - coords[0], coords[1]), self.rows, self.columns),
+            self.__transform(lambda coords: (self.rows - 1 - coords[0], self.columns - 1 - coords[1]), self.rows, self.columns),
+            self.__transform(lambda coords: (coords[1], self.rows - 1 - coords[0]), self.columns, self.rows),
+            self.__transform(lambda coords: (self.columns - 1 - coords[1], self.rows - 1 - coords[0]), self.columns, self.rows),
+            self.__transform(lambda coords: (self.columns - 1 - coords[1], coords[0]), self.columns, self.rows),
+            self.__transform(lambda coords: (coords[1], coords[0]), self.columns, self.rows),
+        )
 
     def model_input(self) -> np.ndarray: # input do modeli, rozwążyć jakąś standaryzację
         temp = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
