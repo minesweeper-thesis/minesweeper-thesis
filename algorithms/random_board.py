@@ -7,7 +7,3 @@ class RandomBoard(Board):
         fields = all_fields(rows,columns,start_field)
         random.shuffle(fields)
         Board.__init__(self, rows, columns, start_field, mine_count, fields[:mine_count])
-
-boards = RandomBoard(2,4,(2,2),1).symmetries()
-for board in boards:
-    board.grid().print_solved()

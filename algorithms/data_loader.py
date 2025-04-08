@@ -19,6 +19,4 @@ class DataLoader:
                 for board in boards:
                     result.append((board,board_json['solvable']))
         
-        # balance data
-        
         return result
