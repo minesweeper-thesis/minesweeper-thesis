@@ -28,9 +28,9 @@ class DataGenerator:
         return data
 
     def _worker(self, args) -> None:
-        batch_count, batch_size, lock = args
+        batch_count, batch_size, lock, number = args
         for i in range(batch_count):
-            print(f"PID {random.getrandbits(16)} - batch {i}")
+            print(f"PID {number} - batch {i}")
             data = self._generate_batch(batch_size)
             with lock:
                 with open(self.filename, "a") as f:
@@ -43,7 +43,7 @@ class DataGenerator:
 
         manager = Manager()
         lock = manager.Lock()
-        args = [(batch_count, batch_size, lock) for _ in range(process_count)]
+        args = [(batch_count, batch_size, lock, i) for i in range(process_count)]
 
         with Pool(process_count) as pool:
             pool.map(self._worker, args)
