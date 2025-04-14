@@ -1,4 +1,4 @@
-from algorithms.data_loader import DataLoader as DL
+from algorithms.data.data_loader import DataLoader as DL
 
 data = [(board.model_input(), solvable) for board, solvable in DL(16,30,99).load()]
 
@@ -31,18 +31,30 @@ class SimpleCNN(nn.Module):
         self.conv = nn.Sequential(
             nn.Conv2d(2, 32, kernel_size=3, padding=1),
             nn.ReLU(),
+            nn.MaxPool2d(2),  # Redukuje HxW o połowę
+
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1, 1))
+            nn.MaxPool2d(2),
+
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1))  # Na końcu globalny pooling
         )
-        self.fc = nn.Linear(64, 1)
+        self.fc = nn.Sequential(
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, 64),
+            nn.ReLU(),
+            nn.Linear(64, 1)
+        )
 
     def forward(self, x):
         x = self.conv(x)
         x = x.view(x.size(0), -1)
         return self.fc(x)
 
-
+print('s')
 # === 3. Przygotowanie danych ===
 
 # Zakładamy, że masz zmienną: data = List[Tuple[np.ndarray, bool]]
@@ -65,6 +77,8 @@ neg, pos = labels.count(0), labels.count(1)
 pos_weight = torch.tensor(neg / pos)
 
 # === 4. Trening ===
+
+print('s')
 
 model = SimpleCNN()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)

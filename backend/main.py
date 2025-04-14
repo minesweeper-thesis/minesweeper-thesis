@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from algorithms.random_board import RandomBoard
+from algorithms.boards.random_board import RandomBoard
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
