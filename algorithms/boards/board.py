@@ -56,7 +56,7 @@ class Board:
 
     def model_input(
         self,
-    ) -> np.ndarray:  # input do modeli, rozwążyć jakąś standaryzację
+    ) -> np.ndarray:
         temp = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
         for i, j in self.mined_fields:
             temp[i][j] = 1
@@ -64,7 +64,7 @@ class Board:
         distances = [
             [
                 math.log(
-                    0.01
+                    1.0
                     + (self.start_field[0] - j) ** 2
                     + (self.start_field[1] - i) ** 2
                 )
