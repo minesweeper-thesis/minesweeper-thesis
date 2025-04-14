@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from algorithms.boards.board import Board
 
-class Classifier:
+class Classifier(ABC):
     @abstractmethod
     def fit(self, data : list[tuple[Board, bool]]) -> float:
         pass
