@@ -51,6 +51,7 @@ def field_is_mined(fields, not_mines, x, y, rows, cols, mines_count):
             )
 
     solver = cp_model.CpSolver()
+    solver.parameters.num_search_workers = 0
     status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
@@ -108,6 +109,7 @@ def field_is_safe(fields, not_mines, x, y, rows, cols, mines_count):
             )
 
     solver = cp_model.CpSolver()
+    solver.parameters.num_search_workers = 0
     status = solver.Solve(model)
 
     if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
