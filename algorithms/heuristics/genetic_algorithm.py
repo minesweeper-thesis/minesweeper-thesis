@@ -18,7 +18,7 @@ class GeneticAlgorithm(Heuristic):
         parents_size: int,
         random_specimens_rate: float,
     ) -> None:
-        Heuristic.__init__(classifier, rows, columns, start_field, mine_count)
+        Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.generations = generations
         self.population_size = population_size
         self.parents_size = parents_size
@@ -31,7 +31,7 @@ class GeneticAlgorithm(Heuristic):
         ]
 
         population = [(self.classifier.classify(board), board) for board in boards]
-        population.sort(lambda x: -x[0])
+        population.sort(key=lambda x: -x[0])
 
         for _ in range(self.generations):
             for i in range(self.parents_size, self.population_size):
@@ -41,12 +41,12 @@ class GeneticAlgorithm(Heuristic):
                     )
                 else:
                     _, board = population[i]
-                    parent1 = population[random.randint(0, self.parents_size - 1)]
-                    parent2 = population[random.randint(0, self.parents_size - 1)]
+                    parent1 = population[random.randint(0, self.parents_size - 1)][1]
+                    parent2 = population[random.randint(0, self.parents_size - 1)][1]
 
                     board.crossover(parent1, parent2)
                 population[i] = (self.classifier.classify(board), board)
 
-            population.sort(lambda x: -x[0])
+            population.sort(key=lambda x: -x[0])
 
         return population[0][1]
