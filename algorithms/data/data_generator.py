@@ -1,5 +1,6 @@
 import json
 import random
+import threading
 from multiprocessing import Pool, Manager, cpu_count
 from algorithms.boards.random_board import RandomBoard
 from algorithms.boards.functions.all_fields import all_fields
@@ -27,7 +28,7 @@ class DataGenerator:
             data.append(board_json)
         return data
 
-    def _worker(self, args) -> None:
+    def _worker(self, args: list[tuple[int, int, threading.Lock, int]]) -> None:
         batch_count, batch_size, lock, number = args
         for i in range(batch_count):
             print(f"PID {number} - batch {i}")
@@ -38,7 +39,7 @@ class DataGenerator:
                         json.dump(instance, f)
                         f.write("\n")
 
-    def generate(self, process_count: int, batch_count: int, batch_size: int):
+    def generate(self, process_count: int, batch_count: int, batch_size: int) -> None:
         freeze_support()
 
         manager = Manager()
