@@ -5,6 +5,20 @@ import math
 
 
 class Board:
+    def __init__(
+        self,
+        rows: int,
+        columns: int,
+        start_field: tuple[int, int],
+        mine_count: int,
+        mined_fields: list[tuple[int, int]],
+    ) -> None:
+        self.rows = rows
+        self.columns = columns
+        self.start_field = start_field
+        self.mine_count = mine_count
+        self.mined_fields = mined_fields
+
     def grid(self) -> Grid:
         return Grid(self.rows, self.columns, self.mined_fields)
 
@@ -83,17 +97,3 @@ class Board:
             "mine_count": self.mine_count,
             "mined_fields": [list(pos) for pos in self.mined_fields],
         }
-
-    def __init__(
-        self,
-        rows: int,
-        columns: int,
-        start_field: tuple[int, int],
-        mine_count: int,
-        mined_fields: list[tuple[int, int]],
-    ) -> None:
-        self.rows = rows
-        self.columns = columns
-        self.start_field = start_field
-        self.mine_count = mine_count
-        self.mined_fields = mined_fields

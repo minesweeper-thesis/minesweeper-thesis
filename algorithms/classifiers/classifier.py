@@ -1,13 +1,14 @@
 from abc import ABC, abstractmethod
 from algorithms.boards.board import Board
 
+
 class Classifier(ABC):
     @abstractmethod
-    def fit(self, data : list[tuple[Board, bool]]) -> float:
+    def fit(self, data: list[tuple[Board, bool]]) -> float:
         pass
 
     @abstractmethod
-    def classify(self, board : Board) -> float:
+    def classify(self, board: Board) -> float:
         pass
 
     @abstractmethod
@@ -15,5 +16,5 @@ class Classifier(ABC):
         pass
 
     @abstractmethod
-    def load(self, source : str) -> None:
+    def load(self, source: str) -> None:
         pass
