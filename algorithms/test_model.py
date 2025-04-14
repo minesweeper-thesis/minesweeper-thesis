@@ -54,11 +54,11 @@ class SimpleCNN(nn.Module):
         x = x.view(x.size(0), -1)
         return self.fc(x)
 
-print('s')
+print(len(data))
 # === 3. Przygotowanie danych ===
 
 # Zakładamy, że masz zmienną: data = List[Tuple[np.ndarray, bool]]
-train_data, test_data = train_test_split(data, test_size=0.2, random_state=42)
+train_data, test_data = train_test_split(data, test_size=0.2, random_state=100)
 train_dataset = BoardDataset(train_data)
 test_dataset = BoardDataset(test_data)
 
@@ -67,9 +67,9 @@ train_size = int(0.8 * len(train_dataset))
 val_size = len(train_dataset) - train_size
 train_set, val_set = random_split(train_dataset, [train_size, val_size])
 
-train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
-val_loader = DataLoader(val_set, batch_size=32)
-test_loader = DataLoader(test_dataset, batch_size=32)
+train_loader = DataLoader(train_set, batch_size=128, shuffle=True)
+val_loader = DataLoader(val_set, batch_size=128)
+test_loader = DataLoader(test_dataset, batch_size=128)
 
 # Oblicz pos_weight do zbalansowanego lossu
 labels = [int(s) for _, s in train_data]
@@ -87,7 +87,7 @@ criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 best_val_loss = float('inf')  # Trzymamy najlepszy wynik
 best_model_state = None
 
-for epoch in range(50):
+for epoch in range(40):
     model.train()
     total_loss = 0
     for x, y in train_loader:

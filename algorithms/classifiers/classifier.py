@@ -7,7 +7,7 @@ class Classifier(ABC):
         pass
 
     @abstractmethod
-    def classify(self, board : Board) -> bool:
+    def classify(self, board : Board) -> float:
         pass
 
     @abstractmethod
