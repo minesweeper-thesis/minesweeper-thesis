@@ -1,6 +1,6 @@
 from algorithms.data.data_loader import DataLoader as DL
 
-data = [(board.model_input(), solvable) for board, solvable in DL(10,10,15).load()]
+data = [(board.model_input(), solvable) for board, solvable in DL(16, 30, 99).load()]
 
 import torch
 import torch.nn as nn
@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import balanced_accuracy_score
 
 # === 1. Dataset ===
+
 
 class BoardDataset(Dataset):
     def __init__(self, data):
@@ -23,7 +24,9 @@ class BoardDataset(Dataset):
     def __getitem__(self, idx):
         return self.boards[idx], self.labels[idx]
 
+
 # === 2. Model ===
+
 
 class SimpleCNN(nn.Module):
     def __init__(self):
@@ -32,27 +35,26 @@ class SimpleCNN(nn.Module):
             nn.Conv2d(2, 32, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),  # Redukuje HxW o połowę
-
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.ReLU(),
             nn.MaxPool2d(2),
-
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.ReLU(),
-            nn.AdaptiveAvgPool2d((1, 1))  # Na końcu globalny pooling
+            nn.AdaptiveAvgPool2d((1, 1)),  # Na końcu globalny pooling
         )
         self.fc = nn.Sequential(
             nn.Linear(128, 128),
             nn.ReLU(),
             nn.Linear(128, 64),
             nn.ReLU(),
-            nn.Linear(64, 1)
+            nn.Linear(64, 1),
         )
 
     def forward(self, x):
         x = self.conv(x)
         x = x.view(x.size(0), -1)
         return self.fc(x)
+
 
 print(len(data))
 # === 3. Przygotowanie danych ===
@@ -78,13 +80,13 @@ pos_weight = torch.tensor(neg / pos)
 
 # === 4. Trening ===
 
-print('s')
+print("s")
 
 model = SimpleCNN()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-best_val_loss = float('inf')  # Trzymamy najlepszy wynik
+best_val_loss = float("inf")  # Trzymamy najlepszy wynik
 best_model_state = None
 
 for epoch in range(40):
@@ -133,4 +135,3 @@ acc = balanced_accuracy_score(all_labels, all_preds)
 print(f"\n✅ Final balanced accuracy on test set: {acc:.4f}")
 
 # Zapisz najlepszy model do pliku
- 

@@ -74,7 +74,7 @@ class Board:
         mined = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
         for i, j in self.mined_fields:
             mined[i][j] = 1
-        
+
         grid = self.grid()
         grid.handle_field_click(self.start_field)
 
