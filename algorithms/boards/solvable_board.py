@@ -1,13 +1,14 @@
 from algorithms.boards.board import Board
 from algorithms.boards.random_board import RandomBoard
 from algorithms.boards.functions.is_solvable import is_solvable
+from algorithms.heuristics.heuristic import Heuristic
 
 
 class SolvableBoard(Board):
     def __init__(
-        self, rows: int, columns: int, start_field: tuple[int, int], mine_count: int
+        self, heuristic: Heuristic
     ) -> None:
         while True:
-            self = RandomBoard(rows, columns, start_field, mine_count)
+            self = heuristic.run()
             if is_solvable(self):
                 break
