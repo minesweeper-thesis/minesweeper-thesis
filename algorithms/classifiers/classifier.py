@@ -12,9 +12,9 @@ class Classifier(ABC):
         pass
 
     @abstractmethod
-    def save(self) -> None:
+    def save(self, filename: str) -> None:
         pass
 
     @abstractmethod
-    def load(self, source: str) -> None:
+    def load(self, filename: str) -> None:
         pass

@@ -1,6 +1,6 @@
 from algorithms.data.data_loader import DataLoader as DL
 
-data = [(board.model_input(), solvable) for board, solvable in DL(16,30,99).load()]
+data = [(board.model_input(), solvable) for board, solvable in DL(10,10,15).load()]
 
 import torch
 import torch.nn as nn

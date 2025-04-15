@@ -71,23 +71,14 @@ class Board:
     def model_input(
         self,
     ) -> np.ndarray:
-        temp = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
+        mined = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
         for i, j in self.mined_fields:
-            temp[i][j] = 1
+            mined[i][j] = 1
+        
+        grid = self.grid()
+        grid.handle_field_click(self.start_field)
 
-        distances = [
-            [
-                math.log(
-                    1.0
-                    + (self.start_field[0] - j) ** 2
-                    + (self.start_field[1] - i) ** 2
-                )
-                for i in range(self.columns)
-            ]
-            for j in range(self.rows)
-        ]
-
-        return np.array([temp, distances])
+        return np.array([mined, grid.revealed])
 
     def to_json(self) -> dict:
         return {

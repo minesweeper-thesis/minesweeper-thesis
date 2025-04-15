@@ -41,8 +41,8 @@ class GeneticAlgorithm(Heuristic):
                     )
                 else:
                     _, board = population[i]
-                    parent1 = population[random.randint(0, self.parents_size - 1)][1]
-                    parent2 = population[random.randint(0, self.parents_size - 1)][1]
+                    _, parent1 = population[random.randint(0, self.parents_size - 1)]
+                    _, parent2 = population[random.randint(0, self.parents_size - 1)]
 
                     board.crossover(parent1, parent2)
                 population[i] = (self.classifier.classify(board), board)
