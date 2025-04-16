@@ -8,11 +8,11 @@ import random
 class GeneticAlgorithmHeuristic(Heuristic):
     def __init__(
         self,
+        classifier: Classifier,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        classifier: Classifier,
         generations: int,
         population_size: int,
         parents_size: int,
