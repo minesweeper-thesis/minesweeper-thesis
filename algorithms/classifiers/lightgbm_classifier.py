@@ -1,6 +1,7 @@
 import lightgbm as lgb
 import numpy as np
 import joblib
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import balanced_accuracy_score
 from algorithms.boards.board import Board
@@ -37,6 +38,8 @@ class LightGBMClassifier(Classifier):
         return float(self.model.predict(arr)[0])
 
     def save(self, filename: str) -> None:
+        if not os.path.exists(filename):
+            open(filename, 'a').close()
         joblib.dump(self.model, filename)
 
     def load(self, filename: str) -> None:

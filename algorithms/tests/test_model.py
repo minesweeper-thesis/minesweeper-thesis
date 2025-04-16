@@ -89,7 +89,7 @@ criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 best_val_loss = float("inf")  # Trzymamy najlepszy wynik
 best_model_state = None
 
-for epoch in range(40):
+for epoch in range(35):
     model.train()
     total_loss = 0
     for x, y in train_loader:
