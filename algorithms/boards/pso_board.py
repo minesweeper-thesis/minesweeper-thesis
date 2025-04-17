@@ -57,12 +57,10 @@ class PSOBoard(RandomBoard):
             for i in range(self.mine_count)
         ]
 
-        old_mined_fields = deepcopy(self.mined_fields)
-
         self.mined_fields = [
             (
-                int(self.mined_fields[i][0] + self.velocity[i][0]),
-                int(self.mined_fields[i][1] + self.velocity[i][1]),
+                min(self.rows-1,max(0,int(self.mined_fields[i][0] + self.velocity[i][0]))),
+                min(self.columns-1,max(0,int(self.mined_fields[i][1] + self.velocity[i][1]))),
             )
             for i in range(self.mine_count)
         ]
@@ -79,11 +77,3 @@ class PSOBoard(RandomBoard):
         random.shuffle(fields)
         for i in range(len(to_change)):
             self.mined_fields[to_change[i]] = fields[i]
-
-        self.velocity = [
-            (
-                self.mined_fields[i][0] - old_mined_fields[i][0],
-                self.mined_fields[i][1] - old_mined_fields[i][1],
-            )
-            for i in range(self.mine_count)
-        ]
