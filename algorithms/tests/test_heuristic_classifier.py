@@ -1,13 +1,15 @@
 from algorithms.classifiers.lightgbm_classifier import LightGBMClassifier
 from algorithms.heuristics.genetic_algorithm_heuristic import GeneticAlgorithmHeuristic
 from algorithms.heuristics.naive_heuristic import NaiveHeuristic
+from algorithms.heuristics.particle_swarm_heuristic import ParticleSwarmHeuristic
 from algorithms.boards.functions.is_solvable import is_solvable
 
 classifier = LightGBMClassifier()
 classifier.load('algorithms/tests/10,10,15.model')
 
-#heuristic = GeneticAlgorithmHeuristic(10,10,(4,4),15,classifier,100,50,10,0.05)
-heuristic = NaiveHeuristic(classifier,10,10,(4,4),15,5000)
+heuristic = GeneticAlgorithmHeuristic(classifier,10,10,(4,4),15,100,50,10,0.05)
+#heuristic = NaiveHeuristic(classifier,10,10,(4,4),15,2000)
+#heuristic = ParticleSwarmHeuristic(classifier,10,10,(4,4),15,200,10)
 
 trues, falses = 0, 0
 
