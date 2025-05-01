@@ -4,6 +4,7 @@ from ortools.sat.python import cp_model
 from enum import Enum
 import numpy as np
 
+
 class Checker:
     def __init__(
         self, rows: int, columns: int, start_field: tuple[int, int], mine_count: int
@@ -44,13 +45,17 @@ class Checker:
             else:
                 not_mines = [
                     [
-                        1 if hint_cache_board[i][j] == _FieldState.NOT_MINED.value else 0
+                        (
+                            1
+                            if hint_cache_board[i][j] == _FieldState.NOT_MINED.value
+                            else 0
+                        )
                         for j in range(self.columns)
                     ]
                     for i in range(self.rows)
                 ]
                 hint_generator = _HintGenerator(grid, not_mines, self.mine_count)
-                
+
                 hint_cache_board = hint_generator.correct_hinted_board(hint_cache_board)
                 hint_cache_board = hint_generator.hint_safe_fields(hint_cache_board)
 
@@ -78,7 +83,8 @@ class Checker:
 
                     if not possible_moves:
                         return False
-                    
+
+
 class _FieldState(Enum):
     MINED = -3
     NOT_MINED = -2
@@ -98,7 +104,7 @@ class _FieldSolver:
         self.columns = len(not_mines[0])
         self.mine_count = mine_count
 
-    def field_is_mined(self, x: int, y: int) -> (list[list[bool]] | list):
+    def field_is_mined(self, x: int, y: int) -> list[list[bool]] | list:
         model = cp_model.CpModel()
 
         potential_mines = [
@@ -164,7 +170,7 @@ class _FieldSolver:
         else:
             return []
 
-    def field_is_safe(self, x: int, y: int)-> (list[list[bool]] | list):
+    def field_is_safe(self, x: int, y: int) -> list[list[bool]] | list:
         model = cp_model.CpModel()
 
         potential_mines = [
@@ -232,9 +238,7 @@ class _FieldSolver:
 
 
 class _HintGenerator:
-    def __init__(
-        self, grid: Grid, not_mines: list[list[int]], mine_count: int
-    ) -> None:
+    def __init__(self, grid: Grid, not_mines: list[list[int]], mine_count: int) -> None:
         self.grid = grid
         self.rows = grid.rows
         self.columns = grid.columns
