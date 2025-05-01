@@ -20,7 +20,7 @@ class Grid:
             print("", end="|")
             for j in range(self.columns):
                 if self.grid[i][j] == -1:
-                    print("H", end="|")
+                    print(" ", end="|")
                 else:
                     print(self.grid[i][j], end="|")
             print("")

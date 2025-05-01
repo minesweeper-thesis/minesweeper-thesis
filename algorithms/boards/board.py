@@ -1,7 +1,6 @@
 import numpy as np
 from typing import Callable
 from algorithms.boards.grid import Grid
-import math
 
 
 class Board:

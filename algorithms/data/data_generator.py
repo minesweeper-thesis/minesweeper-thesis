@@ -4,7 +4,7 @@ import threading
 from multiprocessing import Pool, Manager, cpu_count
 from algorithms.boards.random_board import RandomBoard
 from algorithms.boards.functions.all_fields import all_fields
-from algorithms.boards.functions.is_solvable import is_solvable
+from algorithms.checker.checker import Checker
 from multiprocessing import freeze_support
 
 
@@ -22,7 +22,8 @@ class DataGenerator:
             print(i)
             start_field = random.choice(self.fields)
             board = RandomBoard(self.rows, self.columns, start_field, self.mine_count)
-            solvable = is_solvable(board)
+            checker = Checker(self.rows, self.columns, start_field, self.mine_count)
+            solvable = checker.is_solvable(board)
             board_json = board.to_json()
             board_json["solvable"] = solvable
             data.append(board_json)
