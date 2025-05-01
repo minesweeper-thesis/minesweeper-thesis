@@ -20,7 +20,7 @@ class Checker:
         possible_moves = []
         empty_fields = []
 
-        hint_cache_board = [[0 for _ in range(self.columns)] for _ in range(self.rows)]
+        hint_cache_board = [[_FieldState.NOT_REVEALED_NOT_NEIGHBOUR for _ in range(self.columns)] for _ in range(self.rows)]
 
         while True:
             if not first_click and len(possible_moves) > 0:
@@ -78,7 +78,7 @@ class Checker:
 
                     for i in range(self.rows):
                         for j in range(self.columns):
-                            if hint_cache_board[i][j] == -2 and not grid.revealed[i][j]:
+                            if hint_cache_board[i][j] == _FieldState.NOT_MINED and not grid.revealed[i][j]:
                                 possible_moves.append((i, j))
 
                     if not possible_moves:
@@ -308,7 +308,7 @@ class _HintGenerator:
 
         for i in range(self.rows):
             for j in range(self.columns):
-                if hint_cache_board[i][j] != 1 or temp_board[i, j] == True:
+                if hint_cache_board[i][j] != _FieldState.NOT_REVEALED_NEIGHBOUR or temp_board[i, j] == True:
                     continue
 
                 solutions = field_solver.field_is_mined(i, j)
@@ -316,7 +316,7 @@ class _HintGenerator:
                 is_unsat = len(solutions) == 0
 
                 if is_unsat:
-                    hint_cache_board[i][j] = -3
+                    hint_cache_board[i][j] = _FieldState.MINED
                     self.grid.flagged[i][j] = True
                 else:
                     temp_board = np.logical_or(temp_board, np.array(solutions))
