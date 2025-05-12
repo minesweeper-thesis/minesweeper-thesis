@@ -15,3 +15,50 @@ body {
   flex-direction: column;
   align-items: center;
 }
+
+.menu {
+  width: 400px;
+  text-align: center;
+  margin-top: 50px;
+}
+
+.menu h1,
+.menu h2 {
+  margin-bottom: 20px;
+}
+
+.menu-button {
+  display: block;
+  width: 120px;
+  margin: 10px auto;
+  padding: 10px 16px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #dadada;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+
+.menu button:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
+.menu button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.back-button {
+  padding: 10px 16px;
+  font-size: 16px;
+  font-weight: bold;
+  background-color: #98daff;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
