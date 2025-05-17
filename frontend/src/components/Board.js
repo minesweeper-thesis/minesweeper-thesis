@@ -1,15 +1,15 @@
 import React, {useState, useEffect, useCallback} from 'react';
 import Square from './Square';
-import { State } from '../utility';
+import { State, GameState } from '../utility';
 import '../styles/board.css';
 
-export default function Board({ board, setBoard, rows, cols, mineCount ,firstClick, setFirstClick, mines, setMines }) {
+export default function Board({ board, setBoard, rows, cols, mineCount ,firstClick, setFirstClick, mines, setMines, gameState, setGameState }) {
     const [clicked, setClicked] = useState(
         Array.from({ length: rows }, () => Array(cols).fill(State.NOT_REVEALED))
     );
-    const [started, setStarted] = useState(false)
-    const [disableClicks, setDisableClicks] = useState(false)
 
+    const [revealedCount, setRevealedCount] = useState(0);
+    
     useEffect(() => {
         setClicked(Array.from({ length: rows }, () => Array(cols).fill(State.NOT_REVEALED)));
     }, [board, rows, cols]);
@@ -24,9 +24,11 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
         if (cellState(x, y, newClicked) === State.REVEALED) return;
         if (cellState(x, y, newClicked) === State.FLAGGED && !revealFlags) return;
         if (board[x][y] === -1){
-           setDisableClicks(true);
+           setGameState(GameState.LOST);
         }
         newClicked[x][y] = State.REVEALED;
+        setRevealedCount(revealedCount+1);
+        console.log(revealedCount);
         if (board[x][y] !== 0) return;
 
         const directions = [
@@ -38,7 +40,7 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
         for (let [dx, dy] of directions) {
             reveal(x + dx, y + dy, newClicked, revealFlags);
         }
-    }, [cellState, board])
+    }, [cellState, board, revealedCount, setGameState])
 
 
     const fillSquare = (i, j) => {
@@ -47,6 +49,20 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
         if (state === State.FLAGGED) return -2;
         return board[i][j];
     }
+
+    const checkWin = useCallback(() => {
+        console.log("checking...")
+        for (let i = 0; i < rows; i++) {
+            for (let j = 0; j < cols; j++) {
+                if(board[i][j] !== -1 && clicked[i][j] !== State.REVEALED ){
+                    console.log("game's still on");
+                    return GameState.IN_PROGRESS;
+                }
+            }
+        }
+        console.log("Won!");
+        return GameState.WON;
+    }, [board, clicked, cols, rows])
 
     const fetchBoard = (x, y) => {
         fetch(`http://localhost:8000/board?rows=${rows}&cols=${cols}&start_x=${x}&start_y=${y}&mine_count=${mineCount}`)
@@ -58,7 +74,7 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
     }
 
     const handleClick = (e, x, y) => {
-        if (disableClicks) return;
+        if (gameState === GameState.LOST || gameState === GameState.WON) return;
         if (!board && e.button === 0) {
             setFirstClick({x, y})
             fetchBoard(x, y)
@@ -123,14 +139,19 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
     };
 
     useEffect(() => {
-        if (board && firstClick && !started) {
+        if (board && firstClick && gameState === GameState.NOT_STARTED) {
             handleLeftClick(firstClick.x, firstClick.y);
-            setStarted(true);
             setMines(mineCount)
-            setDisableClicks(false)
+            setGameState(GameState.IN_PROGRESS)
         }
-    }, [board, firstClick, handleLeftClick, mineCount, setFirstClick, setMines, started]);
+    }, [board, firstClick, gameState, handleLeftClick, mineCount, setGameState, setMines]);
 
+    useEffect(() => {
+    if(board){
+        setGameState(checkWin())
+    }
+    }, [checkWin,board, setGameState]);
+    
     return (
         <div className="board">
             {Array.from({ length: rows }).map((_, i) => (
