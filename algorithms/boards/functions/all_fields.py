@@ -2,10 +2,10 @@ from algorithms.boards.functions.moore import moore_neighborhood
 
 
 def all_fields(
-    rows: int, columns: int, field: tuple[int, int]
+    rows: int, columns: int, start_field: tuple[int, int], already_mined_fields: list[tuple[int, int]]
 ) -> list[tuple[int, int]]:
     fields = set()
-    excluded = moore_neighborhood(field, rows, columns).union(set((field,)))
+    excluded = moore_neighborhood(start_field, rows, columns).union(set((start_field,)))
 
     for i in range(rows):
         for j in range(columns):
@@ -15,4 +15,4 @@ def all_fields(
         if excluded_field in fields:
             fields.remove(excluded_field)
 
-    return list(fields)
+    return list(fields.difference(already_mined_fields))

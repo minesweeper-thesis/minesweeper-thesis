@@ -14,7 +14,7 @@ class DataGenerator:
         self.columns = columns
         self.mine_count = mine_count
         self.filename = f"data/{rows},{columns},{mine_count}.json"
-        self.fields = all_fields(rows, columns, (-2, -2))
+        self.fields = all_fields(rows, columns, (-2, -2), [])
 
     def _generate_batch(self, batch_size: int) -> list[dict]:
         data = []
@@ -52,5 +52,5 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    generator = DataGenerator(16, 30, 99)
-    generator.generate(process_count=8, batch_count=10000, batch_size=10)
+    generator = DataGenerator(16, 16, 40)
+    generator.generate(process_count=8, batch_count=263, batch_size=22)

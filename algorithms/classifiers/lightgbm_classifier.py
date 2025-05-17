@@ -9,6 +9,9 @@ from algorithms.classifiers.classifier import Classifier
 
 
 class LightGBMClassifier(Classifier):
+    def __init__(self, num_boost_round: int = 100) -> None:
+        self.num_boost_round = num_boost_round
+
     def fit(self, data: list[tuple[Board, bool]]) -> float:
         X = np.array([board.model_input().reshape(-1) for board, _ in data])
         y = np.array([int(label) for _, label in data])
@@ -27,6 +30,7 @@ class LightGBMClassifier(Classifier):
                 "is_unbalance": True,
             },
             train_data,
+            num_boost_round=self.num_boost_round
         )
 
         preds = self.model.predict(X_test)
@@ -34,12 +38,10 @@ class LightGBMClassifier(Classifier):
         return balanced_accuracy_score(y_test, preds_binary)
 
     def classify(self, board: Board) -> float:
-        arr = board.model_input().reshape(1, -1)
-        return float(self.model.predict(arr)[0])
+        return float(self.model.predict(board.model_input().reshape(1, -1))[0])
 
     def save(self, filename: str) -> None:
-        if not os.path.exists(filename):
-            open(filename, 'a').close()
+        open(filename, "w").close()
         joblib.dump(self.model, filename)
 
     def load(self, filename: str) -> None:

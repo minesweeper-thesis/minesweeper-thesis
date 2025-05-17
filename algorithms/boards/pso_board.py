@@ -65,7 +65,7 @@ class PSOBoard(RandomBoard):
             for i in range(self.mine_count)
         ]
 
-        fields = set(all_fields(self.rows, self.columns, self.start_field))
+        fields = set(all_fields(self.rows, self.columns, self.start_field, []))
         to_change = []
         for i, field in enumerate(self.mined_fields):
             if field in fields:
