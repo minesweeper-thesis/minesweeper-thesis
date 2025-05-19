@@ -7,6 +7,29 @@ from algorithms.heuristics.particle_swarm_heuristic import ParticleSwarmHeuristi
 from algorithms.boards.functions.all_fields import all_fields
 import random
 
+
+'''
+GeneticAlgorithmHeuristic(
+                    classifier,
+                    rows,
+                    columns,
+                    fields[i],
+                    mines,
+                    int(total_boards_no / 50),
+                    50,
+                    10,
+                    0.05,
+                ),
+                ParticleSwarmHeuristic(
+                    classifier,
+                    rows,
+                    columns,
+                    fields[i],
+                    mines,
+                    int(total_boards_no / 25),
+                    25,
+                ),'''
+
 rows, columns, mines = 10, 10, 15
 tries = 10
 classifier = LightGBMClassifier()
@@ -35,30 +58,12 @@ for total_boards_no in (
     for i in range(tries):
         for id, heuristic in enumerate(
             (
-                GeneticAlgorithmHeuristic(
-                    classifier,
-                    rows,
-                    columns,
-                    fields[i],
-                    mines,
-                    int(total_boards_no / 50),
-                    50,
-                    10,
-                    0.05,
-                ),
-                ParticleSwarmHeuristic(
-                    classifier,
-                    rows,
-                    columns,
-                    fields[i],
-                    mines,
-                    int(total_boards_no / 25),
-                    25,
-                ),
-                NaiveHeuristic(
-                    classifier, rows, columns, fields[i], mines, total_boards_no
-                ),
-                MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no/5), 5),
+                #NaiveHeuristic(
+                #    classifier, rows, columns, fields[i], mines, total_boards_no
+                #),
+                #MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15),
+                MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15, 0.7),
+                MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15, 0.5),
                 #NoHeuristic(rows, columns, fields[i], mines),
             )
         ):

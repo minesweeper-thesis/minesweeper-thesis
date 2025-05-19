@@ -13,7 +13,7 @@ class Node:
         mined_fields: list[tuple[int, int]],
         parent: "Node",
         children: list["Node"],
-        c: int = math.sqrt(2),
+        c: float
     ) -> None:
         self.accumulated_reward: float = 0
         self.visits: int = 0
@@ -44,35 +44,28 @@ class MCTSHeuristic(Heuristic):
         start_field: tuple[int, int],
         mine_count: int,
         tries: int,
-        depth: int
+        depth: int,
+        c: int = math.sqrt(2)
     ) -> None:
         Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.tries = tries
         self.depth = depth
+        self.c = c
 
     def _expand(self, node: Node) -> Node:
         if len(node.mined_fields) == self.mine_count:
             return node
 
-        # symmetry breaking - up for modification
-        fields = all_fields(
-                self.rows, self.columns, self.start_field, node.mined_fields
-            )
+        fields = sorted(
+            all_fields(self.rows, self.columns, self.start_field, node.mined_fields)
+        )[: -(self.mine_count - len(node.mined_fields))]
         available_fields = [
             field
             for field in fields
-            if not node.mined_fields
-            or field[0] < node.mined_fields[-1][0]
-            or (
-                field[0] == node.mined_fields[-1][0]
-                and field[1] < node.mined_fields[-1][1]
-            )
+            if not node.mined_fields or field > node.mined_fields[-1]
         ]
         for field in available_fields:
-            node.children.append(Node(node.mined_fields + [field], node, []))
-
-        if not node.children:
-            node.children.append(Node(node.mined_fields + [random.choice(fields)], node, []))
+            node.children.append(Node(node.mined_fields + [field], node, [], self.c))
 
         return random.choice(node.children)
 
@@ -83,7 +76,7 @@ class MCTSHeuristic(Heuristic):
             self.start_field,
             self.mine_count,
             node.mined_fields,
-        ) # change so that mined fields follow order, also change so that there has to be at least mine_count - already_chosen after the last field in already chosen fields
+        )
 
         return self.classifier.classify(board)
 
@@ -110,7 +103,7 @@ class MCTSHeuristic(Heuristic):
             self._propagate(reward, expanded_node)
 
     def run(self) -> Board:
-        root = Node([], None, [])
+        root = Node([], None, [], self.c)
 
         for i in range(self.mine_count):
             if i % self.depth == 0 or not root.children:

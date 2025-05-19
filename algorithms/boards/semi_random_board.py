@@ -14,6 +14,7 @@ class SemiRandomBoard(Board):
     ) -> None:
         fields = all_fields(rows, columns, start_field, already_mined_fields)
         random.shuffle(fields)
+        fields = [field for field in fields if field > already_mined_fields[-1]]
 
         if len(already_mined_fields) > mine_count:
             already_mined_fields = already_mined_fields[:mine_count]
