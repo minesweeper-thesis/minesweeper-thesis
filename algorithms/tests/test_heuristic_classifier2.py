@@ -62,7 +62,7 @@ for total_boards_no in (
                 #    classifier, rows, columns, fields[i], mines, total_boards_no
                 #),
                 #MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15),
-                MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15, 0.7),
+                MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15),
                 MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15, 0.5),
                 #NoHeuristic(rows, columns, fields[i], mines),
             )
