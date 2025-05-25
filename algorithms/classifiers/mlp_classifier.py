@@ -1,15 +1,16 @@
-import xgboost as xgb
-import numpy as np
-import joblib
+from sklearn.neural_network import MLPClassifier as SklearnMLPClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import balanced_accuracy_score
+import numpy as np
+import joblib
 from algorithms.boards.board import Board
 from algorithms.classifiers.classifier import Classifier
 
 
-class XGBoostClassifier(Classifier):
-    def __init__(self, num_boost_round: int = 100) -> None:
-        self.num_boost_round = num_boost_round
+class MLPClassifier(Classifier):
+    def __init__(self, hidden_layer_sizes=(100,), max_iter=200) -> None:
+        self.hidden_layer_sizes = hidden_layer_sizes
+        self.max_iter = max_iter
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
         X = np.array([board.model_input().reshape(-1) for board, _ in data])
@@ -19,10 +20,8 @@ class XGBoostClassifier(Classifier):
             X, y, test_size=0.2, stratify=y
         )
 
-        self.model = xgb.XGBClassifier(
-            objective="binary:logistic",
-            n_estimators=self.num_boost_round,
-            eval_metric="logloss",
+        self.model = SklearnMLPClassifier(
+            hidden_layer_sizes=self.hidden_layer_sizes, max_iter=self.max_iter
         )
         self.model.fit(X_train, y_train)
 
@@ -30,7 +29,7 @@ class XGBoostClassifier(Classifier):
         return balanced_accuracy_score(y_test, preds)
 
     def classify(self, board: Board) -> float:
-        return float(self.model.predict_proba(board.model_input().reshape(1, -1))[0, 1])
+        return float(self.model.predict_proba(board.model_input().reshape(1, -1))[0][1])
 
     def save(self, filename: str) -> None:
         joblib.dump(self.model, filename)

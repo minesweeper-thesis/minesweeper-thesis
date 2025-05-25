@@ -21,9 +21,8 @@ class CatBoostClassifier(Classifier):
 
         self.model = CBC(
             iterations=self.num_boost_round,
-            verbose=0,
             loss_function="Logloss",
-            class_weights=[1.0, sum(y == 0) / sum(y == 1)]
+            class_weights=[1.0, sum(y == 0) / sum(y == 1)],
         )
         self.model.fit(X_train, y_train)
 
