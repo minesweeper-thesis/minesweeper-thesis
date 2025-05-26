@@ -6,6 +6,8 @@ import DifficultyMenu from './components/DifficultyMenu';
 import { GameState } from './utility';
 import './App.css';
 import VictoryScreen from "./components/VictoryScreen";
+import PauseScreen from "./components/PauseScreen";
+import LoginScreen from "./components/LoginScreen";
 
 export default function App() {
     const [view, setView] = useState('menu');
@@ -39,6 +41,16 @@ export default function App() {
         setGameState(GameState.NOT_STARTED);
     };
 
+    const pauseGame = () => {
+        console.log('gameState in Controls:', gameState);
+        console.log('GameState.IN_PROGRESS:', GameState.IN_PROGRESS);
+        if(gameState === GameState.IN_PROGRESS)
+        setGameState(GameState.PAUSED);
+    };
+
+    const resumeGame = () => {
+        setGameState(GameState.IN_PROGRESS);
+    };
     const returnToMenu = () => {
         setData(null);
         setFirstClick(null);
@@ -49,11 +61,14 @@ export default function App() {
 
     return (
         <div className="game">
-            {view === 'menu' && <MainMenu onPlay={() => setView('difficulty')} />}
+            {view === 'menu' && <MainMenu onPlay={() => setView('difficulty')}
+                                          onLogin={() => setView('login')}/>}
+
             {view === 'difficulty' && <DifficultyMenu onSelect={startGame} onBack={() => setView('menu')} />}
+            {view === 'login' && <LoginScreen />}
             {view === 'game' && (
                 <>
-                    <Controls onReset={handleReset} onNewGame={handleNewGame} onMenu={returnToMenu} mines={mines} />
+                    <Controls onReset={handleReset} onNewGame={handleNewGame} onMenu={returnToMenu} mines={mines} onPause={pauseGame} gameState={gameState} />
                     <div className="game-board">
                         {data === null ? (
                             <Board board={null} setBoard={setData} rows={rows} cols={cols} mineCount={mineCount}
@@ -68,6 +83,7 @@ export default function App() {
                 </>
             )}
             {gameState === GameState.WON && <VictoryScreen onPlayAgain={handleNewGame} />}
+            {gameState === GameState.PAUSED && <PauseScreen resumeGame={resumeGame} />}
         </div>
     );
 }

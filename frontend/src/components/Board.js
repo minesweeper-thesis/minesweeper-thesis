@@ -74,7 +74,7 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
     }
 
     const handleClick = (e, x, y) => {
-        if (gameState === GameState.LOST || gameState === GameState.WON) return;
+        if (gameState === GameState.LOST || gameState === GameState.WON || gameState === GameState.PAUSED) return;
         if (!board && e.button === 0) {
             setFirstClick({x, y})
             fetchBoard(x, y)
@@ -147,10 +147,10 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
     }, [board, firstClick, gameState, handleLeftClick, mineCount, setGameState, setMines]);
 
     useEffect(() => {
-    if(board){
+    if(board && gameState === GameState.IN_PROGRESS){
         setGameState(checkWin())
     }
-    }, [checkWin,board, setGameState]);
+    }, [checkWin,board, setGameState, gameState]);
     
     return (
         <div className="board">

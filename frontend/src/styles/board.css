@@ -1,7 +1,20 @@
 .board {
-    display: inline-block;
+    display: flex;
+    flex-direction: column;
 }
 
 .board-row {
-    clear: both;
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: center;
+}
+
+@media (max-width: 600px) {
+    .board {
+        flex-direction: row;
+    }
+
+    .board-row {
+        flex-direction: column;
+    }
 }
