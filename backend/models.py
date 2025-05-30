@@ -1,28 +1,28 @@
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, ForeignKey, CheckConstraint,
-    UniqueConstraint, Index
+    UniqueConstraint, Index, Text
 )
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = 'user'
 
     id = Column(Integer, primary_key=True)
     email = Column(String, unique=True, nullable=False, index=True)
-    nickname = Column(String, nullable=False)
+    nickname = Column(String, unique=True, nullable=False, index=True)
     password = Column(String, nullable=False)
-    generatorsettings = Column(String)
+    generatorsettings = Column(Text, nullable=False, index=True)
 
     boards = relationship('Gameplay', back_populates='user', cascade='all, delete')
 
 
 class Friend(Base):
-    __tablename__ = 'friends'
+    __tablename__ = 'friend'
 
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
-    friend_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    friend_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
 
     __table_args__ = (
         CheckConstraint('user_id != friend_id', name='check_not_self_friend'),
@@ -30,10 +30,10 @@ class Friend(Base):
 
 
 class FriendInvitation(Base):
-    __tablename__ = 'friend_invitations'
+    __tablename__ = 'friend_invitation'
 
-    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
-    friend_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    user_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
+    friend_id = Column(Integer, ForeignKey('user.id'), primary_key=True)
 
     __table_args__ = (
         CheckConstraint('user_id != friend_id', name='check_not_self_invite'),
@@ -41,7 +41,7 @@ class FriendInvitation(Base):
 
 
 class BoardType(Base):
-    __tablename__ = 'board_types'
+    __tablename__ = 'board_type'
 
     id = Column(Integer, primary_key=True)
     rows = Column(Integer, nullable=False)
@@ -50,36 +50,32 @@ class BoardType(Base):
     start_field = Column(String, nullable=False)
 
     __table_args__ = (
-        Index('ix_boardtype_unique', 'rows', 'columns', 'mine_count', 'start_field'),
+        Index('rows', 'columns', 'mine_count', 'start_field', name='ix_boardtype'),
+        UniqueConstraint('rows', 'columns', 'mine_count', 'start_field', name='uq_boardtype_tuple'),
     )
 
     boards = relationship('Board', back_populates='board_type')
 
 
 class Board(Base):
-    __tablename__ = 'boards'
+    __tablename__ = 'board'
 
     id = Column(Integer, primary_key=True)
-    boardtype_id = Column(Integer, ForeignKey('board_types.id'), nullable=False)
-    minedfields = Column(String, nullable=False)
-
-    __table_args__ = (
-        Index('ix_boardtype_id', 'boardtype_id'),
-        Index('ix_minedfields', 'minedfields'),
-    )
+    boardtype_id = Column(Integer, ForeignKey('board_type.id'), nullable=False, index=True)
+    minedfields = Column(Text, unique=True, nullable=False, index=True)
 
     board_type = relationship('BoardType', back_populates='boards')
     gameplays = relationship('Gameplay', back_populates='board')
 
 
 class Gameplay(Base):
-    __tablename__ = 'gameplays'
+    __tablename__ = 'gameplay'
 
     id = Column(Integer, primary_key=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    board_id = Column(Integer, ForeignKey('boards.id'), nullable=False)
-    score = Column(Float, nullable=False)
-    time = Column(Float, nullable=False)
+    user_id = Column(Integer, ForeignKey('user.id'), nullable=False, index=True)
+    board_id = Column(Integer, ForeignKey('board.id'), nullable=False, index=True)
+    score = Column(Float, nullable=False, default=0.0, index=True)
+    time = Column(Float, nullable=False, index=True)
     used_prompts = Column(Boolean, nullable=False, default=False)
 
     user = relationship('User', back_populates='boards')
