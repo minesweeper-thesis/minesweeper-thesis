@@ -1,3 +1,5 @@
+import uuid
+
 from sqlalchemy import (
     UUID,
     Column,
@@ -16,7 +18,7 @@ from .base import Base
 class BoardType(Base):
     __tablename__ = "board_type"
 
-    id = Column(UUID, primary_key=True)
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
     rows = Column(Integer, nullable=False)
     columns = Column(Integer, nullable=False)
     mine_count = Column(Integer, nullable=False)
@@ -33,7 +35,7 @@ class BoardType(Base):
 class Board(Base):
     __tablename__ = "board"
 
-    id = Column(UUID, primary_key=True)
+    id = Column(UUID, primary_key=True, default=uuid.uuid4)
     board_type_id = Column(
         UUID, ForeignKey("board_type.id"), nullable=False, index=True
     )

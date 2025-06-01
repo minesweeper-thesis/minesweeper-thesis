@@ -1,8 +1,9 @@
+import uuid
+
 from fastapi_users.schemas import BaseUser, BaseUserCreate
 
-from .db import *
-from .models import *
-from uuid import UUID
+from ..db import *
+from ..models import *
 
 
 class UserCreate(BaseUserCreate):
@@ -10,7 +11,7 @@ class UserCreate(BaseUserCreate):
     generator_settings: str
 
 
-class UserRead(BaseUser[UUID]):
+class UserRead(BaseUser[uuid.UUID]):
     nickname: str
 
     class Config:

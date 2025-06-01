@@ -1,19 +1,17 @@
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Depends
+from fastapi import Depends
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
     CookieTransport,
     JWTStrategy,
 )
+from fastapi_users.db import SQLAlchemyUserDatabase
 
 from ..db import *
 from ..models import *
 from ..schemas import *
-
-auth_router = APIRouter()
-
 
 cookie_transport = CookieTransport(cookie_name="auth", cookie_max_age=3600)
 
@@ -37,6 +35,10 @@ class UserManager(UUIDIDMixin, BaseUserManager[User, UUID]):
     verification_token_secret = SECRET
 
 
+async def get_user_db(session: AsyncSession = Depends(get_async_session)):
+    yield SQLAlchemyUserDatabase(session, User)
+
+
 async def get_user_manager(
     user_db=Depends(get_user_db),
 ) -> AsyncGenerator[UserManager, None]:
@@ -45,9 +47,4 @@ async def get_user_manager(
 
 fastapi_users = FastAPIUsers[User, int](get_user_manager, [auth_backend])
 
-
-auth_router.include_router(fastapi_users.get_auth_router(auth_backend))
-
-auth_router.include_router(fastapi_users.get_register_router(UserRead, UserCreate))
-
-auth_router.include_router(fastapi_users.get_users_router(UserRead, UserUpdate))
+get_current_user = fastapi_users.current_user(active=True)
