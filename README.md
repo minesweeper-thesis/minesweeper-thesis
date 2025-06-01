@@ -1,6 +1,6 @@
 # Backend
 ## Run
-`python3 -m uvicorn --reload backend.main:app`
+`python3 backend.py`
 
 # Frontend
 ## Run
