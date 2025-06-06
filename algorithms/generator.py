@@ -26,7 +26,7 @@ class Generator:
         self,
         classifier: str,
         heuristic: str,
-        heuristic_args: list,
+        heuristic_args: tuple,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
