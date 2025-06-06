@@ -45,12 +45,15 @@ class MCTSHeuristic(Heuristic):
         mine_count: int,
         tries: int,
         depth: int,
+        simulation_count: int,
+
         c: int = math.sqrt(2)
     ) -> None:
         Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.tries = tries
         self.depth = depth
         self.c = c
+        self.simulation_count = simulation_count
 
     def _expand(self, node: Node) -> Node:
         if len(node.mined_fields) == self.mine_count:
@@ -70,15 +73,20 @@ class MCTSHeuristic(Heuristic):
         return random.choice(node.children)
 
     def _rollout(self, node: Node) -> float:
-        board = SemiRandomBoard(
-            self.rows,
-            self.columns,
-            self.start_field,
-            self.mine_count,
-            node.mined_fields,
-        )
+        sum_rollout = 0.0
 
-        return self.classifier.classify(board)
+        for _ in range(self.simulation_count):
+            board = SemiRandomBoard(
+                self.rows,
+                self.columns,
+                self.start_field,
+                self.mine_count,
+                node.mined_fields,
+            )
+
+            sum_rollout += self.classifier.classify(board)
+        
+        return sum_rollout/self.simulation_count
 
     def _propagate(self, score: float, node: Node) -> None:
         while node:

@@ -34,7 +34,7 @@ rows, columns, mines = 10, 10, 15
 tries = 10
 classifier = LightGBMClassifier()
 classifier.load(
-    "algorithms/tests/" + str(rows) + "," + str(columns) + "," + str(mines) + ".model"
+    "algorithms/models/" + str(rows) + "," + str(columns) + "," + str(mines) + "_lightgbm.model"
 )
 fields = all_fields(rows, columns, (-2, -2), [])
 fields = [random.choice(fields) for _ in range(tries)]
@@ -58,12 +58,13 @@ for total_boards_no in (
     for i in range(tries):
         for id, heuristic in enumerate(
             (
-                #NaiveHeuristic(
-                #    classifier, rows, columns, fields[i], mines, total_boards_no
-                #),
+                NaiveHeuristic(
+                    classifier, rows, columns, fields[i], mines, total_boards_no
+                ),
                 #MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15),
-                MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15),
-                MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15, 0.5),
+                MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20),1), 15, 20),
+                MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20/3),1), 5, 20),
+                MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20/15),1), 1, 20),
                 #NoHeuristic(rows, columns, fields[i], mines),
             )
         ):
