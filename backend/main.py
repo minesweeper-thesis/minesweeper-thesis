@@ -1,6 +1,19 @@
+from typing import AsyncIterator
+
 from fastapi import FastAPI
-from algorithms.boards.random_board import RandomBoard
+from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+
+from . import routers
+from .db import *
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    await init_db()
+    yield
+    await engine.dispose()
+
 
 app = FastAPI()
 
@@ -13,10 +26,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.get("/board")
-async def get_board(rows: int, cols: int, start_x: int, start_y: int, mine_count: int):
-    print(rows, cols, (start_x, start_y), mine_count)
-    board = RandomBoard(rows, cols, (start_x, start_y), mine_count)
-    board.grid().print_solved()
-    return board.grid().grid
+app.include_router(routers.auth_router, prefix="/auth")
+app.include_router(routers.game_router)
+app.include_router(routers.user_router)
