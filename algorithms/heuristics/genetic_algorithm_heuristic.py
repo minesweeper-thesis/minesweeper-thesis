@@ -13,6 +13,7 @@ class GeneticAlgorithmHeuristic(Heuristic):
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
+        
         generations: int,
         population_size: int,
         parents_size: int,

@@ -13,6 +13,7 @@ class ParticleSwarmHeuristic(Heuristic):
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
+        
         iterations: int,
         particle_count: int,
         w_coefficient: float = 0.729,

@@ -10,5 +10,6 @@ class SolvableBoard(Board):
         checker = Checker(heuristic.rows,heuristic.columns,heuristic.start_field,heuristic.mine_count)
         while True:
             self = heuristic.run()
+            
             if checker.is_solvable(self):
                 break

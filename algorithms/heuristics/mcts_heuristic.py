@@ -43,10 +43,10 @@ class MCTSHeuristic(Heuristic):
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
+        
         tries: int,
         depth: int,
         simulation_count: int,
-
         c: int = math.sqrt(2)
     ) -> None:
         Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)

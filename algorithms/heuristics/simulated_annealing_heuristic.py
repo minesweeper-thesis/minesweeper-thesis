@@ -15,6 +15,7 @@ class SimulatedAnnealingHeuristic(Heuristic):
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
+        
         iterations: int,
         fields_changed: int,
         T_MAX: float = 100.0,
