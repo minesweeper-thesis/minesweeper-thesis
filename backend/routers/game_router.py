@@ -1,8 +1,6 @@
-import uuid
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Depends, Response
-
-from backend.services import auth_service, game_service, user_service
+from backend.services import game_service
 
 from ..db import *
 from ..models import *
@@ -10,7 +8,20 @@ from ..schemas import *
 
 game_router = APIRouter()
 
+DIFFICULTY_LEVELS = [(10, 10, 15), (16, 16, 40), (16, 30, 99)]
 
-@game_router.get("/board")
-async def get_board(rows: int, cols: int, start_x: int, start_y: int, mine_count: int):
-    return game_service.generate_random_board(rows, cols, start_x, start_y, mine_count)
+
+@game_router.post("/board", response_model=BoardSchema)
+async def get_board(generator_input: GeneratorInputSchema):
+    """Generates a board as `list[list[int]]`"""
+
+    difficulty_level = (
+        generator_input.rows,
+        generator_input.columns,
+        generator_input.mine_count,
+    )
+
+    if difficulty_level not in DIFFICULTY_LEVELS:
+        return game_service.generate_random_board(generator_input)
+
+    return game_service.generate_board(generator_input)

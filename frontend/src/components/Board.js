@@ -65,7 +65,23 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
     }, [board, clicked, cols, rows])
 
     const fetchBoard = (x, y) => {
-        fetch(`http://localhost:8000/board?rows=${rows}&cols=${cols}&start_x=${x}&start_y=${y}&mine_count=${mineCount}`)
+        const data = {
+            rows,
+            columns: cols,
+            start_field: [x, y],
+            mine_count: mineCount,
+            classifier: "lightgbm",
+            heuristic: "no",
+            heuristic_args: [],
+        };
+
+        fetch('http://localhost:8000/board', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
             .then(res => res.json())
             .then(data => {
                 setBoard(data)
