@@ -71,8 +71,8 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
             start_field: [x, y],
             mine_count: mineCount,
             classifier: "lightgbm",
-            heuristic: "no",
-            heuristic_args: [],
+            heuristic: "GA",
+            heuristic_args: [10,50,10,0.05],
         };
 
         fetch('http://localhost:8000/board', {

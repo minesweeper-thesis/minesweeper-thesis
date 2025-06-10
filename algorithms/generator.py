@@ -132,5 +132,6 @@ class Generator:
             board = self.heuristic.run()
 
             if checker.is_solvable(board):
+                board.grid().print_solved()
                 return board
 
