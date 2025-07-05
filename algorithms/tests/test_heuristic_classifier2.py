@@ -30,7 +30,7 @@ GeneticAlgorithmHeuristic(
                     25,
                 ),'''
 
-rows, columns, mines = 10, 10, 15
+rows, columns, mines = 16, 30, 99
 tries = 10
 classifier = LightGBMClassifier()
 classifier.load(
@@ -61,10 +61,12 @@ for total_boards_no in (
                 NaiveHeuristic(
                     classifier, rows, columns, fields[i], mines, total_boards_no
                 ),
+                GeneticAlgorithmHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no/50), 50, 10, 0.05),
+                ParticleSwarmHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no/50), 50)
                 #MCTSHeuristic(classifier, rows, columns, fields[i], mines, int(total_boards_no), 15),
-                MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20),1), 15, 20),
-                MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20/3),1), 5, 20),
-                MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20/15),1), 1, 20),
+                #MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20),1), 15, 20),
+                #MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20/3),1), 5, 20),
+                #MCTSHeuristic(classifier, rows, columns, fields[i], mines, max(int(total_boards_no/20/15),1), 1, 20),
                 #NoHeuristic(rows, columns, fields[i], mines),
             )
         ):

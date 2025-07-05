@@ -133,5 +133,6 @@ class Generator:
 
             if checker.is_solvable(board):
                 board.grid().print_solved()
+                print(sorted(board.mined_fields))
                 return board
 
