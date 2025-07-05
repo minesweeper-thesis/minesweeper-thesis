@@ -132,7 +132,4 @@ class Generator:
             board = self.heuristic.run()
 
             if checker.is_solvable(board):
-                board.grid().print_solved()
-                print(sorted(board.mined_fields))
                 return board
-
