@@ -12,7 +12,6 @@ class NaiveHeuristic(Heuristic):
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        
         tries: int,
     ) -> None:
         Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
