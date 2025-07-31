@@ -52,5 +52,5 @@ class DataGenerator:
 
 
 if __name__ == "__main__":
-    generator = DataGenerator(16, 30, 99)
-    generator.generate(process_count=cpu_count(), batch_count=1087, batch_size=4)
+    generator = DataGenerator(16, 16, 40)
+    generator.generate(process_count=cpu_count(), batch_count=256, batch_size=14)

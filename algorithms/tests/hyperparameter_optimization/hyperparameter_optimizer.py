@@ -18,6 +18,7 @@ class HyperparameterOptimizer:
         tries: int,
         param_space: list,
         constraint: Callable[[tuple], bool],
+        classifier_model_file: str,
     ) -> None:
         self.classifier = classifier
         self.heuristic = heuristic
@@ -25,6 +26,7 @@ class HyperparameterOptimizer:
         self.columns = columns
         self.mine_count = mine_count
         self.tries = tries
+        self.classifier_model_file = classifier_model_file
         self.fields = all_fields(rows, columns, (-2, -2), [])
         self.fields = [random.choice(self.fields) for _ in range(tries)]
         self.constraint = constraint
@@ -59,6 +61,7 @@ class HyperparameterOptimizer:
                 self.columns,
                 self.fields[i],
                 self.mine_count,
+                self.classifier_model_file,
             ).generate()
 
         end = time.time()
@@ -79,6 +82,7 @@ class HyperparameterOptimizer:
             "fields": self.fields,
             "optimizer": self.optimizer,
         }
+        open(filename, "w").close()
         joblib.dump(state, filename)
 
     def load(self, filename: str) -> None:
@@ -92,3 +96,6 @@ class HyperparameterOptimizer:
         self.constraint = state["constraint"]
         self.fields = state["fields"]
         self.optimizer = state["optimizer"]
+
+    def get_iterations_done(self) -> int:
+        return len(self.optimizer.Xi)

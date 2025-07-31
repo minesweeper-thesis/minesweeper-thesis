@@ -24,7 +24,7 @@ class CatBoostClassifier(Classifier):
             loss_function="Logloss",
             class_weights=[1.0, sum(y == 0) / sum(y == 1)],
         )
-        self.model.fit(X_train, y_train)
+        self.model.fit(X_train, y_train, verbose=0)
 
         preds = self.model.predict(X_test)
         return balanced_accuracy_score(y_test, preds)

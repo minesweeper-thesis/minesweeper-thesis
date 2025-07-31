@@ -8,8 +8,8 @@ from algorithms.classifiers.classifier import Classifier
 
 
 class GradientBoostingClassifier(Classifier):
-    def __init__(self, n_estimators: int = 100, learning_rate: float = 0.1) -> None:
-        self.model = SklearnGBC(n_estimators=n_estimators, learning_rate=learning_rate)
+    def __init__(self, n_estimators: int = 100) -> None:
+        self.model = SklearnGBC(n_estimators=n_estimators)
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
         X = np.array([board.model_input().reshape(-1) for board, _ in data])

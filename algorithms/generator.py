@@ -31,13 +31,14 @@ class Generator:
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
+        classifier_model_file: str,
     ) -> None:
         match classifier:
             case "lightgbm":
                 self.classifier = LightGBMClassifier()
             case "catboost":
                 self.classifier = CatBoostClassifier()
-            case "gaussian":
+            case "gaussiannb":
                 self.classifier = GaussianNBClassifier()
             case "mlp":
                 self.classifier = MLPClassifier()
@@ -46,17 +47,6 @@ class Generator:
             case "gradientboosting":
                 self.classifier = GradientBoostingClassifier()
 
-        classifier_model_file = (
-            "algorithms/models/"
-            + str(rows)
-            + ","
-            + str(columns)
-            + ","
-            + str(mine_count)
-            + "_"
-            + classifier
-            + ".model"
-        )
         self.classifier.load(classifier_model_file)
 
         match heuristic:

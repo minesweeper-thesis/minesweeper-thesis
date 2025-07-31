@@ -1,7 +1,10 @@
 Tests to implement:
+- for each heuristic:
+  - balanced accuracy for different variants, then choose best, smallest and middle-of-the-road
 - for each pair heuristic + classifier find optimal hyperparameters for the heuristic - optimal means one that generates solvable boards the fastest
 - for each classifier:
   - for each heuristic:
     - increase boards throughout generation and plot classifier output
     - rest of parameters the same as in optimal heuristics
 - distribution of tries and generation time for each config
+- number of iterations comparison
