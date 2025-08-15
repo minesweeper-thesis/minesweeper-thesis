@@ -6,6 +6,8 @@ from algorithms.boards.functions.all_fields import all_fields
 import math
 import random
 
+# change c to class variable
+
 
 class Node:
     def __init__(
@@ -13,7 +15,7 @@ class Node:
         mined_fields: list[tuple[int, int]],
         parent: "Node",
         children: list["Node"],
-        c: float
+        c: float,
     ) -> None:
         self.accumulated_reward: float = 0
         self.visits: int = 0
@@ -43,11 +45,10 @@ class MCTSHeuristic(Heuristic):
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        
         tries: int,
         depth: int,
         simulation_count: int,
-        c: int = math.sqrt(2)
+        c: int = math.sqrt(2),
     ) -> None:
         Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.tries = tries
@@ -85,8 +86,8 @@ class MCTSHeuristic(Heuristic):
             )
 
             sum_rollout += self.classifier.classify(board)
-        
-        return sum_rollout/self.simulation_count
+
+        return sum_rollout / self.simulation_count
 
     def _propagate(self, score: float, node: Node) -> None:
         while node:
