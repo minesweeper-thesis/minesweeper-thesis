@@ -1,15 +1,20 @@
+import enum
+import uuid
+
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
-from sqlalchemy import UUID, CheckConstraint, Column, ForeignKey, String, Text
+from sqlalchemy import CheckConstraint, Column, Enum, ForeignKey, String, Text, Uuid
 from sqlalchemy.orm import relationship
 
-from .base import Base
+from backend.models.base import Base
 
 
-class Friend(Base):
-    __tablename__ = "friend"
+class Friendship(Base):
+    __tablename__ = "friendship"
 
-    user_id = Column(UUID, ForeignKey("user.id"), primary_key=True)
-    friend_id = Column(UUID, ForeignKey("user.id"), primary_key=True)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+
+    user_id = Column(Uuid, ForeignKey("user.id"), primary_key=True)
+    friend_id = Column(Uuid, ForeignKey("user.id"), primary_key=True)
 
     user = relationship("User", foreign_keys=[user_id], back_populates="friends")
     friend = relationship("User", foreign_keys=[friend_id], back_populates="friend_of")
@@ -19,45 +24,59 @@ class Friend(Base):
     )
 
 
-class FriendInvitation(Base):
-    __tablename__ = "friend_invitation"
+class FriendRequestStatus(enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    rejected = "rejected"
 
-    user_id = Column(UUID, ForeignKey("user.id"), primary_key=True)
-    friend_id = Column(UUID, ForeignKey("user.id"), primary_key=True)
+
+class FriendRequest(Base):
+    __tablename__ = "friend_request"
+
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+
+    user_id = Column(Uuid, ForeignKey("user.id"), primary_key=True)
+    friend_id = Column(Uuid, ForeignKey("user.id"), primary_key=True)
 
     user = relationship(
-        "User", foreign_keys=[user_id], back_populates="sent_invitations"
+        "User", foreign_keys=[user_id], back_populates="sent_friend_requests"
     )
     friend = relationship(
-        "User", foreign_keys=[friend_id], back_populates="received_invitations"
+        "User", foreign_keys=[friend_id], back_populates="received_friend_requests"
     )
 
     __table_args__ = (
-        CheckConstraint("user_id != friend_id", name="check_not_self_invite"),
+        CheckConstraint("user_id != friend_id", name="check_not_self_request"),
+    )
+    status = Column(
+        Enum(FriendRequestStatus, name="friend_request_status"),
+        nullable=False,
+        default="pending",
     )
 
 
 class User(Base, SQLAlchemyBaseUserTableUUID):
     __tablename__ = "user"
 
-    email = Column(String, unique=True, nullable=False, index=True)
-    nickname = Column(String, unique=True, nullable=False, index=True)
+    id = Column(Uuid, primary_key=True, default=uuid.uuid4)
+
+    nickname = Column(String, nullable=False, index=True)
     generator_settings = Column(Text, nullable=False, index=True)
 
     boards = relationship("Gameplay", back_populates="user", cascade="all, delete")
     friends = relationship(
-        "Friend", foreign_keys=[Friend.user_id], back_populates="user"
+        "Friendship", foreign_keys=[Friendship.user_id], back_populates="user"
     )
     friend_of = relationship(
-        "Friend", foreign_keys=[Friend.friend_id], back_populates="friend"
+        "Friendship", foreign_keys=[Friendship.friend_id], back_populates="friend"
     )
-    sent_invitations = relationship(
-        "FriendInvitation",
-        foreign_keys=[FriendInvitation.user_id],
+    sent_friend_requests = relationship(
+        "FriendRequest",
+        foreign_keys=[FriendRequest.user_id],
         back_populates="user",
     )
-    received_invitations = relationship(
-        "FriendInvitation",
-        foreign_keys=[FriendInvitation.friend_id],
+    received_friend_requests = relationship(
+        "FriendRequest",
+        foreign_keys=[FriendRequest.friend_id],
         back_populates="friend",
     )

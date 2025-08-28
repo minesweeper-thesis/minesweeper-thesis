@@ -15,7 +15,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await engine.dispose()
 
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 # Konfiguracja CORS niezbyt specyficzna, ale chciałem coś co działa bez zabawy
 app.add_middleware(
