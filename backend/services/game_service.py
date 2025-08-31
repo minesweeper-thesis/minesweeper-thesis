@@ -19,5 +19,15 @@ def generate_random_board(generator_input: GeneratorInputSchema):
 
 
 def generate_board(generator_input: GeneratorInputSchema):
-    generator = Generator(**generator_input.model_dump())
+    rows = generator_input.rows
+    cols = generator_input.columns
+    mine_count = generator_input.mine_count
+    classifier = generator_input.classifier
+    classifier_model_file = (
+        f"algorithms/models/{rows},{cols},{mine_count}_{classifier}6400.model"
+    )
+
+    generator = Generator(
+        **generator_input.model_dump(), classifier_model_file=classifier_model_file
+    )
     return generator.generate().grid().grid

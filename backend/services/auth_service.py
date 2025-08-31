@@ -1,3 +1,4 @@
+import os
 import uuid
 from typing import AsyncGenerator
 
@@ -16,7 +17,7 @@ from ..schemas import *
 
 cookie_transport = CookieTransport(cookie_name="auth", cookie_max_age=3600)
 
-SECRET = "rEpEeWsEnIm"
+SECRET = os.getenv("AUTH_SECRET", "rEpEeWsEnIm")
 
 
 def get_jwt_strategy() -> JWTStrategy:

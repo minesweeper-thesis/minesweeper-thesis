@@ -1,6 +1,6 @@
 import uuid
 
-from fastapi_users.schemas import BaseUser, BaseUserCreate
+from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 
 from ..db import *
 from ..models import *
@@ -18,5 +18,5 @@ class UserRead(BaseUser[uuid.UUID]):
         from_attributes = True
 
 
-class UserUpdate(BaseUserCreate):
+class UserUpdate(BaseUserUpdate):
     nickname: str
