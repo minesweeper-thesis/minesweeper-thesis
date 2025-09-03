@@ -1,10 +1,12 @@
-from algorithms.generator import Generator
-from algorithms.boards.functions.all_fields import all_fields
-from skopt import Optimizer
-from typing import Callable
-import time
 import random
+import time
+from typing import Callable
+
 import joblib
+from skopt import Optimizer
+
+from algorithms.boards.functions.all_fields import all_fields
+from algorithms.generator import Generator
 
 
 class HyperparameterOptimizer:
@@ -18,7 +20,7 @@ class HyperparameterOptimizer:
         tries: int,
         param_space: list,
         constraint: Callable[[tuple], bool],
-        classifier_model_file: str,
+        classifier_iterations: int = -1,
     ) -> None:
         self.classifier = classifier
         self.heuristic = heuristic
@@ -26,7 +28,7 @@ class HyperparameterOptimizer:
         self.columns = columns
         self.mine_count = mine_count
         self.tries = tries
-        self.classifier_model_file = classifier_model_file
+        self.classifier_iterations = classifier_iterations
         self.fields = all_fields(rows, columns, (-2, -2), [])
         self.fields = [random.choice(self.fields) for _ in range(tries)]
         self.constraint = constraint
@@ -61,7 +63,7 @@ class HyperparameterOptimizer:
                 self.columns,
                 self.fields[i],
                 self.mine_count,
-                self.classifier_model_file,
+                self.classifier_iterations,
             ).generate()
 
         end = time.time()

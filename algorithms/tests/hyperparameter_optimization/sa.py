@@ -1,10 +1,11 @@
+import random
+from pathlib import Path
+
+from skopt.space import Integer, Real
+
 from algorithms.tests.hyperparameter_optimization.hyperparameter_optimizer import (
     HyperparameterOptimizer,
 )
-from skopt.space import Integer, Real
-from pathlib import Path
-import random
-
 
 TRIES = 20
 ALL_ITERATIONS = 100
@@ -24,14 +25,9 @@ def constraint_func(params):
 def optimize(params):
     print(params)
     rows, columns, mine_count, classifier, classifier_iterations, search_size = params
-    if classifier_iterations > -1:
-        classifier_model_file = f"algorithms/models/{rows},{columns},{mine_count}_{classifier}{classifier_iterations}.model"
-        filename = f"algorithms/tests/hyperparameter_optimization/hyperparameters/{rows},{columns},{mine_count}_{classifier}{classifier_iterations}_sa_{TRIES}.hyperparameters"
-    else:
-        classifier_model_file = (
-            f"algorithms/models/{rows},{columns},{mine_count}_{classifier}.model"
-        )
-        filename = f"algorithms/tests/hyperparameter_optimization/hyperparameters/{rows},{columns},{mine_count}_{classifier}_sa_{TRIES}.hyperparameters"
+
+    iter_str = classifier_iterations if classifier_iterations > -1 else ""
+    filename = f"algorithms/tests/hyperparameter_optimization/hyperparameters/{rows},{columns},{mine_count}_{classifier}{iter_str}_sa_{TRIES}.hyperparameters"
 
     optimizer = HyperparameterOptimizer(
         classifier=classifier,
@@ -42,7 +38,7 @@ def optimize(params):
         tries=TRIES,
         param_space=param_space,
         constraint=constraint_func,
-        classifier_model_file=classifier_model_file,
+        classifier_iterations=classifier_iterations,
     )
 
     if Path(filename).exists():

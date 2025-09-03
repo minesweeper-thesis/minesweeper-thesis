@@ -1,8 +1,10 @@
+from pathlib import Path
+
+from skopt.space import Integer, Real
+
 from algorithms.tests.hyperparameter_optimization.hyperparameter_optimizer import (
     HyperparameterOptimizer,
 )
-from skopt.space import Integer, Real
-from pathlib import Path
 
 param_space = [
     Integer(1, 100, name="generations"),
@@ -35,7 +37,7 @@ rows, columns, mine_count, tries, classifier = (
         tries=tries,
         param_space=param_space,
         constraint=constraint_func,
-        classifier_model_file=f"algorithms/models/{rows},{columns},{mine_count}_{classifier}{classifier_iterations}.model",
+        classifier_iterations=classifier_iterations,
     )
 
     filename = f"algorithms/tests/hyperparameter_optimization/hyperparameters/{rows},{columns},{mine_count}_{classifier}{classifier_iterations}_ga_{tries}.hyperparameters"
@@ -56,7 +58,6 @@ optimizer = HyperparameterOptimizer(
     tries=tries,
     param_space=param_space,
     constraint=constraint_func,
-    classifier_model_file=f"algorithms/models/{rows},{columns},{mine_count}_{classifier}.model",
 )
 
 for _ in range(1):

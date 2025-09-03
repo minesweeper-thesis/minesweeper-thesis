@@ -1,7 +1,8 @@
-from algorithms.generator import Generator
-from algorithms.boards.functions.all_fields import all_fields
-import time
 import random
+import time
+
+from algorithms.boards.functions.all_fields import all_fields
+from algorithms.generator import Generator
 
 TRIES = 5
 fields = all_fields(16, 30, (-2, -2), [])
@@ -25,7 +26,7 @@ def ga_wrapper(params):
             30,
             fields[i],
             99,
-            "algorithms/models/16,30,99_lightgbm400.model",
+            classifier_iterations=400,
         ).generate()
 
     end = time.process_time()
@@ -47,7 +48,7 @@ def no_wrapper():
             30,
             fields[i],
             99,
-            "algorithms/models/16,30,99_lightgbm400.model",
+            classifier_iterations=400,
         ).generate()
 
     end = time.process_time()
@@ -69,7 +70,7 @@ def naive_wrapper():
             30,
             fields[i],
             99,
-            "algorithms/models/16,30,99_lightgbm400.model",
+            classifier_iterations=400,
         ).generate()
 
     end = time.process_time()
