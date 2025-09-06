@@ -1,3 +1,4 @@
+import os
 from typing import AsyncIterator
 
 from fastapi import FastAPI
@@ -15,12 +16,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await engine.dispose()
 
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
-# Konfiguracja CORS niezbyt specyficzna, ale chciałem coś co działa bez zabawy
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

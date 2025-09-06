@@ -19,5 +19,5 @@ def generate_random_board(generator_input: GeneratorInputSchema):
 
 
 def generate_board(generator_input: GeneratorInputSchema):
-    generator = Generator(**generator_input.model_dump())
+    generator = Generator(**generator_input.model_dump(), classifier_iterations=6400)
     return generator.generate().grid().grid
