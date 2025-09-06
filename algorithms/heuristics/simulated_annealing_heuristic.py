@@ -15,7 +15,6 @@ class SimulatedAnnealingHeuristic(Heuristic):
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        
         iterations: int,
         fields_changed: int,
         T_MAX: float = 100.0,
@@ -33,7 +32,10 @@ class SimulatedAnnealingHeuristic(Heuristic):
         board = RandomBoard(self.rows, self.columns, self.start_field, self.mine_count)
         score = self.classifier.classify(board)
 
-        alpha = (self.T_MIN / self.T_MAX) ** (1 / (self.iterations - 1))
+        if self.iterations > 1:
+            alpha = (self.T_MIN / self.T_MAX) ** (1 / (self.iterations - 1))
+        else:
+            alpha = 1
 
         t = self.T_MAX
         for _ in range(self.iterations):

@@ -12,8 +12,8 @@ ALL_ITERATIONS = 100
 param_space = [
     Integer(1, 100, name="iterations"),
     Integer(1, 50, name="fields_changed"),
-    Real(1.0, 1e6, prior="log-uniform", name="T_MAX"),
-    Real(1e-3, 1, prior="log-uniform", name="T_MIN"),
+    Real(1.0, 1e2, prior="log-uniform", name="T_MAX"),
+    Real(1e-1, 1, prior="log-uniform", name="T_MIN"),
 ]
 
 
