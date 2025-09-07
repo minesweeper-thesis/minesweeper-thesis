@@ -2,7 +2,10 @@ from algorithms.boards.functions.moore import moore_neighborhood
 
 
 class Grid:
+    """Grid of the Board."""
+
     def print(self) -> None:
+        """Prints the current state of the board."""
         for i in range(self.rows):
             print("", end="|")
             for j in range(self.columns):
@@ -16,6 +19,7 @@ class Grid:
         print("\n\n")
 
     def print_solved(self) -> None:
+        """Prints the solved board."""
         for i in range(self.rows):
             print("", end="|")
             for j in range(self.columns):
@@ -27,6 +31,11 @@ class Grid:
         print("\n\n")
 
     def check_win(self) -> bool:
+        """Checks if the game is won.
+
+        Returns:
+            bool: the game is won.
+        """
         for row in range(self.rows):
             for col in range(self.columns):
                 if self.grid[row][col] != -1 and not self.revealed[row][col]:
@@ -34,6 +43,11 @@ class Grid:
         return True
 
     def handle_field_click(self, field: tuple[int, int]) -> None:
+        """Recursively uncovers all the tiles that should be uncovered after the click.
+
+        Args:
+            field (tuple[int, int]): clicked field.
+        """
         x, y = field
         if self.revealed[x][y] or self.flagged[x][y]:
             return
@@ -46,6 +60,11 @@ class Grid:
                         self.handle_field_click((r, c))
 
     def convert_to_save(self) -> list[list[int]]:
+        """Converts grid to a representation suitable for saving.
+
+        Returns:
+            list[list[int]]: representation suitable for saving.
+        """
         board = [[-1 for _ in range(self.columns)] for _ in range(self.rows)]
         for row in range(self.rows):
             for col in range(self.columns):
@@ -61,6 +80,13 @@ class Grid:
     def __init__(
         self, rows: int, columns: int, mined_fields: list[tuple[int, int]]
     ) -> None:
+        """Initializes grid based on Board parameters.
+
+        Args:
+            rows (int): number of rows of the board.
+            columns (int): number of columns of the board.
+            mined_fields (list[tuple[int, int]]): list of mined fields.
+        """
         self.rows = rows
         self.columns = columns
         self.mined_fields = mined_fields

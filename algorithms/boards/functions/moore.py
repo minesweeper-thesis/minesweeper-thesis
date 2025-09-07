@@ -1,6 +1,16 @@
 def moore_neighborhood(
     field: tuple[int, int], rows: int, columns: int
 ) -> set[tuple[int, int]]:
+    """Function returning fields in the moore neighborhood of a given field considering edges of the board.
+
+    Args:
+        field (tuple[int, int]): coordinates of the field.
+        rows (int): number of rows of the board.
+        columns (int): number of columns of the board.
+
+    Returns:
+        set[tuple[int, int]]: set containing fields from the moore neighborhood.
+    """
     x, y = field
     fields = set()
 

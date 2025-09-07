@@ -5,7 +5,15 @@ from copy import deepcopy
 
 
 class RandomNeighbourBoard(Board):
+    """Board that has the same mined fields as the other one, except for some fixed amount of fields to mine."""
+
     def __init__(self, other_board: Board, fields_changed: int) -> None:
+        """Initializes board that has the same mined fields as the other one, except for some fixed amount of fields to mine.
+
+        Args:
+            other_board (Board): base board.
+            fields_changed (int): number of fields to change.
+        """
         mined_fields = deepcopy(other_board.mined_fields)
         new_mined_fields = random.sample(
             all_fields(

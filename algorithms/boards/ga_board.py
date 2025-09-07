@@ -4,12 +4,28 @@ import random
 
 
 class GABoard(RandomBoard):
+    """Board adjusted to the genetic algorithm heuristic."""
+
     def __init__(
         self, rows: int, columns: int, start_field: tuple[int, int], mine_count: int
     ) -> None:
+        """Initializes the board as a random one.
+
+        Args:
+            rows (int): number of rows of the board.
+            columns (int): number of columns of the board.
+            start_field (tuple[int, int]): coordinates of the first clicked field on the board.
+            mine_count (int): number of mines on the board.
+        """
         RandomBoard.__init__(self, rows, columns, start_field, mine_count)
 
     def crossover(self, board1: "GABoard", board2: "GABoard") -> None:
+        """Replaces the board with a board that is the result of the crossover between board1 and board2.
+
+        Args:
+            board1 (GABoard): first parent board.
+            board2 (GABoard): second parent board.
+        """
         self.rows = board1.rows
         self.columns = board1.columns
         self.start_field = board1.start_field

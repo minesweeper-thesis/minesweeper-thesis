@@ -5,6 +5,8 @@ import random
 
 
 class PSOBoard(RandomBoard):
+    """Board adjusted to the particle swarm optimization heuristic."""
+
     def __init__(
         self,
         rows: int,
@@ -15,6 +17,17 @@ class PSOBoard(RandomBoard):
         c1_coefficient: float = 1.49445,
         c2_coefficient: float = 1.49445,
     ) -> None:
+        """Initializes the board adjusted to the particle swarm optimization heuristic.
+
+        Args:
+            rows (int): number of rows of the board.
+            columns (int): number of columns of the board.
+            start_field (tuple[int, int]): coordinates of the first clicked field on the board.
+            mine_count (int): number of mines on the board.
+            w_coefficient (float, optional): w coefficient. Defaults to 0.729.
+            c1_coefficient (float, optional): cognitive coefficient. Defaults to 1.49445.
+            c2_coefficient (float, optional): social coefficient. Defaults to 1.49445.
+        """
         RandomBoard.__init__(self, rows, columns, start_field, mine_count)
         self.best_position = deepcopy(self.mined_fields)
         self.best_score = 0.0
@@ -30,6 +43,11 @@ class PSOBoard(RandomBoard):
         self.c2 = c2_coefficient
 
     def move(self, best_global_position: list[tuple[int, int]]) -> None:
+        """Implements the move of the board through state space.
+
+        Args:
+            best_global_position (list[tuple[int, int]]): current best board configuration in the swarm.
+        """
         p_diff = [
             (
                 self.best_position[i][0] - self.mined_fields[i][0],
@@ -59,8 +77,14 @@ class PSOBoard(RandomBoard):
 
         self.mined_fields = [
             (
-                min(self.rows-1,max(0,int(self.mined_fields[i][0] + self.velocity[i][0]))),
-                min(self.columns-1,max(0,int(self.mined_fields[i][1] + self.velocity[i][1]))),
+                min(
+                    self.rows - 1,
+                    max(0, int(self.mined_fields[i][0] + self.velocity[i][0])),
+                ),
+                min(
+                    self.columns - 1,
+                    max(0, int(self.mined_fields[i][1] + self.velocity[i][1])),
+                ),
             )
             for i in range(self.mine_count)
         ]
