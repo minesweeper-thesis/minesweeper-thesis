@@ -5,9 +5,9 @@
 name: Build and deploy Python app to Azure Web App - minesweeper-backend
 
 on:
-  push:
-    branches:
-      - main
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
 
 jobs:
@@ -27,6 +27,13 @@ jobs:
           cp -r algorithms deploy/
           cp -r backend deploy/
           cp __init__.py backend.py requirements.txt deploy/
+
+          sed -i 's|--extra-index-url https://download.pytorch.org/whl/cu129|--extra-index-url https://download.pytorch.org/whl/cpu|' deploy/requirements.txt
+          sed -i '/^nvidia/d' deploy/requirements.txt
+
+          rm -rf deploy/algorithms/tests/hyperparameter_optimization/hyperparameters
+          rm -rf deploy/algorithms/models
+
           cd deploy
           zip -r ../app.zip .
 
