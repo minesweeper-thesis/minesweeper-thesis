@@ -6,15 +6,33 @@ import numpy as np
 
 
 class Checker:
+    """Class determining if the board is deterministically solvable."""
+
     def __init__(
         self, rows: int, columns: int, start_field: tuple[int, int], mine_count: int
     ) -> None:
+        """Initializes with basic board parameters.
+
+        Args:
+            rows (int): number of rows of the board.
+            columns (int): number of columns of the board.
+            start_field (tuple[int, int]): coordinates of the first clicked field on the board.
+            mine_count (int): number of mines on the board.
+        """
         self.rows = rows
         self.columns = columns
         self.start_field = start_field
         self.mine_count = mine_count
 
     def is_solvable(self, board: Board) -> bool:
+        """Returns if the board is deterministically solvable.
+
+        Args:
+            board (Board): board to check.
+
+        Returns:
+            bool: if the board is solvable.
+        """
         first_click = True
 
         possible_moves = []
@@ -92,6 +110,8 @@ class Checker:
 
 
 class _FieldState(Enum):
+    """Possible states of the field."""
+
     MINED = -3
     NOT_MINED = -2
     POSSIBLE_MINE = -1
@@ -101,16 +121,34 @@ class _FieldState(Enum):
 
 
 class _FieldSolver:
+    """Helper class determining safe and mined fields."""
+
     def __init__(
         self, fields: list[list[int]], not_mines: list[list[int]], mine_count: int
     ) -> None:
+        """Initializes with board parameters.
+
+        Args:
+            fields (list[list[int]]): board of states.
+            not_mines (list[list[int]]): mask for safe fields.
+            mine_count (int): number of mines on the board.
+        """
         self.fields = fields
         self.not_mines = not_mines
         self.rows = len(not_mines)
         self.columns = len(not_mines[0])
         self.mine_count = mine_count
 
-    def field_is_mined(self, x: int, y: int) -> list[list[bool]] | list:
+    def field_is_mined(self, x: int, y: int) -> list[list[bool]]:
+        """Solves CP problem indicating if the field is mined.
+
+        Args:
+            x (int): x coord of the field.
+            y (int): y coord of the field.
+
+        Returns:
+            list[list[bool]]: mask indicating mined fields.
+        """
         model = cp_model.CpModel()
 
         potential_mines = [
@@ -176,7 +214,16 @@ class _FieldSolver:
         else:
             return []
 
-    def field_is_safe(self, x: int, y: int) -> list[list[bool]] | list:
+    def field_is_safe(self, x: int, y: int) -> list[list[bool]]:
+        """Solves CP problem indicating if the field is safe.
+
+        Args:
+            x (int): x coord of the field.
+            y (int): y coord of the field.
+
+        Returns:
+            list[list[bool]]: mask indicating safe fields.
+        """
         model = cp_model.CpModel()
 
         potential_mines = [
@@ -244,7 +291,16 @@ class _FieldSolver:
 
 
 class _HintGenerator:
+    """Helper class for generating hints."""
+
     def __init__(self, grid: Grid, not_mines: list[list[int]], mine_count: int) -> None:
+        """Initializes with basic parameters.
+
+        Args:
+            grid (Grid): grid of the board.
+            not_mines (list[list[int]]): mask of safe fields.
+            mine_count (int): number of mines on the board.
+        """
         self.grid = grid
         self.rows = grid.rows
         self.columns = grid.columns
@@ -254,6 +310,14 @@ class _HintGenerator:
     def correct_hinted_board(
         self, hint_cache_board: list[list[int]]
     ) -> list[list[int]]:
+        """Corrects hint board.
+
+        Args:
+            hint_cache_board (list[list[int]]): current cached hint board.
+
+        Returns:
+            list[list[int]]: corrected cached hint board.
+        """
         board = self.grid.convert_to_save()
         for i in range(self.rows):
             for j in range(self.columns):
@@ -283,6 +347,14 @@ class _HintGenerator:
         return hint_cache_board
 
     def hint_safe_fields(self, hint_cache_board: list[list[int]]) -> list[list[int]]:
+        """Hints safe fields.
+
+        Args:
+            hint_cache_board (list[list[int]]): current cached hint board.
+
+        Returns:
+            list[list[int]]: updated cached hint board.
+        """
         fields = self.grid.convert_to_save()
         field_solver = _FieldSolver(fields, self.not_mines, self.mine_count)
 
@@ -308,6 +380,14 @@ class _HintGenerator:
         return hint_cache_board
 
     def hint_mined_fields(self, hint_cache_board: list[list[int]]) -> list[list[int]]:
+        """Hints mined fields.
+
+        Args:
+            hint_cache_board (list[list[int]]): current cached hint board.
+
+        Returns:
+            list[list[int]]: updated cached hint board.
+        """
         fields = self.grid.convert_to_save()
         field_solver = _FieldSolver(fields, self.not_mines, self.mine_count)
         temp_board = np.zeros((self.rows, self.columns))
