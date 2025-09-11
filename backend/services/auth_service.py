@@ -11,9 +11,8 @@ from fastapi_users.authentication import (
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
 
-from ..db import *
-from ..models import *
-from ..schemas import *
+from backend.db import *
+from backend.models import *
 
 cookie_transport = CookieTransport(cookie_name="auth", cookie_max_age=3600)
 

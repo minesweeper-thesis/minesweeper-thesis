@@ -1,6 +1,8 @@
 import uuid
 from typing import Optional
 
+from fastapi_pagination import Params
+from fastapi_pagination.ext.sqlalchemy import paginate
 from sqlalchemy import select
 
 from ..db import *
@@ -15,19 +17,16 @@ async def add_gameplay(gameplay: Gameplay):
         return gameplay
 
 
-async def get_gameplays(user_id: uuid.UUID):
+async def get_gameplays(user_id: uuid.UUID, pagination_params: Params):
     async with async_session_maker() as db:
         stmt = select(Gameplay).where(Gameplay.user_id == user_id)
-        result = await db.execute(stmt)
-        return result.scalars().all()
+        return await paginate(db, stmt, pagination_params)
 
 
-async def get_friends(user_id: uuid.UUID):
+async def get_friends(user_id: uuid.UUID, pagination_params: Params):
     async with async_session_maker() as db:
         stmt = select(User).join(User.friend_of).where(Friendship.user_id == user_id)
-        result = await db.execute(stmt)
-        friends = result.scalars().all()
-        return friends
+        return await paginate(db, stmt, pagination_params)
 
 
 async def get_friend_requests(
@@ -35,6 +34,7 @@ async def get_friend_requests(
     user_id: Optional[uuid.UUID] = None,
     friend_id: Optional[uuid.UUID] = None,
     status: Optional[FriendRequestStatus] = None,
+    pagination_params: Params | None = None,
 ):
     args = []
     if id:
@@ -48,6 +48,8 @@ async def get_friend_requests(
 
     async with async_session_maker() as db:
         stmt = select(FriendRequest).where(*args)
+        if pagination_params:
+            return await paginate(db, stmt, pagination_params)
         result = await db.execute(stmt)
         return result.scalars().all()
 

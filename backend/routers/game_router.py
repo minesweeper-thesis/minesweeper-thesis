@@ -12,7 +12,7 @@ DIFFICULTY_LEVELS = [(10, 10, 15), (16, 16, 40), (16, 30, 99)]
 
 
 @game_router.post("/board", response_model=BoardSchema)
-async def get_board(generator_input: GeneratorInputSchema):
+async def get_board(generator_input: GeneratorInput):
     """Generates a board as `list[list[int]]`"""
 
     difficulty_level = (

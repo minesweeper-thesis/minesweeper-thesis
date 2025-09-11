@@ -1,9 +1,10 @@
 import uuid
 
-from backend.repositories import user_repo
+from fastapi_pagination import Params
 
-from ..db import *
-from ..models import *
+from backend.db import *
+from backend.models import *
+from backend.repositories import user_repo
 
 
 async def save_gameplay(
@@ -23,17 +24,19 @@ async def save_gameplay(
     await user_repo.add_gameplay(gameplay)
 
 
-async def get_gameplays(user_id: uuid.UUID):
-    return await user_repo.get_gameplays(user_id)
+async def get_gameplays(user_id: uuid.UUID, pagination_params: Params):
+    return await user_repo.get_gameplays(user_id, pagination_params)
 
 
-async def get_friends(user_id: uuid.UUID):
-    return await user_repo.get_friends(user_id)
+async def get_friends(user_id: uuid.UUID, pagination_params: Params):
+    return await user_repo.get_friends(user_id, pagination_params)
 
 
-async def get_pending_friend_requests(user_id: uuid.UUID):
+async def get_pending_friend_requests(user_id: uuid.UUID, pagination_params: Params):
     return await user_repo.get_friend_requests(
-        friend_id=user_id, status=FriendRequestStatus.pending
+        friend_id=user_id,
+        status=FriendRequestStatus.pending,
+        pagination_params=pagination_params,
     )
 
 

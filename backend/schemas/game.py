@@ -6,7 +6,7 @@ from pydantic import BaseModel
 BoardSchema = list[list[int]]
 
 
-class GameplaySchema(BaseModel):
+class Gameplay(BaseModel):
     board_id: uuid.UUID
     score: float
     time: float
@@ -19,7 +19,7 @@ type ClassifierType = Literal[
 type HeuristicType = Literal["no", "naive", "GA", "MCTS", "PSO", "SA"]
 
 
-class GeneratorInputSchema(BaseModel):
+class GeneratorInput(BaseModel):
     classifier: ClassifierType
     heuristic: HeuristicType
     heuristic_args: tuple[float | int, ...] = tuple()
