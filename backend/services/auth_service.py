@@ -1,6 +1,6 @@
 import os
 import uuid
-from typing import AsyncGenerator
+from typing import Annotated, AsyncGenerator
 
 from fastapi import Depends
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
@@ -49,3 +49,5 @@ async def get_user_manager(
 fastapi_users = FastAPIUsers[User, uuid.UUID](get_user_manager, [auth_backend])
 
 get_current_user = fastapi_users.current_user(active=True)
+
+CurrentUser = Annotated[User, Depends(get_current_user)]
