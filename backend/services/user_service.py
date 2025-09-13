@@ -44,6 +44,10 @@ async def make_friend_request(user_id: uuid.UUID, friend_id: uuid.UUID):
     if user_id == friend_id:
         return
 
+    existing_friendship = await user_repo.get_friendship(user_id, friend_id)
+    if existing_friendship:
+        return
+
     friend_request = await user_repo.get_friend_requests(
         user_id=user_id, friend_id=friend_id, status=FriendRequestStatus.pending
     )
