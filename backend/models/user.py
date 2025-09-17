@@ -2,7 +2,7 @@ import enum
 import uuid
 from typing import TYPE_CHECKING
 
-from fastapi_users.db import SQLAlchemyBaseUserTableUUID
+from fastapi_users.db import SQLAlchemyBaseUserTable
 from sqlalchemy import CheckConstraint, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -65,7 +65,7 @@ class FriendRequest(Base):
     )
 
 
-class User(Base, SQLAlchemyBaseUserTableUUID):
+class User(SQLAlchemyBaseUserTable[uuid.UUID], Base):
     __tablename__ = "user"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
