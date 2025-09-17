@@ -46,17 +46,17 @@ class UserService:
 
     async def make_friend_request(self, user_id: uuid.UUID, friend_id: uuid.UUID):
         if user_id == friend_id:
-            return
+            raise ValueError("Cannot make friend request to yourself")
 
         existing_friendship = await self.repo.get_friendship(user_id, friend_id)
         if existing_friendship:
-            return
+            raise ValueError("Friendship already exists")
 
         friend_request = await self.repo.get_friend_requests(
             user_id=user_id, friend_id=friend_id, status=FriendRequestStatus.pending
         )
         if friend_request:
-            return
+            raise ValueError("Friend request already sent")
 
         friend_request = FriendRequest(
             user_id=user_id, friend_id=friend_id, status=FriendRequestStatus.pending
@@ -71,8 +71,10 @@ class UserService:
             friend_id=user_id,
             status=FriendRequestStatus.pending,
         )
+
         if not len(friend_requests):
-            return
+            raise ValueError("No pending friend request found")
+
         friend_request = friend_requests[0]
 
         await self.repo.add_friendship(
@@ -98,7 +100,7 @@ class UserService:
             status=FriendRequestStatus.pending,
         )
         if not len(friend_requests):
-            return
+            raise ValueError("No pending friend request found")
 
         await self.repo.change_friend_request_status(
             friend_request_id, FriendRequestStatus.rejected

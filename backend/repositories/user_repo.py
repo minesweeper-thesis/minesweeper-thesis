@@ -73,8 +73,10 @@ class UserRepository:
         )
         result = await self.session.execute(stmt)
         friend_request = result.scalar()
+
         if not friend_request:
-            return
+            raise ValueError("Friend request not found")
+
         friend_request.status = status  # type: ignore
         await self.session.commit()
         await self.session.refresh(friend_request)
