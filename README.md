@@ -1,6 +1,6 @@
 # Backend
 ## Run
-`python3 backend.py`
+`./backend.sh`
 
 # Frontend
 ## Run

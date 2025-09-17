@@ -31,7 +31,6 @@ auth_backend = AuthenticationBackend(
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[User, uuid.UUID]):
-    user_db_model = User
     reset_password_token_secret = SECRET
     verification_token_secret = SECRET
 
