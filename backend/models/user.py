@@ -61,7 +61,7 @@ class FriendRequest(Base):
     status: Mapped[FriendRequestStatus] = mapped_column(
         Enum(FriendRequestStatus, name="friend_request_status"),
         nullable=False,
-        default=FriendRequestStatus.pending,
+        default="pending",
     )
 
 
