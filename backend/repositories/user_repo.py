@@ -3,7 +3,7 @@ from typing import Annotated, Optional
 
 from fastapi import Depends
 from fastapi_pagination import Params
-from fastapi_pagination.ext.sqlalchemy import paginate
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -23,11 +23,11 @@ class UserRepository:
 
     async def get_gameplays(self, user_id: uuid.UUID, pagination_params: Params):
         stmt = select(Gameplay).where(Gameplay.user_id == user_id)
-        return await paginate(self.session, stmt, pagination_params)
+        return await apaginate(self.session, stmt, pagination_params)
 
     async def get_friends(self, user_id: uuid.UUID, pagination_params: Params):
         stmt = select(User).join(User.friend_of).where(Friendship.user_id == user_id)
-        return await paginate(self.session, stmt, pagination_params)
+        return await apaginate(self.session, stmt, pagination_params)
 
     async def get_friend_requests(
         self,
@@ -49,7 +49,7 @@ class UserRepository:
 
         stmt = select(FriendRequest).where(*args)
         if pagination_params:
-            return await paginate(self.session, stmt, pagination_params)
+            return await apaginate(self.session, stmt, pagination_params)
         result = await self.session.execute(stmt)
         return result.scalars().all()
 
