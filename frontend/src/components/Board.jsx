@@ -75,7 +75,7 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
             heuristic_args: [10,50,10,0.05],
         };
 
-        fetch('http://localhost:8000/board', {
+        fetch('/api/board', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
