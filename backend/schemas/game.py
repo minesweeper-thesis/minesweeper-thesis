@@ -3,7 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-BoardSchema = list[list[int]]
+Board = list[list[int]]
 
 
 class Gameplay(BaseModel):
