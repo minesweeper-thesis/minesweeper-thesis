@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 export default function AdminLayout() {
 
     return (
-        <div className="relative min-h-screen bg-bg-primary">
+        <div className="relative min-h-screen bg-bg-tertiary">
             <Navbar/>
             <main>
                 <div>

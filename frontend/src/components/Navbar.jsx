@@ -8,10 +8,13 @@ import {
     User,
     Gamepad2
 } from 'lucide-react';
+import {NavLink, useLocation} from "react-router-dom";
 
 
 const Layout = ({ children }) => {
-    // PLACEHOLDER
+
+    const location = useLocation();
+    const { hash, pathname, search } = location;
     const user = { username: 'PlaceholderUser' };
 
     // PLACEHOLDER
@@ -19,8 +22,6 @@ const Layout = ({ children }) => {
         alert('Placeholder logout action');
     };
 
-    // PLACEHOLDER
-    const currentPath = '/';
 
     // PLACEHOLDER
     const navigation = [
@@ -40,22 +41,24 @@ const Layout = ({ children }) => {
                     <h1 className="text-2xl font-bold">Minesweeper Pro</h1>
                 </div>
 
-                {/* Navigation - <button> jako placeholdery zamiast <Link> */}
+                {/* Navigation */}
                 <nav className="flex gap-2 justify-center w-full md:w-auto order-3 md:order-none">
                     {navigation.map(({ path, icon: Icon, label }) => (
-                        <button
+                        <NavLink
                             key={path}
-                            onClick={() => alert(`Navigate to ${path}`)} // PLACEHOLDER akcji zamiast routera
-                            className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition
-              ${
-                                currentPath === path
-                                    ? 'bg-accent-primary text-bg-secondary'
-                                    : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
-                            }`}
+                            to={path}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition
+                            ${
+                              pathname === path
+                                  ? 'bg-accent-primary text-bg-secondary'
+                                  : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
+                            }
+                          `}
                         >
                             <Icon size={20} />
                             <span className="hidden md:inline">{label}</span>
-                        </button>
+                        </NavLink>
+
                     ))}
                 </nav>
 
