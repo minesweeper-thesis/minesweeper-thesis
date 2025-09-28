@@ -54,7 +54,7 @@
     }
 
     [data-theme='dark'] {
-        --bg-primary: #1a1a1a;
+        --bg-primary: #252525;
         --bg-secondary: #2d2d2d;
         --bg-tertiary: #404040;
         --text-primary: #ffffff;

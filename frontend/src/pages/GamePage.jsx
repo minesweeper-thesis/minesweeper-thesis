@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import Board from '../components/Board';
 import Controls from '../components/Controls';
-import MainMenu from '../components/MainMenu';
 import DifficultyMenu from '../components/DifficultyMenu';
 import { GameState } from '../utility';
-import './GamePage.css';
 import VictoryScreen from "../components/VictoryScreen";
 import PauseScreen from "../components/PauseScreen";
-import LoginScreen from "../components/LoginScreen";
+
 
 export default function GamePage() {
     const [view, setView] = useState('menu');
@@ -60,28 +58,57 @@ export default function GamePage() {
     };
 
     return (
-        <div className="game">
-            {view === 'menu' && <MainMenu onPlay={() => setView('difficulty')}
-                                          onLogin={() => setView('login')}/>}
+        <div className="game flex h-screen justify-evenly bg-bg-tertiary">
+            {/* Sidebar */}
+            <aside className="w-64 p-4 bg-bg-tertiary">
+                <DifficultyMenu onSelect={startGame} />
+            </aside>
 
-            {view === 'difficulty' && <DifficultyMenu onSelect={startGame} onBack={() => setView('menu')} />}
-            {view === 'login' && <LoginScreen />}
-            {view === 'game' && (
-                <>
-                    <Controls onReset={handleReset} onNewGame={handleNewGame} onMenu={returnToMenu} mines={mines} onPause={pauseGame} gameState={gameState} />
-                    <div className="game-board">
-                        {data === null ? (
-                            <Board board={null} setBoard={setData} rows={rows} cols={cols} mineCount={mineCount}
-                                   firstClick={firstClick} setFirstClick={setFirstClick} setMines={setMines}
-                                   gameState={gameState} setGameState={setGameState} />
-                        ) : (
-                            <Board board={data} setBoard={setData} rows={rows} cols={cols} mineCount={mineCount}
-                                   firstClick={firstClick} setFirstClick={setFirstClick} mines={mines} setMines={setMines}
-                                   key={boardKey} gameState={gameState} setGameState={setGameState}/>
-                        )}
-                    </div>
-                </>
-            )}
+            {/* Main game area */}
+            <main className="p-4 overflow-auto">
+                <Controls
+                    onReset={handleReset}
+                    onNewGame={handleNewGame}
+                    onMenu={returnToMenu}
+                    mines={mines}
+                    onPause={pauseGame}
+                    gameState={gameState}
+                />
+
+                <div className="game-board flex-1 mt-4 ">
+                    {data === null ? (
+                        <Board
+                            board={null}
+                            setBoard={setData}
+                            rows={rows}
+                            cols={cols}
+                            mineCount={mineCount}
+                            firstClick={firstClick}
+                            setFirstClick={setFirstClick}
+                            setMines={setMines}
+                            gameState={gameState}
+                            setGameState={setGameState}
+                        />
+                    ) : (
+                        <Board
+                            board={data}
+                            setBoard={setData}
+                            rows={rows}
+                            cols={cols}
+                            mineCount={mineCount}
+                            firstClick={firstClick}
+                            setFirstClick={setFirstClick}
+                            mines={mines}
+                            setMines={setMines}
+                            key={boardKey}
+                            gameState={gameState}
+                            setGameState={setGameState}
+                        />
+                    )}
+                </div>
+            </main>
+
+            {/* Overlay screens */}
             {gameState === GameState.WON && <VictoryScreen onPlayAgain={handleNewGame} />}
             {gameState === GameState.PAUSED && <PauseScreen resumeGame={resumeGame} />}
         </div>
