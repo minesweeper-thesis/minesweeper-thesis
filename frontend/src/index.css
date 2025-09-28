@@ -1,13 +1,77 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* src/index.css */
+
+@import "tailwindcss/preflight";
+@import "tailwindcss/utilities";
+
+
+/*@import "tailwindcss/components";*/
+@import "./styles/custom.css";
+@custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
+
+@theme inline {
+
+    --color-bg-primary:  var(--bg-primary);
+    --color-bg-secondary:  var(--bg-secondary);
+    --color-bg-tertiary:  var(--bg-tertiary);
+    --color-text-primary:  var(--text-primary);
+    --color-text-secondary:  var(--text-secondary);
+    --color-text-accent:  var(--text-accent);
+    --color-border-primary:  var(--border-primary);
+    --color-border-secondary:  var(--border-secondary);
+    --color-accent-primary:  var(--accent-primary);
+    --color-accent-secondary:  var(--accent-secondary);
+    --color-success:  var(--success);
+    --color-warning:  var(--warning);
+    --color-error:  var(--error);
+    --color-mine-color:  var(--mine-color);
+    --color-flag-color:  var(--flag-color);
+    --color-cell-revealed:  var(--cell-revealed);
+    --color-cell-hidden:  var(--cell-hidden);
+    --color-cell-hover:  var(--cell-hover);
+
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+@layer base {
+    :root {
+        --bg-primary: #f0f0f0;
+        --bg-secondary: #ffffff;
+        --bg-tertiary: #e8e8e8;
+        --text-primary: #333333;
+        --text-secondary: #666666;
+        --text-accent: #0066cc;
+        --border-primary: #cccccc;
+        --border-secondary: #999999;
+        --accent-primary: #0066cc;
+        --accent-secondary: #004499;
+        --success: #28a745;
+        --warning: #ffc107;
+        --error: #dc3545;
+        --mine-color: #ff0000;
+        --flag-color: #ff6600;
+        --cell-revealed: #ffffff;
+        --cell-hidden: #c0c0c0;
+        --cell-hover: #e0e0e0;
+    }
+
+    [data-theme='dark'] {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #2d2d2d;
+        --bg-tertiary: #404040;
+        --text-primary: #ffffff;
+        --text-secondary: #cccccc;
+        --text-accent: #66b3ff;
+        --border-primary: #555555;
+        --border-secondary: #777777;
+        --accent-primary: #66b3ff;
+        --accent-secondary: #4d9fff;
+        --success: #28a745;
+        --warning: #ffc107;
+        --error: #dc3545;
+        --mine-color: #ff4444;
+        --flag-color: #ff8844;
+        --cell-revealed: #3a3a3a;
+        --cell-hidden: #555555;
+        --cell-hover: #666666;
+
+    }
 }
