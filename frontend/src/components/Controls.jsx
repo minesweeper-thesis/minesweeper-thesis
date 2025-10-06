@@ -32,11 +32,11 @@ export default function Controls({ onReset, onNewGame,onMenu, mines, onPause , g
 
     return (
         <div className="controls">
+            <p className="mine-counter">{seconds}</p>
             <button className="control-button" onClick={onReset}>Restart level</button>
             <button disabled={gameState !== GameState.IN_PROGRESS} className="control-button" onClick={onPause}>Pause</button>
-            <p className="mine-counter">{seconds}</p>
-            <p className="mine-counter">{mines}</p>
             <button className="control-button" onClick={onNewGame}>New game</button>
+            <p className="mine-counter">{mines}</p>
         </div>
     );
 }

@@ -1,36 +1,63 @@
 .controls {
     display: flex;
+    align-items: center;
     justify-content: center;
-    margin-bottom: 16px;
-    gap: 10px;
+    gap: 1rem;
+    background-color: var(--bg-primary);
+    padding: 1rem 1.5rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Buttons */
 .control-button {
-    padding: 10px 16px;
-    margin-top: 12px;
-    height: 50px;
-    font-size: 16px;
-    font-weight: bold;
-    background-color: #dadada;
-    border: 2px solid #ccc;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background-color 0.2s ease, transform 0.1s ease;
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 2px solid var(--border-primary);
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    min-width: 120px;
 }
 
-.control-button:hover {
-    background-color: #ddd;
+.control-button:hover:not(:disabled) {
+    background-color: var(--cell-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.control-button:active {
-    transform: scale(0.97);
-    background-color: #ccc;
+.control-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.mine-counter{
-    text-align: center;
-    font-size: 60px;
-    width: 90px;
-    color: red;
+/* Counters (time + mines) */
+.mine-counter {
     background-color: black;
+    color: red;
+    font-family: 'Digital-7 Mono', monospace;
+    font-size: 2rem;
+    font-weight: bold;
+    border-radius: 0.25rem;
+    width: 70px;
+    text-align: center;
+    padding: 0.25rem 0.5rem;
+    border: 2px solid var(--border-primary);
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+    .controls {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .control-button {
+        width: 100%;
+    }
 }
