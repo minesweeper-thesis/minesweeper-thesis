@@ -58,14 +58,18 @@ export default function GamePage() {
     };
 
     return (
-        <div className="game flex h-screen justify-evenly bg-bg-tertiary">
+        <div className="game flex h-screen bg-bg-tertiary justify-center">
             {/* Sidebar */}
             <aside className="w-64 p-4 bg-bg-tertiary">
                 <DifficultyMenu onSelect={startGame} />
             </aside>
 
             {/* Main game area */}
-            <main className="p-4 overflow-auto">
+            <main className="p-4 overflow-auto game-area relative w-full max-w-4xl">
+                {/* Overlay screens */}
+                {gameState === GameState.WON && <VictoryScreen onPlayAgain={handleNewGame} />}
+                {gameState === GameState.PAUSED && <PauseScreen resumeGame={resumeGame} />}
+
                 <Controls
                     onReset={handleReset}
                     onNewGame={handleNewGame}
@@ -108,9 +112,7 @@ export default function GamePage() {
                 </div>
             </main>
 
-            {/* Overlay screens */}
-            {gameState === GameState.WON && <VictoryScreen onPlayAgain={handleNewGame} />}
-            {gameState === GameState.PAUSED && <PauseScreen resumeGame={resumeGame} />}
+
         </div>
     );
 }

@@ -4,10 +4,12 @@ import '../styles/pauseScreen.css';
 export default function PauseScreen({ resumeGame }) {
     return (
         <div className="pause-popup">
-            <h2>Game Paused</h2>
-            <button className="menu-button" onClick={resumeGame}>
-                Resume
-            </button>
+            <div className="pause-content">
+                <h2>Game Paused</h2>
+                <button className="menu-button" onClick={resumeGame}>
+                    Resume
+                </button>
+            </div>
         </div>
     );
 }
