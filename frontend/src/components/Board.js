@@ -3,6 +3,8 @@ import Square from './Square';
 import { State, GameState } from '../utility';
 import '../styles/board.css';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+
 export default function Board({ board, setBoard, rows, cols, mineCount ,firstClick, setFirstClick, mines, setMines, gameState, setGameState }) {
     const [clicked, setClicked] = useState(
         Array.from({ length: rows }, () => Array(cols).fill(State.NOT_REVEALED))
@@ -75,7 +77,7 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
             heuristic_args: [10,50,10,0.05],
         };
 
-        fetch('http://localhost:8000/board', {
+        fetch(`${BACKEND_URL}/board`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
