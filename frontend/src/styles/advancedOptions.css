@@ -1,0 +1,40 @@
+.accordion-content {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease, opacity 0.25s ease;
+}
+
+.accordion-content.open {
+    max-height: 500px;
+    opacity: 1;
+}
+
+.accordion-inner {
+    transition: transform 0.3s ease;
+}
+
+.accordion-content.open .accordion-inner {
+    transform: translateY(0);
+}
+
+.accordion-content:not(.open) .accordion-inner {
+    transform: translateY(-5px);
+}
+
+.accordion-header svg {
+    transition: transform 0.3s ease;
+}
+
+.accordion-header svg.rotate-180 {
+    transform: rotate(180deg);
+}
+
+.accordion-header span.text-xs {
+    transition: color 0.3s ease, opacity 0.3s ease;
+}
+
+.accordion-header:hover span.text-xs {
+    opacity: 1;
+    color: var(--accent-primary);
+}

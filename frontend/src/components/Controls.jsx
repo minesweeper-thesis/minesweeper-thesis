@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import '../styles/controls.css';
 import {GameState} from "../utility";
 
-export default function Controls({ onReset, onNewGame,onMenu, mines, onPause , gameState }) {
+export default function Controls({ onReset, onNewGame, mines, onPause , gameState }) {
 
     const [seconds, setSeconds] = useState(0);
     const intervalRef = useRef(null);

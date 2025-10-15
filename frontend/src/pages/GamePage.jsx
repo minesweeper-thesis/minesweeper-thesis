@@ -5,16 +5,22 @@ import DifficultyMenu from '../components/DifficultyMenu';
 import { GameState } from '../utility';
 import VictoryScreen from "../components/VictoryScreen";
 import PauseScreen from "../components/PauseScreen";
+import AdvancedOptions from "../components/AdvancedOptions";
 
 
 export default function GamePage() {
-    const [view, setView] = useState('menu');
+
     const [data, setData] = useState(null);
     const [firstClick, setFirstClick] = useState(null);
     const [boardKey, setBoardKey] = useState(Date.now());
     const [mines, setMines] = useState(0);
     const [rows, setRows] = useState(9);
     const [cols, setCols] = useState(9);
+    const [heuristicData, setHeuristicData] = useState({
+        classifier: "lightgbm",
+        heuristic: "GA",
+        heuristic_args: [10,50,10,0.05]
+    });
     const [mineCount, setMineCount] = useState(10);
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
 
@@ -35,7 +41,6 @@ export default function GamePage() {
         setCols(c);
         setMineCount(m);
         setData(null);
-        setView('game');
         setGameState(GameState.NOT_STARTED);
     };
 
@@ -49,19 +54,14 @@ export default function GamePage() {
     const resumeGame = () => {
         setGameState(GameState.IN_PROGRESS);
     };
-    const returnToMenu = () => {
-        setData(null);
-        setFirstClick(null);
-        setMines(0);
-        setView('menu');
-        setGameState(GameState.NOT_STARTED);
-    };
+
 
     return (
         <div className="game flex h-screen bg-bg-tertiary justify-center">
             {/* Sidebar */}
             <aside className="w-64 p-4 bg-bg-tertiary">
                 <DifficultyMenu onSelect={startGame} />
+                <AdvancedOptions onSelect={(data) => setHeuristicData(data)} />
             </aside>
 
             {/* Main game area */}
@@ -73,7 +73,6 @@ export default function GamePage() {
                 <Controls
                     onReset={handleReset}
                     onNewGame={handleNewGame}
-                    onMenu={returnToMenu}
                     mines={mines}
                     onPause={pauseGame}
                     gameState={gameState}
@@ -92,6 +91,7 @@ export default function GamePage() {
                             setMines={setMines}
                             gameState={gameState}
                             setGameState={setGameState}
+                            heuristicData={heuristicData}
                         />
                     ) : (
                         <Board
@@ -107,6 +107,7 @@ export default function GamePage() {
                             key={boardKey}
                             gameState={gameState}
                             setGameState={setGameState}
+                            heuristicData={heuristicData}
                         />
                     )}
                 </div>
