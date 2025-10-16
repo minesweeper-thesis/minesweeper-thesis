@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from backend import schemas, services
 
-game_router = APIRouter()
+game_router = APIRouter(tags=["gameplay"])
 
 GameService = Annotated[services.GameService, Depends()]
 

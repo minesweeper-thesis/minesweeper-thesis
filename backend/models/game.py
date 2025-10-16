@@ -19,9 +19,9 @@ class Gameplay(Base):
     board_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("board.id"), nullable=False, index=True
     )
-    score: Mapped[float] = mapped_column(nullable=False, default=0.0, index=True)
     time: Mapped[float] = mapped_column(nullable=False, index=True)
     used_prompts: Mapped[bool] = mapped_column(nullable=False, default=False)
+    won: Mapped[bool] = mapped_column(nullable=False, index=True)
 
     user: Mapped["User"] = relationship("User", back_populates="boards")
     board: Mapped["Board"] = relationship("Board", back_populates="gameplays")
