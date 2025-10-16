@@ -6,7 +6,7 @@ from ..models import *
 from ..schemas import *
 from ..services.auth_service import auth_backend, fastapi_users, get_current_user
 
-auth_router = APIRouter()
+auth_router = APIRouter(tags=["auth"])
 
 
 auth_router.include_router(fastapi_users.get_auth_router(auth_backend))

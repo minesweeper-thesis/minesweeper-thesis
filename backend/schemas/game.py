@@ -8,9 +8,9 @@ Board = list[list[int]]
 
 class Gameplay(BaseModel):
     board_id: uuid.UUID
-    score: float
     time: float
     used_prompts: bool = False
+    won: bool
 
 
 type ClassifierType = Literal[

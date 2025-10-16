@@ -18,16 +18,16 @@ class UserService:
         self,
         user_id: uuid.UUID,
         board_id: uuid.UUID,
-        score: float,
         time: float,
         used_prompts: bool,
+        won: bool,
     ):
         gameplay = Gameplay(
             user_id=user_id,
             board_id=board_id,
-            score=score,
             time=time,
             used_prompts=used_prompts,
+            won=won,
         )
         await self.repo.add_gameplay(gameplay)
 
