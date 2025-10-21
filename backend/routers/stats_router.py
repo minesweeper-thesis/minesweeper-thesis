@@ -4,7 +4,8 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page, Params
 
-from backend import schemas, services
+import backend.schemas.stats as schemas
+from backend import services
 from backend.services.auth_service import CurrentUser
 
 StatsService = Annotated[services.StatsService, Depends()]

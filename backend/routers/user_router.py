@@ -5,8 +5,9 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.concurrency import asynccontextmanager
 from fastapi_pagination import Page, Params
 
+import backend.schemas.user as schemas
 import backend.services.exceptions as service_exceptions
-from backend import schemas, services
+from backend import services
 from backend.services.auth_service import CurrentUser
 
 PaginationParams = Annotated[Params, Depends()]
@@ -45,32 +46,6 @@ async def lifespan(app: FastAPI):
 
 
 user_router = APIRouter(lifespan=lifespan, tags=["user"])
-
-
-@user_router.post("/gameplays", status_code=204)
-async def save_gameplay(
-    gameplay: schemas.Gameplay,
-    user: CurrentUser,
-    service: UserService,
-):
-    """Saves gameplay for current user"""
-    await service.save_gameplay(
-        user.id,
-        gameplay.board_id,
-        gameplay.time,
-        gameplay.used_prompts,
-        gameplay.won,
-    )
-
-
-@user_router.get("/gameplays")
-async def get_gameplays(
-    user: CurrentUser,
-    service: UserService,
-    pagination_params: PaginationParams,
-) -> Page[schemas.Gameplay]:
-    """Gets gameplays for current user"""
-    return await service.get_gameplays(user.id, pagination_params)
 
 
 @user_router.get("/friends")

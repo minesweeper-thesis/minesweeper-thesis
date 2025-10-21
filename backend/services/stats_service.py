@@ -5,7 +5,7 @@ from fastapi import Depends
 from fastapi_pagination import Page, Params
 
 from backend.repositories import StatsRepository
-from backend.schemas import GameplayRanking, UserRanking
+from backend.schemas.stats import GameplayRanking, UserRanking
 
 
 class StatsService:
