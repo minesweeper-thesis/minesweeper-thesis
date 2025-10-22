@@ -5,7 +5,7 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 
 from backend.db.db import DBSession
-from backend.models.game import Gameplay
+from backend.models.game_models import Gameplay
 
 from .exceptions import *
 

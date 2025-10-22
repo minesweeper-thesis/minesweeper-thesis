@@ -4,8 +4,8 @@ from fastapi import Depends
 
 from algorithms.generator import Generator, RandomGenerator
 from backend import repositories
-from backend.models.board import Board
-from backend.schemas.board import GenerationInput
+from backend.models.board_models import Board
+from backend.schemas.board_schemas import GenerationInput
 
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 

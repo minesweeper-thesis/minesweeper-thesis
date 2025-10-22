@@ -4,9 +4,9 @@ from fastapi import Depends
 from fastapi_pagination import Params
 
 from backend import repositories, services
-from backend.models import game
+from backend.models import game_models
 from backend.repositories.exceptions import BoardNotFoundException
-from backend.schemas.game import NewGameInput, NewGameOutput
+from backend.schemas.game_schemas import NewGameInput, NewGameOutput
 from backend.services.auth_service import CurrentUser, OptionalCurrentUser
 from backend.services.exceptions import BoardNotExists
 
@@ -37,7 +37,7 @@ class GameService:
                     new_game_input.generation_settings
                 )
 
-            gameplay = game.Gameplay(
+            gameplay = game_models.Gameplay(
                 user_id=user.id if user else None,
                 board_id=board.id,
             )

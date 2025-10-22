@@ -3,7 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 
 from backend import services
-from backend.schemas.game import *
+from backend.schemas.game_schemas import *
 from backend.services.auth_service import OptionalCurrentUser
 
 game_router = APIRouter(prefix="/game", tags=["game"])
