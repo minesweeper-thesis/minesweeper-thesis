@@ -1,7 +1,6 @@
-import uuid
 from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 type ClassifierType = Literal[
     "lightgbm", "catboost", "gaussian", "mlp", "xgboost", "gradientboosting"
@@ -22,11 +21,9 @@ class GeneratorSettings(BaseModel):
 
 
 class GenerationInput(BaseModel):
-    generator_type: Literal["random", "deterministic"]
-    generator_settings: Optional[GeneratorSettings] = None
+    generator_type: Literal["random", "ml_based"]
+    generator_settings: Optional[GeneratorSettings] = Field(
+        None, description="Required if generator_type is set to 'ml_based'"
+    )
     difficulty_level: DifficultyLevel
     start_field: tuple[int, int]
-
-
-class GenerationOutput(BaseModel):
-    board_id: uuid.UUID

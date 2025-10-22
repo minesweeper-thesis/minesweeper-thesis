@@ -55,7 +55,7 @@ async def get_friends(
     pagination_params: PaginationParams,
 ) -> Page[schemas.Friend]:
     """Gets a list of friends for current user"""
-    return await service.get_friends(user.id, pagination_params)
+    return await service.get_friends(pagination_params)
 
 
 @user_router.put("/friends/{friend_id}")
@@ -65,7 +65,7 @@ async def make_friend_request(
     service: UserService,
 ):
     """Makes a friend request to user with given id"""
-    return await service.make_friend_request(user.id, friend_id)
+    return await service.make_friend_request(friend_id)
 
 
 @user_router.get("/friends/pending", response_model=Page[schemas.FriendRequest])
@@ -75,7 +75,7 @@ async def get_pending_friend_requests(
     pagination_params: PaginationParams,
 ):
     """Lists pending friend requests for current user"""
-    return await service.get_pending_friend_requests(user.id, pagination_params)
+    return await service.get_pending_friend_requests(pagination_params)
 
 
 @user_router.post("/friends/accept/{friend_request_id}")
@@ -85,7 +85,7 @@ async def accept_friend_request(
     service: UserService,
 ):
     """Accepts friend request with given id"""
-    return await service.accept_friend_request(user.id, friend_request_id)
+    return await service.accept_friend_request(friend_request_id)
 
 
 @user_router.post("/friends/reject/{friend_request_id}")
@@ -95,7 +95,7 @@ async def reject_friend_request(
     service: UserService,
 ):
     """Rejects friend request with given id"""
-    return await service.reject_friend_request(user.id, friend_request_id)
+    return await service.reject_friend_request(friend_request_id)
 
 
 @user_router.delete("/friends/{friend_id}")
@@ -105,4 +105,4 @@ async def remove_friend(
     service: UserService,
 ):
     """Removes a friend from friends list"""
-    return await service.remove_friend(user.id, friend_id)
+    return await service.remove_friend(friend_id)

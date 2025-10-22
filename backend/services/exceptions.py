@@ -16,3 +16,7 @@ class UsersAlreadyFriends(Exception):
 
 class CannotFriendRequestYourself(Exception):
     pass
+
+
+class BoardNotExists(Exception):
+    pass

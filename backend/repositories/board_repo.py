@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends
 from sqlalchemy import select
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.models.board import *
@@ -38,3 +39,13 @@ class BoardRepository:
             await self.session.refresh(board_type)
 
         return board_type
+
+    async def get_board_by_id(self, board_id: uuid.UUID) -> Board:
+        try:
+            stmt = select(Board).where(Board.id == board_id)
+            result = await self.session.execute(stmt)
+            return result.scalar_one()
+        except NoResultFound:
+            raise BoardNotFoundException(
+                f"Board with id {board_id} not found"
+            ) from None

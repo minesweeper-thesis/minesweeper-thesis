@@ -4,3 +4,7 @@ class FriendRequestNotFound(Exception):
 
 class FriendshipNotFound(Exception):
     pass
+
+
+class BoardNotFoundException(Exception):
+    pass
