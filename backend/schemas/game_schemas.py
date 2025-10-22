@@ -3,7 +3,7 @@ from typing import Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from backend.schemas.board import *
+from backend.schemas.board_schemas import *
 
 
 class NewGameInput(BaseModel):

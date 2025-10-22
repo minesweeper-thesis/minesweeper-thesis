@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.models.board import *
+from backend.models.board_models import *
 
 from ..db import get_async_session
 from .exceptions import *

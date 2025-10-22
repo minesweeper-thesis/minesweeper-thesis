@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 
 from backend.db.db import DBSession
-from backend.models.user import FriendRequest
+from backend.models.user_models import FriendRequest
 
 from ..models import FriendRequestStatus, Friendship, User
 from .exceptions import *

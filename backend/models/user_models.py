@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
-    from .game import Gameplay
+    from .game_models import Gameplay
 
 
 class Friendship(Base):

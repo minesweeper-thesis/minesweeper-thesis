@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException
 from fastapi.concurrency import asynccontextmanager
 from fastapi_pagination import Page, Params
 
-import backend.schemas.user as schemas
+import backend.schemas.user_schemas as schemas
 import backend.services.exceptions as service_exceptions
 from backend import services
 from backend.services.auth_service import CurrentUser
