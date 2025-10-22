@@ -36,7 +36,7 @@ class Board(Base):
     board_type_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("board_type.id"), nullable=False, index=True
     )
-    minedfields: Mapped[BoardGrid] = mapped_column(JSON, unique=True, nullable=False)
+    minefields: Mapped[BoardGrid] = mapped_column(JSON, unique=True, nullable=False)
 
     board_type: Mapped[BoardType] = relationship("BoardType", back_populates="boards")
     gameplays: Mapped[list["Gameplay"]] = relationship(

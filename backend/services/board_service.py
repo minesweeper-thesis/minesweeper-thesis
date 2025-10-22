@@ -3,21 +3,23 @@ from typing import Annotated
 from fastapi import Depends
 
 from algorithms.generator import Generator, RandomGenerator
+from backend import repositories
 from backend.models.board import Board
-from backend.repositories.board_repo import BoardRepository
 from backend.schemas.board import GenerationInput
+
+BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 
 
 class BoardService:
-    def __init__(self, repo: Annotated[BoardRepository, Depends()]):
+    def __init__(self, repo: BoardRepository):
         self.repo = repo
 
-    async def generate_board(self, generation_input: GenerationInput):
+    async def generate_board(self, generation_input: GenerationInput) -> Board:
         generator = self._get_generator(generation_input)
-        minefields = generator.generate()
+        minefields = generator.generate().grid().grid
 
         board = await self._create_board(generation_input.difficulty_level, minefields)
-        return board.id
+        return board
 
     def _get_generator(self, generation_input: GenerationInput):
         generator_settings = generation_input.generator_settings

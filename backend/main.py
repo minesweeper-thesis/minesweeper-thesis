@@ -6,7 +6,8 @@ from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
-from . import routers
+from backend import routers
+
 from .db import *
 
 
@@ -30,7 +31,7 @@ app.add_middleware(
 )
 
 app.include_router(routers.auth_router, prefix="/auth")
-app.include_router(routers.board_router)
+app.include_router(routers.game_router)
 app.include_router(routers.stats_router)
 app.include_router(routers.user_router)
 add_pagination(app)
