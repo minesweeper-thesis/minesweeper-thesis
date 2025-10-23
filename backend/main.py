@@ -31,5 +31,6 @@ app.add_middleware(
 
 app.include_router(routers.auth_router, prefix="/auth")
 app.include_router(routers.game_router)
+app.include_router(routers.stats_router)
 app.include_router(routers.user_router)
 add_pagination(app)

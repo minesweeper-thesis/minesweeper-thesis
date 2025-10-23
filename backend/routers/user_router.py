@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
     yield
 
 
-user_router = APIRouter(lifespan=lifespan)
+user_router = APIRouter(lifespan=lifespan, tags=["user"])
 
 
 @user_router.post("/gameplays", status_code=204)
@@ -57,9 +57,9 @@ async def save_gameplay(
     await service.save_gameplay(
         user.id,
         gameplay.board_id,
-        gameplay.score,
         gameplay.time,
         gameplay.used_prompts,
+        gameplay.won,
     )
 
 
