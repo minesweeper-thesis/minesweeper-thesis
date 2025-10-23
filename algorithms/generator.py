@@ -1,4 +1,5 @@
 from algorithms.boards.board import Board
+from algorithms.boards.random_board import RandomBoard
 from algorithms.checker.checker import Checker
 from algorithms.classifiers.catboost_classifier import CatBoostClassifier
 from algorithms.classifiers.classifier import Classifier
@@ -72,3 +73,21 @@ class Generator:
 
             if checker.is_solvable(board):
                 return board
+
+
+class RandomGenerator:
+    def __init__(
+        self, rows: int, columns: int, mine_count: int, start_field: tuple[int, int]
+    ):
+        self.rows = rows
+        self.columns = columns
+        self.mine_count = mine_count
+        self.start_field = start_field
+
+    def generate(self):
+        return RandomBoard(
+            rows=self.rows,
+            columns=self.columns,
+            mine_count=self.mine_count,
+            start_field=self.start_field,
+        )

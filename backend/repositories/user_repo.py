@@ -1,31 +1,21 @@
 import uuid
-from typing import Annotated, Optional
+from typing import Optional
 
-from fastapi import Depends
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db import get_async_session
-from ..models import FriendRequest, FriendRequestStatus, Friendship, Gameplay, User
+from backend.db.db import DBSession
+from backend.models.user import FriendRequest
+
+from ..models import FriendRequestStatus, Friendship, User
 from .exceptions import *
 
 
 class UserRepository:
-    def __init__(self, session: Annotated[AsyncSession, Depends(get_async_session)]):
+    def __init__(self, session: DBSession):
         self.session = session
-
-    async def add_gameplay(self, gameplay: Gameplay):
-        self.session.add(gameplay)
-        await self.session.commit()
-        await self.session.refresh(gameplay)
-        return gameplay
-
-    async def get_gameplays(self, user_id: uuid.UUID, pagination_params: Params):
-        stmt = select(Gameplay).where(Gameplay.user_id == user_id)
-        return await apaginate(self.session, stmt, pagination_params)
 
     async def get_friends(self, user_id: uuid.UUID, pagination_params: Params):
         stmt = select(User).join(User.friend_of).where(Friendship.user_id == user_id)

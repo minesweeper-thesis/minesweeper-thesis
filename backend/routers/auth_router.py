@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
+from backend.schemas.user import *
+
 from ..db import *
 from ..models import *
-from ..schemas import *
 from ..services.auth_service import auth_backend, fastapi_users, get_current_user
 
 auth_router = APIRouter(tags=["auth"])

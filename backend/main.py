@@ -6,7 +6,8 @@ from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 
-from . import routers
+from backend import routers
+
 from .db import *
 
 

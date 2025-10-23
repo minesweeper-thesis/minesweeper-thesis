@@ -2,26 +2,18 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
-from backend import schemas, services
+from backend import services
+from backend.schemas.game import *
+from backend.services.auth_service import OptionalCurrentUser
 
-game_router = APIRouter(tags=["gameplay"])
+game_router = APIRouter(prefix="/game", tags=["game"])
 
 GameService = Annotated[services.GameService, Depends()]
 
-DIFFICULTY_LEVELS = [(10, 10, 15), (16, 16, 40), (16, 30, 99)]
 
-
-@game_router.post("/board", response_model=schemas.Board)
-async def get_board(generator_input: schemas.GeneratorInput, service: GameService):
-    """Generates a board as `list[list[int]]`"""
-
-    difficulty_level = (
-        generator_input.rows,
-        generator_input.columns,
-        generator_input.mine_count,
-    )
-
-    if difficulty_level not in DIFFICULTY_LEVELS:
-        return service.generate_random_board(generator_input)
-
-    return service.generate_board(generator_input)
+@game_router.post("/start")
+async def start_singleplayer_game(
+    new_game_input: NewGameInput, user: OptionalCurrentUser, service: GameService
+) -> NewGameOutput:
+    """Starts a new game."""
+    return await service.start_singleplayer_game(user, new_game_input)
