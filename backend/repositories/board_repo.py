@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from backend.models.board_models import *
 
@@ -15,10 +16,10 @@ class BoardRepository:
     def __init__(self, session: Annotated[AsyncSession, Depends(get_async_session)]):
         self.session = session
 
-    async def add_board(self, board: Board):
+    async def add_board(self, board: Board) -> Board:
         self.session.add(board)
         await self.session.commit()
-        await self.session.refresh(board)
+        await self.session.refresh(board, attribute_names=["board_type"])
         return board
 
     async def get_board_type(
@@ -42,7 +43,11 @@ class BoardRepository:
 
     async def get_board_by_id(self, board_id: uuid.UUID) -> Board:
         try:
-            stmt = select(Board).where(Board.id == board_id)
+            stmt = (
+                select(Board)
+                .where(Board.id == board_id)
+                .options(selectinload(Board.board_type))
+            )
             result = await self.session.execute(stmt)
             return result.scalar_one()
         except NoResultFound:
