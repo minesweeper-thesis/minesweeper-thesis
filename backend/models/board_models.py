@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
-    from .game_models import Gameplay
+    from .game_models import SingleplayerGameplay
 
 
 class BoardType(Base):
@@ -36,9 +36,16 @@ class Board(Base):
     board_type_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("board_type.id"), nullable=False, index=True
     )
-    minefields: Mapped[BoardGrid] = mapped_column(JSON, unique=True, nullable=False)
+    minefields: Mapped[BoardGrid] = mapped_column(JSON, nullable=False)
+    start_field: Mapped[tuple[int, int]] = mapped_column(JSON, nullable=False)
 
     board_type: Mapped[BoardType] = relationship("BoardType", back_populates="boards")
-    gameplays: Mapped[list["Gameplay"]] = relationship(
-        "Gameplay", back_populates="board"
+    singleplayer_gameplays: Mapped[list["SingleplayerGameplay"]] = relationship(
+        "SingleplayerGameplay", back_populates="board"
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "board_type_id", "minefields", name="uq_board_type_minefields"
+        ),
     )

@@ -25,5 +25,3 @@ class GenerationInput(BaseModel):
     generator_settings: Optional[GeneratorSettings] = Field(
         None, description="Required if generator_type is set to 'ml_based'"
     )
-    difficulty_level: DifficultyLevel
-    start_field: tuple[int, int]
