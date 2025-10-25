@@ -2,6 +2,7 @@ from algorithms.boards.grid import Grid
 from algorithms.checker.field_state import FieldState
 from algorithms.checker.field_solver import FieldSolver
 import numpy as np
+from copy import deepcopy
 
 
 class HintGenerator:
@@ -14,6 +15,7 @@ class HintGenerator:
 
     @staticmethod
     def get_safe_fields_no_cache(grid: Grid) -> list[tuple[int, int]]:
+        grid = deepcopy(grid)
         possible_moves = []
 
         not_mines = [
