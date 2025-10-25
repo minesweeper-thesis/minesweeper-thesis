@@ -108,7 +108,6 @@ class HintGenerator:
                 if is_unsat:
                     hint_cache_board[i][j] = FieldState.NOT_MINED.value
                 else:
-                    hint_cache_board[i][j] = FieldState.POSSIBLE_MINE.value  #
                     temp_board = np.logical_or(temp_board, np.array(solutions))
 
         return hint_cache_board
