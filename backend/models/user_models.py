@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
-    from .game import Gameplay
+    from .game_models import SingleplayerGameplay
 
 
 class Friendship(Base):
@@ -72,8 +72,8 @@ class User(SQLAlchemyBaseUserTable[uuid.UUID], Base):
     nickname: Mapped[str] = mapped_column(nullable=False, index=True)
     generator_settings: Mapped[str] = mapped_column(nullable=False)
 
-    boards: Mapped[list["Gameplay"]] = relationship(
-        "Gameplay", back_populates="user", cascade="all, delete"
+    singleplayer_gameplays: Mapped[list["SingleplayerGameplay"]] = relationship(
+        "SingleplayerGameplay", back_populates="user", cascade="all, delete"
     )
     friends: Mapped[list[Friendship]] = relationship(
         "Friendship", foreign_keys=[Friendship.user_id], back_populates="user"

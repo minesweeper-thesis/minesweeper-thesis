@@ -1,4 +1,4 @@
 from .base import *
-from .board import *
-from .game import *
-from .user import *
+from .board_models import *
+from .game_models import *
+from .user_models import *
