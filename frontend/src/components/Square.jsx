@@ -4,7 +4,7 @@ import {State} from "../utility";
 
 export default function Square({ value, onClick }) {
 
-    const isRevealed = value >= State._0;
+    const isRevealed = value >= State.MINE;
     const isFlagged = value === State.FLAG;
     const isMine = value === State.MINE;
     const isStart = value === State.START_FIELD;
@@ -15,8 +15,8 @@ export default function Square({ value, onClick }) {
 
 
     let content = " ";
-    if (isFlagged) content = <img src="/flag.svg" alt="Flag" className="flag-icon" />;
-    else if (isMine) content = <img src="/mine.svg" alt="Mine" className="mine-icon" />;
+    if (isFlagged) content = <img src="/flag.svg" alt="I" className="flag-icon" />;
+    else if (isMine) content = <img src="/mine.svg" alt="X" className="mine-icon" />;
     else if (isStart) content = "X";
     else if (value > 0) content = value;
 
