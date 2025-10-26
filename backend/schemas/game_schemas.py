@@ -1,9 +1,15 @@
+import enum
 import uuid
 from typing import ClassVar, Literal, Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
 from backend.schemas.board_schemas import *
+
+
+class GameMode(enum.Enum):
+    normal = "normal"
+    hardcore = "hardcore"
 
 
 class NewGameInput(BaseModel):
@@ -19,6 +25,7 @@ class NewGameInput(BaseModel):
         None,
         description="Difficulty for generation (required with generation_settings, exclusive with board_id)",
     )
+    mode: GameMode = GameMode.normal
 
     @model_validator(mode="after")
     def validate(self) -> Self:
