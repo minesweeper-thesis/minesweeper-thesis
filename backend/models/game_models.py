@@ -5,6 +5,7 @@ from sqlalchemy import JSON, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.core.game.game import GameResult, GameStatus
+from backend.schemas.game_schemas import GameMode
 
 from .base import Base
 
@@ -26,6 +27,8 @@ class SingleplayerGameplay(Base):
     )
     result: Mapped[Optional[GameResult]] = mapped_column(Enum(GameResult))
     revealed_cells: Mapped[list[tuple[int, int]]] = mapped_column(JSON, default=[])
+
+    mode: Mapped[GameMode] = mapped_column(Enum(GameMode), default=GameMode.normal)
 
     user: Mapped[Optional["User"]] = relationship(
         "User", back_populates="singleplayer_gameplays"

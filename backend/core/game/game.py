@@ -5,6 +5,8 @@ from typing import Optional
 from algorithms.boards.functions.moore import moore_neighborhood
 from algorithms.boards.grid import Grid
 from algorithms.checker.hint_generator import HintGenerator
+from backend.models.board_models import Board
+from backend.schemas.game_schemas import GameMode
 
 
 class GameStatus(enum.Enum):
@@ -25,31 +27,49 @@ class InvalidAction(Exception):
 class SingleplayerGameplay:
     def __init__(
         self,
-        grid: Grid,
+        board: Board,
         revealed_cells: list[tuple[int, int]],
-        game_status: GameStatus,
-        game_result: Optional[GameResult],
-        used_hints: bool = False,
-        elapsed_time: float = 0,
+        status: GameStatus,
+        result: Optional[GameResult],
+        used_hints: bool,
+        elapsed_time: float,
+        mode: GameMode,
     ):
-        self._started = False
         self._time_start = None
-        self.elapsed_time: float = elapsed_time
-        self.used_hints: bool = used_hints
-        self.grid: Grid = grid
+
+        self.grid = Grid(
+            rows=board.board_type.rows,
+            columns=board.board_type.columns,
+            mined_fields=board.minefields,
+        )
+        self.start_field = board.start_field
+
+        self.status: GameStatus = status
+        self.result: Optional[GameResult] = result
+        self.used_hints = used_hints
+        self.elapsed_time = elapsed_time
+        self.game_mode = mode
+        self.revealed: list[tuple[int, int, int]] = []
+
         for i, j in revealed_cells:
             self.grid.revealed[i][j] = True
-        self.status: GameStatus = game_status
-        self.result: Optional[GameResult] = game_result
+
+    def _get_safe_cells(self) -> list[tuple[int, int]]:
+        safe_cells = HintGenerator.get_safe_fields_no_cache(self.grid)
+
+        start_x, start_y = self.start_field
+        if not self.grid.revealed[start_x][start_y]:
+            safe_cells.append((start_x, start_y))
+
+        return safe_cells
 
     def use_hint(self) -> list[tuple[int, int]]:
         self.start_game_if_first_action()
         self.used_hints = True
-        return HintGenerator.get_safe_fields_no_cache(self.grid)
+        return self._get_safe_cells()
 
     def start_game_if_first_action(self):
-        if not self._started:
-            self._started = True
+        if self.status == GameStatus.not_started:
             self.status = GameStatus.in_progress
             self._time_start = time.monotonic()
 
@@ -63,10 +83,8 @@ class SingleplayerGameplay:
             self.elapsed_time += time.monotonic() - self._time_start
 
     def finish_game(self, result: GameResult):
-        if self._started:
-            self._started = False
-        else:
-            raise RuntimeError("Game not started")
+        if self.status == GameStatus.finished:
+            return
 
         self.update_elapsed_time()
         self.status = GameStatus.finished
@@ -84,22 +102,31 @@ class SingleplayerGameplay:
         if x < 0 or y < 0 or x >= self.grid.rows or y >= self.grid.columns:
             raise IndexError("Field out of bounds")
 
-    def reveal_one(self, x: int, y: int) -> list[tuple[int, int, int]]:
+    def reveal_one(self, x: int, y: int):
         self.start_game_if_first_action()
         self._validate_coords(x, y)
+        self._reset_revealed()
 
         if self.grid.flagged[x][y] or self.grid.revealed[x][y]:
             raise InvalidAction("Field is already revealed or flagged")
 
+        if self.game_mode == GameMode.hardcore:
+            if (x, y) not in self._get_safe_cells():
+                self.finish_game(GameResult.loss)
+                return
+
         old_revealed = set(self.get_revealed_cells())
         self.grid.handle_field_click((x, y))
-        new_revealed = set(self.get_revealed_cells()) - old_revealed
 
-        return self._get_reveal_return_value(list(new_revealed))
+        revealed = list(set(self.get_revealed_cells()) - old_revealed)
 
-    def reveal_many(self, x: int, y: int) -> list[tuple[int, int, int]]:
+        self._update_result(revealed)
+        self._set_revealed(revealed)
+
+    def reveal_many(self, x: int, y: int):
         self.start_game_if_first_action()
         self._validate_coords(x, y)
+        self._reset_revealed()
 
         if not self.grid.revealed[x][y]:
             raise InvalidAction("Field must be revealed to use reveal_many")
@@ -116,21 +143,26 @@ class SingleplayerGameplay:
             if not self.grid.flagged[nx][ny] and not self.grid.revealed[nx][ny]:
                 self.grid.handle_field_click((nx, ny))
 
-        new_revealed = set(self.get_revealed_cells()) - old_revealed
+        revealed = list(set(self.get_revealed_cells()) - old_revealed)
 
-        return self._get_reveal_return_value(list(new_revealed))
+        self._update_result(revealed)
+        self._set_revealed(revealed)
 
-    def _get_reveal_return_value(
-        self, new_revealed: list[tuple[int, int]]
-    ) -> list[tuple[int, int, int]]:
-        for x, y in new_revealed:
+    def _update_result(self, revealed: list[tuple[int, int]]):
+        for x, y in revealed:
             if self.grid.grid[x][y] == -1:
                 self.finish_game(GameResult.loss)
+                return
 
         if self.grid.check_win():
             self.finish_game(GameResult.win)
+            return
 
-        return [(x, y, self.grid.grid[x][y]) for (x, y) in new_revealed]
+    def _reset_revealed(self):
+        self.revealed = []
+
+    def _set_revealed(self, revealed: list[tuple[int, int]]):
+        self.revealed = [(x, y, self.grid.grid[x][y]) for (x, y) in revealed]
 
     def flag(self, x: int, y: int):
         self.start_game_if_first_action()

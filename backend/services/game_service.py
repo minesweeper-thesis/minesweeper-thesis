@@ -5,7 +5,6 @@ from typing import Annotated
 from fastapi import Depends
 from fastapi_pagination import Params
 
-from algorithms.boards.grid import Grid
 from backend import repositories, services
 from backend.core.game.game import GameStatus, InvalidAction, SingleplayerGameplay
 from backend.models import game_models
@@ -66,19 +65,14 @@ class GameService:
 
             board = await self.board_repo.get_board_by_id(db_gameplay.board_id)
 
-            grid = Grid(
-                rows=board.board_type.rows,
-                columns=board.board_type.columns,
-                mined_fields=board.minefields,
-            )
-
             self.gameplay = SingleplayerGameplay(
-                grid=grid,
+                board=board,
                 revealed_cells=db_gameplay.revealed_cells,
                 elapsed_time=db_gameplay.time,
                 used_hints=db_gameplay.used_hints,
-                game_status=db_gameplay.status,
-                game_result=db_gameplay.result,
+                status=db_gameplay.status,
+                result=db_gameplay.result,
+                mode=db_gameplay.mode,
             )
             self.gameplay_id = gameplay_id
 
@@ -93,6 +87,7 @@ class GameService:
         board = await self._get_board(new_game_input, user)
 
         db_gameplay = game_models.SingleplayerGameplay(
+            mode=new_game_input.mode.value,
             user_id=user.id if user else None,
             board_id=board.id,
         )
@@ -150,7 +145,7 @@ class GameService:
             }
 
             return await actions[action.type](action)
-        except:
+        except KeyError:
             raise ValueError(f"Invalid action type: {action.type}")
 
     async def _handle_hint_action(
@@ -173,7 +168,7 @@ class GameService:
         x, y = action.cell
 
         with suppress(InvalidAction):
-            result = actions[action.type](x, y)
+            actions[action.type](x, y)
 
         if self.gameplay.status == GameStatus.finished:
             assert self.gameplay.elapsed_time is not None
@@ -188,7 +183,7 @@ class GameService:
                 ),
                 True,
             )
-        return RevealResult(revealed_cells=result), False
+        return RevealResult(revealed_cells=self.gameplay.revealed), False
 
     async def _handle_flag_action(
         self, action: CellGameAction
