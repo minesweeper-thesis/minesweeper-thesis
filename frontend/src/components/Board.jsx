@@ -87,10 +87,7 @@ export default function Board({ socket, boardData }) {
         })
         console.log("wyslano:");
         console.log(msg);
-        socket.send(JSON.stringify({
-            type: "reveal_one",
-            cell: [ y, x ]
-        }));
+        socket.send(msg);
     };
 
     const handleRightClick = (x, y) => {
