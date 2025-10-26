@@ -20,7 +20,7 @@ export default function GamePage() {
     const [heuristicData, setHeuristicData] = useState({
         classifier: "lightgbm",
         heuristic: "no",
-        heuristic_args: [0]
+        heuristic_args: []
     });
     const [boardData, setBoardData] = useState({
         rows: 9,
@@ -95,7 +95,7 @@ export default function GamePage() {
             }
 
             const data = await response.json();
-            // console.log(data);
+            console.log(data);
             return data;
         } catch (error) {
             console.error("Błąd inicjalizacji gry:", error);
@@ -142,6 +142,7 @@ export default function GamePage() {
                     ...prevData,
                     startField: res.start_field
                 }));
+                console.log("start: ", res.start_field)
                 ws = connectToGameWebSocket(res.gameplay_id);
                 setSocket(ws);
 
