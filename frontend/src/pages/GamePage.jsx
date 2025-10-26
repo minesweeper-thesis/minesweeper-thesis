@@ -10,6 +10,7 @@ import AdvancedOptions from "../components/AdvancedOptions";
 
 export default function GamePage() {
 
+    const [canStart, setCanStart] = useState(false);
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
     const [socket, setSocket] = useState(null);
     const [mines, setMines] = useState(0);
@@ -88,7 +89,7 @@ export default function GamePage() {
     async function startNewGame() {
         let ws;
         setGameState(GameState.NOT_STARTED);
-        setMines(boardData.mineCount);
+
         try {
             if (socket) {
                 socket.close();
@@ -100,10 +101,8 @@ export default function GamePage() {
                 startField: res.start_field
             }));
             console.log("start: ", res.start_field);
-
             ws = connectToGameWebSocket(res.gameplay_id);
             setSocket(ws);
-
             return ws;
         } catch (err) {
             console.error("Game initialization error:", err);
@@ -124,14 +123,21 @@ export default function GamePage() {
         };
     }, []);
 
-
+    useEffect(() => {
+        if (canStart) {
+            console.log("123: ", boardData);
+            startNewGame();
+            console.log("456: ", boardData);
+            setCanStart(false);
+        }
+    }, [canStart]);
 
 
     return (
         <div className="game flex h-screen bg-bg-tertiary justify-center">
             {/* Sidebar */}
             <aside className="w-64 p-4 bg-bg-tertiary">
-                <DifficultyMenu onSelect={startNewGame} setBoardData={setBoardData} />
+                <DifficultyMenu setBoardData={setBoardData} onSelect={() => setCanStart(true)} />
                 <AdvancedOptions onSelect={(data) => setHeuristicData(data)} />
             </aside>
 

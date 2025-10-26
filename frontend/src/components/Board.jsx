@@ -11,6 +11,15 @@ export default function Board({ socket, boardData, setGameState, setMines }) {
     );
 
     useEffect(() => {
+        setBoard(
+            Array.from({ length: boardData.rows }, () =>
+                Array(boardData.cols).fill(State.NOT_REVEALED)
+            )
+        );
+    }, [boardData.rows, boardData.cols]);
+
+
+    useEffect(() => {
         if (boardData.startField != null) {
             setBoard(prevBoard => {
                 const newBoard = prevBoard.map(row => [...row]);
