@@ -15,6 +15,7 @@ export default function Board({ socket, boardData }) {
             const newBoard = board.map(row => row.slice());
             newBoard[boardData.startField[0]][boardData.startField[1]] = State.START_FIELD;
             setBoard(newBoard);
+            console.log("komponent: ", boardData.startField);
         }
 
     }, []);
@@ -27,7 +28,22 @@ export default function Board({ socket, boardData }) {
                 const data = JSON.parse(event.data);
                 console.log("Odebrano:", data);
 
-                //zaktualizować stan planszy
+                if (!data.revealed_cells || data.game_status != "in_progress"){
+                    return
+                }
+
+                setBoard(prevBoard => {
+                    const newBoard = prevBoard.map(row => [...row]);
+
+
+                    data.revealed_cells.forEach(([x, y, state]) => {
+                        if (newBoard[y] && newBoard[x][y] !== undefined) {
+                            newBoard[x][y] = state;
+                        }
+                    });
+
+                    return newBoard;
+                });
 
             } catch (err) {
                 console.error("Error onmessage:", err);
@@ -73,7 +89,7 @@ export default function Board({ socket, boardData }) {
         console.log(msg);
         socket.send(JSON.stringify({
             type: "reveal_one",
-            cell: [ x, y ]
+            cell: [ y, x ]
         }));
     };
 
@@ -86,10 +102,10 @@ export default function Board({ socket, boardData }) {
 
             if (current === State.NOT_REVEALED) {
                 newBoard[x][y] = State.FLAG;
-                socket.send(JSON.stringify({ type: "flag", x, y }));
+                socket.send(JSON.stringify({ type: "flag", cell: [ y, x ] }));
             } else if (current === State.FLAG) {
                 newBoard[x][y] = State.NOT_REVEALED;
-                socket.send(JSON.stringify({ type: "remove_flag", x, y }));
+                socket.send(JSON.stringify({ type: "remove_flag", cell: [ y, x ] }));
             }
 
             return newBoard;
@@ -101,8 +117,7 @@ export default function Board({ socket, boardData }) {
 
         const action = {
             type: "reveal_many",
-            x,
-            y,
+            cell: [ y, x ]
         };
         socket.send(JSON.stringify(action));
     };
