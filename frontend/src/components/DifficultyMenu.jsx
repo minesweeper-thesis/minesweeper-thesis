@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import { Settings, Zap, Target, Flame } from 'lucide-react';
 
-const DifficultyMenu = ({ onSelect, setBoardData }) => {
+const DifficultyMenu = ({ setBoardData, onSelect }) => {
     const [selected, setSelected] = useState('easy');
     const [customRows, setCustomRows] = useState(9);
     const [customCols, setCustomCols] = useState(9);
@@ -19,17 +19,19 @@ const DifficultyMenu = ({ onSelect, setBoardData }) => {
         else if (selected === 'medium') setParams(16, 16, 40);
         else if (selected === 'hard') setParams(16, 30, 99);
         else if (selected === 'custom') setParams(customRows, customCols, customMines);
-        onSelect()
     };
 
     const setParams  = (rows, cols, mines) => {
-        setBoardData({
+        let newData = {
             rows: rows,
             cols: cols,
             mineCount: mines,
             startField: null
-        })
+        }
+        setBoardData(newData);
+        onSelect();
     }
+
 
     return (
         <div className="difficulty-selector card p-4 bg-bg-primary rounded-lg shadow-md">
