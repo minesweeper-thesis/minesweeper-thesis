@@ -20,6 +20,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 
+routers.register_exceptions(app)
+
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 app.add_middleware(

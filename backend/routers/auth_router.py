@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
-from backend.schemas.user import *
+from backend.schemas.user_schemas import *
 
 from ..db import *
 from ..models import *

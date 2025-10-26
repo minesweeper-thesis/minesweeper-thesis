@@ -1,11 +1,10 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException
-from fastapi.concurrency import asynccontextmanager
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params
 
-import backend.schemas.user as schemas
+import backend.schemas.user_schemas as schemas
 import backend.services.exceptions as service_exceptions
 from backend import services
 from backend.services.auth_service import CurrentUser
@@ -13,7 +12,7 @@ from backend.services.auth_service import CurrentUser
 PaginationParams = Annotated[Params, Depends()]
 UserService = Annotated[services.UserService, Depends()]
 
-exceptions = {
+user_exceptions = {
     service_exceptions.UsersNotFriends: HTTPException(400, "Users are not friends"),
     service_exceptions.FriendRequestNotExists: HTTPException(
         404, "Friend request not found"
@@ -29,23 +28,7 @@ exceptions = {
     ),
 }
 
-
-def register_exceptions(app: FastAPI):
-    for service_exception, router_exception in exceptions.items():
-
-        async def handler(request, exception, router_exception=router_exception):
-            raise router_exception
-
-        app.add_exception_handler(service_exception, handler)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    register_exceptions(app)
-    yield
-
-
-user_router = APIRouter(lifespan=lifespan, tags=["user"])
+user_router = APIRouter(tags=["user"])
 
 
 @user_router.get("/friends")

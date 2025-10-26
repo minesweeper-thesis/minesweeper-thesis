@@ -4,7 +4,7 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page, Params
 
-import backend.schemas.stats as schemas
+import backend.schemas.stats_schemas as schemas
 from backend import services
 from backend.services.auth_service import CurrentUser
 

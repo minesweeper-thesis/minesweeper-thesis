@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
-    from .game import Gameplay
+    from .game_models import SingleplayerGameplay
 
 
 class Friendship(Base):
@@ -59,8 +59,7 @@ class FriendRequest(Base):
         CheckConstraint("user_id != friend_id", name="check_not_self_request"),
     )
     status: Mapped[FriendRequestStatus] = mapped_column(
-        Enum(FriendRequestStatus, name="friend_request_status"),
-        nullable=False,
+        Enum(FriendRequestStatus),
         default="pending",
     )
 
@@ -69,11 +68,11 @@ class User(SQLAlchemyBaseUserTable[uuid.UUID], Base):
     __tablename__ = "user"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    nickname: Mapped[str] = mapped_column(nullable=False, index=True)
-    generator_settings: Mapped[str] = mapped_column(nullable=False)
+    nickname: Mapped[str] = mapped_column()
+    generator_settings: Mapped[str] = mapped_column()
 
-    boards: Mapped[list["Gameplay"]] = relationship(
-        "Gameplay", back_populates="user", cascade="all, delete"
+    singleplayer_gameplays: Mapped[list["SingleplayerGameplay"]] = relationship(
+        "SingleplayerGameplay", back_populates="user", cascade="all, delete"
     )
     friends: Mapped[list[Friendship]] = relationship(
         "Friendship", foreign_keys=[Friendship.user_id], back_populates="user"

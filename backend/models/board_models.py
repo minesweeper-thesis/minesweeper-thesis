@@ -7,16 +7,16 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import Base
 
 if TYPE_CHECKING:
-    from .game import Gameplay
+    from .game_models import SingleplayerGameplay
 
 
 class BoardType(Base):
     __tablename__ = "board_type"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    rows: Mapped[int] = mapped_column(nullable=False)
-    columns: Mapped[int] = mapped_column(nullable=False)
-    mine_count: Mapped[int] = mapped_column(nullable=False)
+    rows: Mapped[int] = mapped_column()
+    columns: Mapped[int] = mapped_column()
+    mine_count: Mapped[int] = mapped_column()
 
     __table_args__ = (
         Index("ix_boardtype", "rows", "columns", "mine_count"),
@@ -34,11 +34,18 @@ class Board(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     board_type_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("board_type.id"), nullable=False, index=True
+        ForeignKey("board_type.id"), index=True
     )
-    minefields: Mapped[BoardGrid] = mapped_column(JSON, unique=True, nullable=False)
+    minefields: Mapped[BoardGrid] = mapped_column(JSON)
+    start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
 
     board_type: Mapped[BoardType] = relationship("BoardType", back_populates="boards")
-    gameplays: Mapped[list["Gameplay"]] = relationship(
-        "Gameplay", back_populates="board"
+    singleplayer_gameplays: Mapped[list["SingleplayerGameplay"]] = relationship(
+        "SingleplayerGameplay", back_populates="board"
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "board_type_id", "minefields", name="uq_board_type_minefields"
+        ),
     )
