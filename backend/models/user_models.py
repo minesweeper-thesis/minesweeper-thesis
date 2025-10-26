@@ -59,8 +59,7 @@ class FriendRequest(Base):
         CheckConstraint("user_id != friend_id", name="check_not_self_request"),
     )
     status: Mapped[FriendRequestStatus] = mapped_column(
-        Enum(FriendRequestStatus, name="friend_request_status"),
-        nullable=False,
+        Enum(FriendRequestStatus),
         default="pending",
     )
 
@@ -69,8 +68,8 @@ class User(SQLAlchemyBaseUserTable[uuid.UUID], Base):
     __tablename__ = "user"
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
 
-    nickname: Mapped[str] = mapped_column(nullable=False, index=True)
-    generator_settings: Mapped[str] = mapped_column(nullable=False)
+    nickname: Mapped[str] = mapped_column()
+    generator_settings: Mapped[str] = mapped_column()
 
     singleplayer_gameplays: Mapped[list["SingleplayerGameplay"]] = relationship(
         "SingleplayerGameplay", back_populates="user", cascade="all, delete"

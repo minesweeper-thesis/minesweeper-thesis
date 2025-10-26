@@ -1,3 +1,6 @@
+from backend.schemas.board_schemas import DifficultyLevel
+
+
 class UsersNotFriends(Exception):
     pass
 
@@ -19,4 +22,17 @@ class CannotFriendRequestYourself(Exception):
 
 
 class BoardNotExists(Exception):
+    pass
+
+
+class SolvedAllBoards(Exception):
+    def __init__(self, difficulty_level: DifficultyLevel):
+        self.difficulty_level = difficulty_level
+
+
+class GameplayAlreadyFinished(Exception):
+    pass
+
+
+class GameplayNotExists(Exception):
     pass

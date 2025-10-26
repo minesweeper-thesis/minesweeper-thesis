@@ -30,7 +30,7 @@ class StatsRepository:
             .join(User, SingleplayerGameplay.user_id == User.id)
             .join(Board, SingleplayerGameplay.board_id == Board.id)
             .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_prompts == False)
+            .where(SingleplayerGameplay.used_hints == False)
             .order_by(SingleplayerGameplay.time.asc())
         )
 
@@ -56,7 +56,7 @@ class StatsRepository:
                 (Friendship.friend_id == User.id) & (Friendship.user_id == user_id),
             )
             .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_prompts == False)
+            .where(SingleplayerGameplay.used_hints == False)
             .order_by(SingleplayerGameplay.time.asc())
         )
 
@@ -85,7 +85,7 @@ class StatsRepository:
             .join(SingleplayerGameplay, SingleplayerGameplay.user_id == User.id)
             .join(Board, SingleplayerGameplay.board_id == Board.id)
             .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_prompts == False)
+            .where(SingleplayerGameplay.used_hints == False)
             .group_by(User.id)
         )
 
@@ -133,7 +133,7 @@ class StatsRepository:
                 (Friendship.friend_id == User.id) & (Friendship.user_id == user_id),
             )
             .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_prompts == False)
+            .where(SingleplayerGameplay.used_hints == False)
             .group_by(User.id)
         )
 
