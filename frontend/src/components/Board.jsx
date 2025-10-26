@@ -1,181 +1,120 @@
-import React, {useState, useEffect, useCallback} from 'react';
-import Square from './Square';
-import { State, GameState } from '../utility';
-import '../styles/board.css';
+import React, {useEffect, useState} from "react";
+import Square from "./Square";
+import { State } from "../utility";
+import "../styles/board.css";
 
-export default function Board({ board, setBoard, rows, cols, mineCount ,firstClick, setFirstClick, mines, setMines, gameState, setGameState, heuristicData }) {
-    const [clicked, setClicked] = useState(
-        Array.from({ length: rows }, () => Array(cols).fill(State.NOT_REVEALED))
+export default function Board({ socket, boardData }) {
+    const [board, setBoard] = useState(
+        Array.from({ length: boardData.rows }, () =>
+            Array(boardData.cols).fill(State.NOT_REVEALED)
+        )
     );
 
-    const [revealedCount, setRevealedCount] = useState(0);
-    
     useEffect(() => {
-        setClicked(Array.from({ length: rows }, () => Array(cols).fill(State.NOT_REVEALED)));
-    }, [board, rows, cols]);
-
-    const cellState = useCallback((x, y, clickedState) => {
-        if (x < 0 || y < 0 || x >= rows || y >= cols) return State.REVEALED;
-        return clickedState[x][y];
-    }, [rows, cols]);
-
-
-    const reveal = useCallback((x, y, newClicked, revealFlags = true) => {
-        if (cellState(x, y, newClicked) === State.REVEALED) return;
-        if (cellState(x, y, newClicked) === State.FLAGGED && !revealFlags) return;
-        if (board[x][y] === -1){
-           setGameState(GameState.LOST);
+        if (boardData.startField != null) {
+            const newBoard = board.map(row => row.slice());
+            newBoard[boardData.startField[0]][boardData.startField[1]] = State.START_FIELD;
+            setBoard(newBoard);
         }
-        newClicked[x][y] = State.REVEALED;
-        setRevealedCount(revealedCount+1);
-        console.log(revealedCount);
-        if (board[x][y] !== 0) return;
 
-        const directions = [
-            [-1, -1], [-1, 0], [-1, 1],
-            [0, -1],          [0, 1],
-            [1, -1], [1, 0], [1, 1],
-        ];
+    }, []);
 
-        for (let [dx, dy] of directions) {
-            reveal(x + dx, y + dy, newClicked, revealFlags);
-        }
-    }, [cellState, board, revealedCount, setGameState])
+    useEffect(() => {
+        if (!socket) return;
 
+        socket.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log("Odebrano:", data);
 
-    const fillSquare = (i, j) => {
-        const state = clicked[i][j];
-        if (state === State.NOT_REVEALED) return " ";
-        if (state === State.FLAGGED) return -2;
-        return board[i][j];
-    }
+                //zaktualizować stan planszy
 
-    const checkWin = useCallback(() => {
-        console.log("checking...")
-        for (let i = 0; i < rows; i++) {
-            for (let j = 0; j < cols; j++) {
-                if(board[i][j] !== -1 && clicked[i][j] !== State.REVEALED ){
-                    console.log("game's still on");
-                    return GameState.IN_PROGRESS;
-                }
+            } catch (err) {
+                console.error("Error onmessage:", err);
             }
-        }
-        console.log("Won!");
-        return GameState.WON;
-    }, [board, clicked, cols, rows])
-
-    const fetchBoard = (x, y) => {
-        const data = {
-            rows,
-            columns: cols,
-            start_field: [x, y],
-            mine_count: mineCount,
-            classifier: heuristicData.classifier,
-            heuristic: heuristicData.heuristic,
-            heuristic_args: heuristicData.heuristic_args,
         };
 
-        fetch('/api/board', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        })
-            .then(res => res.json())
-            .then(data => {
-                setBoard(data)
-            })
-            .catch(err => console.error("Błąd:", err));
-    }
+        socket.onclose = (event) => {
+            console.log("Error onclose:", event);
+        };
+
+        socket.onerror = (err) => {
+            console.error("Error onerror:", err);
+        };
+
+        return () => {
+            socket.onmessage = null;
+            socket.onclose = null;
+            socket.onerror = null;
+        };
+    }, [socket]);
 
     const handleClick = (e, x, y) => {
-        if (gameState === GameState.LOST || gameState === GameState.WON || gameState === GameState.PAUSED) return;
-        if (!board && e.button === 0) {
-            setFirstClick({x, y})
-            fetchBoard(x, y)
-        }else if(!board) {
-            console.log("huh")
-        }else if ((e.buttons === 2 && e.button === 0) || (e.buttons === 1 && e.button === 2)) {
-            handleMultiClick(x, y)
-        } else if (e.button === 0) {
-            handleLeftClick(x, y)
-        } else if (e.button === 2) {
-            handleRightClick(e, x, y)
-        }
-    }
-
-    const handleLeftClick = useCallback((i, j) => {
-        if(clicked[i][j] === State.FLAGGED){return}
-        const newClicked = clicked.map(row => row.slice());
-        reveal(i, j, newClicked);
-        setClicked(newClicked);
-    }, [clicked, reveal]);
-
-
-    const handleRightClick = (e, i, j) => {
         e.preventDefault();
-        const newClicked = clicked.map(row => row.slice());
-        const state = cellState(i, j, clicked);
-        if (state === State.REVEALED){
-            return
-        }else if (state === State.FLAGGED){
-            setMines(mines + 1)
-        }else{
-            setMines(mines - 1)
-        }
+        if (!socket) return;
 
-        newClicked[i][j] = state === State.FLAGGED ? State.NOT_REVEALED : State.FLAGGED;
-        setClicked(newClicked);
+
+        if ((e.buttons === 3) || (e.button === 0 && e.buttons === 2)) {
+            handleMultiClick(x, y);
+        } else if (e.button === 0) {
+            handleLeftClick(x, y);
+        } else if (e.button === 2) {
+            handleRightClick(x, y);
+        }
+    };
+
+    const handleLeftClick = (x, y) => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        let msg = JSON.stringify({
+            type: "reveal_one",
+            cell: [ x, y ]
+        })
+        console.log("wyslano:");
+        console.log(msg);
+        socket.send(JSON.stringify({
+            type: "reveal_one",
+            cell: [ x, y ]
+        }));
+    };
+
+    const handleRightClick = (x, y) => {
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+
+        setBoard((prev) => {
+            const newBoard = prev.map((row) => [...row]);
+            const current = newBoard[x][y];
+
+            if (current === State.NOT_REVEALED) {
+                newBoard[x][y] = State.FLAG;
+                socket.send(JSON.stringify({ type: "flag", x, y }));
+            } else if (current === State.FLAG) {
+                newBoard[x][y] = State.NOT_REVEALED;
+                socket.send(JSON.stringify({ type: "remove_flag", x, y }));
+            }
+
+            return newBoard;
+        });
     };
 
     const handleMultiClick = (x, y) => {
-        if (clicked[x][y] !== State.REVEALED) return;
+        if (!socket || socket.readyState !== WebSocket.OPEN) return;
 
-        const directions = [
-            [-1, -1], [-1, 0], [-1, 1],
-            [0, -1],          [0, 1],
-            [1, -1], [1, 0], [1, 1],
-        ];
-
-        const newClicked = clicked.map(row => row.slice());
-        let flagged = 0;
-
-        for (let [dx, dy] of directions) {
-            if (cellState(x + dx, y + dy, newClicked) === State.FLAGGED) flagged++;
-        }
-
-        if (flagged === board[x][y]) {
-            for (let [dx, dy] of directions) {
-                reveal(x + dx, y + dy, newClicked, false);
-            }
-        }
-
-        setClicked(newClicked);
+        const action = {
+            type: "reveal_many",
+            x,
+            y,
+        };
+        socket.send(JSON.stringify(action));
     };
 
-    useEffect(() => {
-        if (board && firstClick && gameState === GameState.NOT_STARTED) {
-            handleLeftClick(firstClick.x, firstClick.y);
-            setMines(mineCount)
-            setGameState(GameState.IN_PROGRESS)
-        }
-    }, [board, firstClick, gameState, handleLeftClick, mineCount, setGameState, setMines]);
-
-    useEffect(() => {
-    if(board && gameState === GameState.IN_PROGRESS){
-        setGameState(checkWin())
-    }
-    }, [checkWin,board, setGameState, gameState]);
-    
     return (
-        <div className="board">
-            {Array.from({ length: rows }).map((_, i) => (
+        <div className="board" onContextMenu={(e) => e.preventDefault()}>
+            {Array.from({ length: boardData.rows }).map((_, i) => (
                 <div key={i} className="board-row">
-                    {Array.from({ length: cols }).map((_, j) => (
+                    {Array.from({ length: boardData.cols }).map((_, j) => (
                         <Square
-                            key={j}
-                            value={board ? fillSquare(i, j) : " "}
+                            key={`${i}-${j}`}
+                            value={board[i][j]}
                             onClick={(e) => handleClick(e, i, j)}
                         />
                     ))}

@@ -1,7 +1,17 @@
 export const State = {
-    NOT_REVEALED: 0,
-    REVEALED: 1,
-    FLAGGED: 2,
+    START_FIELD: -4,
+    FLAG: -3,
+    NOT_REVEALED: -2,
+    MINE: -1,
+    _0: 0,
+    _1: 1,
+    _2 : 2,
+    _3 : 3,
+    _4 : 4,
+    _5 : 5,
+    _6 : 6,
+    _7 : 7,
+    _8 : 8
 };
 
 export const GameState = {
