@@ -6,5 +6,13 @@ class FriendshipNotFound(Exception):
     pass
 
 
-class BoardNotFoundException(Exception):
+class BoardNotFound(Exception):
+    pass
+
+
+class UnsolvedBoardNotFound(Exception):
+    pass
+
+
+class GameplayNotFound(Exception):
     pass

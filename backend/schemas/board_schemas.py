@@ -21,7 +21,7 @@ class GeneratorSettings(BaseModel):
 
 
 class GenerationInput(BaseModel):
-    generator_type: Literal["random", "ml_based"]
-    generator_settings: Optional[GeneratorSettings] = Field(
-        None, description="Required if generator_type is set to 'ml_based'"
+    type: Literal["random", "ml"]
+    settings: Optional[GeneratorSettings] = Field(
+        None, description="Required if generator_type is set to 'ml'"
     )

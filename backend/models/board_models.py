@@ -14,9 +14,9 @@ class BoardType(Base):
     __tablename__ = "board_type"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    rows: Mapped[int] = mapped_column(nullable=False)
-    columns: Mapped[int] = mapped_column(nullable=False)
-    mine_count: Mapped[int] = mapped_column(nullable=False)
+    rows: Mapped[int] = mapped_column()
+    columns: Mapped[int] = mapped_column()
+    mine_count: Mapped[int] = mapped_column()
 
     __table_args__ = (
         Index("ix_boardtype", "rows", "columns", "mine_count"),
@@ -34,10 +34,10 @@ class Board(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     board_type_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey("board_type.id"), nullable=False, index=True
+        ForeignKey("board_type.id"), index=True
     )
-    minefields: Mapped[BoardGrid] = mapped_column(JSON, nullable=False)
-    start_field: Mapped[tuple[int, int]] = mapped_column(JSON, nullable=False)
+    minefields: Mapped[BoardGrid] = mapped_column(JSON)
+    start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
 
     board_type: Mapped[BoardType] = relationship("BoardType", back_populates="boards")
     singleplayer_gameplays: Mapped[list["SingleplayerGameplay"]] = relationship(

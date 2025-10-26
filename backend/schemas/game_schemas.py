@@ -1,5 +1,5 @@
 import uuid
-from typing import Literal, Optional, Self
+from typing import ClassVar, Literal, Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
@@ -11,7 +11,7 @@ class NewGameInput(BaseModel):
         None,
         description="Use existing board (exclusive with generation_settings, difficulty_level)",
     )
-    generation_settings: Optional[GenerationInput] = Field(
+    generator: Optional[GenerationInput] = Field(
         None,
         description="Board generation settings (requires difficulty_level, exclusive with board_id)",
     )
@@ -23,7 +23,7 @@ class NewGameInput(BaseModel):
     @model_validator(mode="after")
     def validate(self) -> Self:
         board_id = self.board_id
-        generation_settings = self.generation_settings
+        generation_settings = self.generator
         difficulty_level = self.difficulty_level
 
         if board_id is not None:
@@ -45,56 +45,58 @@ class NewGameInput(BaseModel):
 
 
 class GameAction(BaseModel):
-    type: str
+    type: ClassVar[str]
 
 
-class RevealOne(GameAction):
-    type: str = "reveal_one"
-    x: int
-    y: int
+class Hint(GameAction):
+    type: ClassVar[str] = "hint"
 
 
-class RevealMany(GameAction):
-    type: str = "reveal_many"
-    x: int
-    y: int
+class CellGameAction(GameAction):
+    cell: tuple[int, int]
 
 
-class Flag(GameAction):
-    type: str = "flag"
-    x: int
-    y: int
+class RevealOne(CellGameAction):
+    type: ClassVar[str] = "reveal_one"
 
 
-class RemoveFlag(GameAction):
-    type: str = "remove_flag"
-    x: int
-    y: int
+class RevealMany(CellGameAction):
+    type: ClassVar[str] = "reveal_many"
+
+
+class Flag(CellGameAction):
+    type: ClassVar[str] = "flag"
+
+
+class RemoveFlag(CellGameAction):
+    type: ClassVar[str] = "remove_flag"
 
 
 def parse_game_action(data: dict) -> GameAction:
     try:
         action_type = data["type"]
 
+        def get_subclassess(cls):
+            return set(cls.__subclasses__()) | {
+                s for c in cls.__subclasses__() for s in get_subclassess(c)
+            }
+
         model_map = {
-            "reveal_one": RevealOne,
-            "reveal_many": RevealMany,
-            "flag": Flag,
-            "remove_flag": RemoveFlag,
+            subclass.type: subclass
+            for subclass in get_subclassess(GameAction)
+            if hasattr(subclass, "type")
         }
 
         return model_map[action_type](**data)
-    except:
+    except KeyError:
         raise ValueError(f"Unknown action type: {action_type}")
 
 
 type GameState = Literal["in_progress", "won", "lost"]
 
 
-class RevealedCell(BaseModel):
-    x: int
-    y: int
-    value: int
+type Cell = tuple[int, int]
+type RevealedCell = tuple[int, int, int]
 
 
 class NewGameResponse(BaseModel):
@@ -119,3 +121,7 @@ class FlagResponse(GameActionResponse):
 
 class RemoveFlagResponse(GameActionResponse):
     game_state: GameState
+
+
+class HintResponse(GameActionResponse):
+    safe_cells: list[Cell]

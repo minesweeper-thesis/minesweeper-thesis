@@ -1,23 +1,36 @@
 import asyncio
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, WebSocket
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.schemas.game_schemas import *
+from backend.services import exceptions as service_exceptions
 from backend.services.auth_service import OptionalCurrentUser
-
-game_router = APIRouter(prefix="/game", tags=["game"])
 
 GameService = Annotated[services.GameService, Depends()]
 
+game_exceptions = {
+    service_exceptions.BoardNotExists: HTTPException(404, "Board not found"),
+    service_exceptions.SolvedAllBoards: HTTPException(
+        400, "User solved all boards for this difficulty type"
+    ),
+    service_exceptions.GameplayAlreadyFinished: HTTPException(
+        400, "Gameplay is already finished"
+    ),
+    service_exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
+}
 
-@game_router.post("/single/start")
+
+game_router = APIRouter(prefix="/game", tags=["game"])
+
+
+@game_router.post("/single/init")
 async def start_singleplayer_game(
     new_game_input: NewGameInput, user: OptionalCurrentUser, service: GameService
 ) -> NewGameResponse:
     """Starts a new game."""
-    return await service.create_singleplayer_session(user, new_game_input)
+    return await service.create_singleplayer_gameplay(user, new_game_input)
 
 
 @game_router.websocket("/{gameplay_id}/ws")
@@ -26,7 +39,7 @@ async def play_game_via_websocket(
     websocket: WebSocket,
     service: GameService,
 ):
-    await websocket.accept()
+    """WebSocket endpoint for playing a game."""
 
     async def sender():
         return
@@ -38,10 +51,20 @@ async def play_game_via_websocket(
         while True:
             data = await websocket.receive_json()
             game_action = parse_game_action(data)
-            res = await service.handle_game_action(gameplay_id, game_action)
-            await websocket.send_json(res)
-            if res.get("full_board") is not None:
+
+            action_result, is_game_over = await service.handle_game_action(game_action)
+            await websocket.send_json(action_result.model_dump())
+
+            if is_game_over:
+                await service.save_gameplay_progress()
                 await websocket.close()
                 return
 
-    await asyncio.gather(sender(), receiver())
+    try:
+        await service.load_gameplay(gameplay_id)
+        await websocket.accept()
+
+        await asyncio.gather(sender(), receiver())
+
+    except WebSocketDisconnect:
+        await service.save_gameplay_progress()

@@ -34,14 +34,14 @@ class BoardService:
     def _get_generator(
         self, generation_input: GenerationInput, start_field, difficulty_level
     ):
-        generator_settings = generation_input.generator_settings
+        generator_settings = generation_input.settings
 
-        if generation_input.generator_type == "random":
+        if generation_input.type == "random":
             return RandomGenerator(
                 **difficulty_level.model_dump(), start_field=start_field
             )
 
-        elif generation_input.generator_type == "deterministic":
+        elif generation_input.type == "ml":
             if generator_settings is None:
                 raise ValueError(
                     "Generator settings must be provided for deterministic generation"
@@ -54,9 +54,7 @@ class BoardService:
                 classifier_iterations=6400,
             )
         else:
-            raise ValueError(
-                f"Unknown generator type: {generation_input.generator_type}"
-            )
+            raise ValueError(f"Unknown generator type: {generation_input.type}")
 
     async def _create_board(self, difficulty_level, minefields, start_field) -> Board:
         board_type = await self.repo.get_board_type(**difficulty_level.model_dump())
