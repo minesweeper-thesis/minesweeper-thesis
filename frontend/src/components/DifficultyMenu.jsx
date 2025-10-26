@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Settings, Zap, Target, Flame } from 'lucide-react';
 
-const DifficultyMenu = ({ onSelect }) => {
+const DifficultyMenu = ({ onSelect, setBoardData }) => {
     const [selected, setSelected] = useState('easy');
     const [customRows, setCustomRows] = useState(9);
     const [customCols, setCustomCols] = useState(9);
@@ -15,11 +15,21 @@ const DifficultyMenu = ({ onSelect }) => {
     };
 
     const handleAccept = () => {
-        if (selected === 'easy') onSelect(9, 9, 10);
-        else if (selected === 'medium') onSelect(16, 16, 40);
-        else if (selected === 'hard') onSelect(16, 30, 99);
-        else if (selected === 'custom') onSelect(customRows, customCols, customMines);
+        if (selected === 'easy') setParams(9, 9, 10);
+        else if (selected === 'medium') setParams(16, 16, 40);
+        else if (selected === 'hard') setParams(16, 30, 99);
+        else if (selected === 'custom') setParams(customRows, customCols, customMines);
+        onSelect()
     };
+
+    const setParams  = (rows, cols, mines) => {
+        setBoardData({
+            rows: rows,
+            cols: cols,
+            mineCount: mines,
+            startField: null
+        })
+    }
 
     return (
         <div className="difficulty-selector card p-4 bg-bg-primary rounded-lg shadow-md">
@@ -96,7 +106,7 @@ const DifficultyMenu = ({ onSelect }) => {
                 onClick={handleAccept}
                 className="mt-4 px-4 py-2 bg-accent-primary text-bg-primary rounded-lg font-semibold hover:opacity-90 transition"
             >
-                Accept
+                Start
             </button>
         </div>
     );

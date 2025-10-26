@@ -1,9 +1,9 @@
 import React, {useEffect, useState} from "react";
 import Square from "./Square";
-import { State } from "../utility";
+import {GameState, State} from "../utility";
 import "../styles/board.css";
 
-export default function Board({ socket, boardData }) {
+export default function Board({ socket, boardData, setGameState, setMines }) {
     const [board, setBoard] = useState(
         Array.from({ length: boardData.rows }, () =>
             Array(boardData.cols).fill(State.NOT_REVEALED)
@@ -12,21 +12,35 @@ export default function Board({ socket, boardData }) {
 
     useEffect(() => {
         if (boardData.startField != null) {
-            const newBoard = board.map(row => row.slice());
-            newBoard[boardData.startField[0]][boardData.startField[1]] = State.START_FIELD;
-            setBoard(newBoard);
-            console.log("komponent: ", boardData.startField);
+            setBoard(prevBoard => {
+                const newBoard = prevBoard.map(row => [...row]);
+                newBoard[boardData.startField[0]][boardData.startField[1]]  = State.START_FIELD;
+                return newBoard;
+            });
         }
 
     }, []);
 
     useEffect(() => {
+
         if (!socket) return;
 
         socket.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
                 console.log("Odebrano:", data);
+
+                if (data.game_status === "in_progress") {
+                    setGameState(GameState.IN_PROGRESS);
+                }else if (data.game_status === "loss"){
+                    revealMines(data.full_board)
+                    setGameState(GameState.LOST)
+                    return
+                }else if (data.game_status === "win"){
+                    revealBoard(data.full_board)
+                    setGameState(GameState.WON)
+                    return
+                }
 
                 if (!data.revealed_cells || data.game_status != "in_progress"){
                     return
@@ -37,10 +51,13 @@ export default function Board({ socket, boardData }) {
 
 
                     data.revealed_cells.forEach(([x, y, state]) => {
-                        if (newBoard[y] && newBoard[x][y] !== undefined) {
+                        if (newBoard[x] && newBoard[x][y] !== undefined) {
                             newBoard[x][y] = state;
                         }
                     });
+                    if(newBoard[boardData.startField[0]][boardData.startField[1]] === State.START_FIELD){
+                        newBoard[boardData.startField[0]][boardData.startField[1]] = State.NOT_REVEALED
+                    }
 
                     return newBoard;
                 });
@@ -50,18 +67,9 @@ export default function Board({ socket, boardData }) {
             }
         };
 
-        socket.onclose = (event) => {
-            console.log("Error onclose:", event);
-        };
-
-        socket.onerror = (err) => {
-            console.error("Error onerror:", err);
-        };
 
         return () => {
             socket.onmessage = null;
-            socket.onclose = null;
-            socket.onerror = null;
         };
     }, [socket]);
 
@@ -70,7 +78,7 @@ export default function Board({ socket, boardData }) {
         if (!socket) return;
 
 
-        if ((e.buttons === 3) || (e.button === 0 && e.buttons === 2)) {
+        if ((e.buttons === 2 && e.button === 0) || (e.buttons === 1 && e.button === 2)) {
             handleMultiClick(x, y);
         } else if (e.button === 0) {
             handleLeftClick(x, y);
@@ -81,13 +89,16 @@ export default function Board({ socket, boardData }) {
 
     const handleLeftClick = (x, y) => {
         if (!socket || socket.readyState !== WebSocket.OPEN) return;
-        let msg = JSON.stringify({
-            type: "reveal_one",
-            cell: [ x, y ]
-        })
-        console.log("wyslano:");
-        console.log(msg);
-        socket.send(msg);
+        if(board[x][y] === State.START_FIELD || board[x][y] === State.NOT_REVEALED) {
+            let msg = JSON.stringify({
+                type: "reveal_one",
+                cell: [ x, y ]
+            })
+            console.log("wyslano:");
+            console.log(msg);
+            socket.send(msg);
+        }
+
     };
 
     const handleRightClick = (x, y) => {
@@ -99,10 +110,12 @@ export default function Board({ socket, boardData }) {
 
             if (current === State.NOT_REVEALED) {
                 newBoard[x][y] = State.FLAG;
-                socket.send(JSON.stringify({ type: "flag", cell: [ y, x ] }));
+                setMines(prev => prev - 1)
+                socket.send(JSON.stringify({ type: "flag", cell: [ x, y ] }));
             } else if (current === State.FLAG) {
                 newBoard[x][y] = State.NOT_REVEALED;
-                socket.send(JSON.stringify({ type: "remove_flag", cell: [ y, x ] }));
+                setMines(prev => prev + 1)
+                socket.send(JSON.stringify({ type: "remove_flag", cell: [ x, y ] }));
             }
 
             return newBoard;
@@ -110,14 +123,76 @@ export default function Board({ socket, boardData }) {
     };
 
     const handleMultiClick = (x, y) => {
-        if (!socket || socket.readyState !== WebSocket.OPEN) return;
+        if (!socket || socket.readyState !== WebSocket.OPEN || !isValidMultiClick(x, y)) return;
 
-        const action = {
+        const msg = {
             type: "reveal_many",
-            cell: [ y, x ]
+            cell: [ x, y ]
         };
-        socket.send(JSON.stringify(action));
+        console.log("wyslano:", msg);
+        socket.send(JSON.stringify(msg));
     };
+
+    const setCell = (x, y, newValue) => {
+        setBoard(prevBoard => {
+            const newBoard = prevBoard.map(row => [...row]);
+            newBoard[x][y] = newValue;
+            return newBoard;
+        });
+    }
+
+    const isValidMultiClick = (x, y) => {
+
+        const value = board[x][y];
+
+        if (value < State._0 || value > State._8) return false;
+
+        let flagCount = 0;
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dx = -1; dx <= 1; dx++) {
+
+                if (dx === 0 && dy === 0) continue;
+                const nx = x + dx;
+                const ny = y + dy;
+                if (ny >= 0 && ny < boardData.cols && nx >= 0 && nx < boardData.rows) {
+                    if (board[nx][ny] === State.FLAG) flagCount++;
+                }
+            }
+        }
+        return flagCount === value;
+    };
+
+    function revealMines(revealed_board) {
+        setBoard(prevBoard => {
+            const newBoard = prevBoard.map(row => [...row]);
+
+            for (let i = 0; i < revealed_board.length; i++) {
+                for (let j = 0; j < revealed_board[i].length; j++) {
+                    if (revealed_board[i][j] === -1 && board[i][j] !== State.FLAG) {
+                        newBoard[i][j] = -1;
+                    }
+                }
+            }
+
+            return newBoard;
+        });
+    }
+
+    function revealBoard(revealed_board) {
+        setBoard(prevBoard => {
+            const newBoard = prevBoard.map(row => [...row]);
+
+            for (let i = 0; i < revealed_board.length; i++) {
+                for (let j = 0; j < revealed_board[i].length; j++) {
+                    if (revealed_board[i][j] !== -1) {
+                        newBoard[i][j] = revealed_board[i][j];
+                    }
+                }
+            }
+
+            return newBoard;
+        });
+    }
 
     return (
         <div className="board" onContextMenu={(e) => e.preventDefault()}>
