@@ -1,8 +1,8 @@
 export const State = {
-    LOSING_MINE: -5,
-    START_FIELD: -4,
-    FLAG: -3,
-    NOT_REVEALED: -2,
+    START_FIELD: -5,
+    FLAG: -4,
+    NOT_REVEALED: -3,
+    LOSING_MINE: -2,
     MINE: -1,
     _0: 0,
     _1: 1,

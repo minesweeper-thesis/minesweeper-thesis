@@ -1,3 +1,4 @@
+
 .square {
     aspect-ratio: 1 / 1;
     display: flex;
@@ -9,15 +10,18 @@
     width: 34px;
     /*height: 34px;*/
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.4s ease;
     box-sizing: border-box;
     overflow: hidden;
 }
 
-.square.clicked.red_mine {
+.square.clicked.red-mine {
     background-color: #ff3333;
     border: 1px solid #ff3333;
 }
+
+
+
 
 .not-clicked {
     border: 3px solid #ffffff;
@@ -32,8 +36,6 @@
 .not-clicked:active {
     background-color: #b0b0b0;
 }
-
-
 
 .clicked {
     border: 1px solid #ccc;

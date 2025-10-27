@@ -39,11 +39,11 @@ export default function Board({ socket, boardData, setGameState, setMines, start
             try {
                 requestAnimationFrame(() => {
                     const data = JSON.parse(event.data);
-
+                    console.log(data);
                     if (data.game_status === "in_progress") {
                         setGameState(GameState.IN_PROGRESS);
                     } else if (data.game_status === "loss") {
-                        revealMines(data.full_board);
+                        revealMines(data.full_board, data.loss_cause.cell);
                         setGameState(GameState.LOST);
                     } else if (data.game_status === "win") {
                         revealBoard(data.full_board);
@@ -171,14 +171,16 @@ export default function Board({ socket, boardData, setGameState, setMines, start
         return flagCount === value;
     };
 
-    function revealMines(revealed_board) {
+    function revealMines(revealed_board, red_mine) {
         setBoard(prevBoard => {
             const newBoard = prevBoard.map(row => [...row]);
 
             for (let i = 0; i < revealed_board.length; i++) {
                 for (let j = 0; j < revealed_board[i].length; j++) {
-                    if (revealed_board[i][j] === -1 && board[i][j] !== State.FLAG) {
-                        newBoard[i][j] = -1;
+                    if (i === red_mine[0] && j === red_mine[1]) {
+                        newBoard[i][j] = State.LOSING_MINE;
+                    }else if (revealed_board[i][j] === State.MINE && board[i][j] !== State.FLAG) {
+                        newBoard[i][j] = State.MINE;
                     }
                 }
             }
