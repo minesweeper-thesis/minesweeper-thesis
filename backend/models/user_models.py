@@ -1,6 +1,6 @@
 import enum
 import uuid
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from fastapi_users.db import SQLAlchemyBaseUserTable
 from sqlalchemy import CheckConstraint, Enum, ForeignKey
@@ -70,7 +70,6 @@ class User(SQLAlchemyBaseUserTable[uuid.UUID], Base):
 
     nickname: Mapped[str] = mapped_column()
     generator_settings: Mapped[str] = mapped_column()
-    avatar_url: Mapped[Optional[str]] = mapped_column()
 
     singleplayer_gameplays: Mapped[list["SingleplayerGameplay"]] = relationship(
         "SingleplayerGameplay", back_populates="user", cascade="all, delete"
