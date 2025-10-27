@@ -17,15 +17,6 @@ class UserRepository:
     def __init__(self, session: DBSession):
         self.session = session
 
-    async def set_avatar_url(self, user_id: uuid.UUID, url: str | None):
-        stmt = select(User).where(User.id == user_id)
-        result = await self.session.execute(stmt)
-        user = result.scalar_one()
-
-        user.avatar_url = url
-        await self.session.commit()
-        await self.session.refresh(user)
-
     async def get_friends(self, user_id: uuid.UUID, pagination_params: Params):
         stmt = select(User).join(User.friend_of).where(Friendship.user_id == user_id)
         return await apaginate(self.session, stmt, pagination_params)

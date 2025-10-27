@@ -4,7 +4,6 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
 from backend import routers
@@ -20,12 +19,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(lifespan=lifespan)
-
-app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "../static")),
-    name="static",
-)
 
 routers.register_exceptions(app)
 
