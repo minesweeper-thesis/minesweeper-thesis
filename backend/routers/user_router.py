@@ -1,7 +1,8 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+import filetype
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi_pagination import Page, Params
 
 import backend.schemas.user_schemas as schemas
@@ -29,6 +30,30 @@ user_exceptions = {
 }
 
 user_router = APIRouter(tags=["user"])
+
+
+@user_router.put("/avatar")
+async def upload_avatar(file: UploadFile, user: CurrentUser, service: UserService):
+    content = await file.read()
+    kind = filetype.guess(content)
+    if (
+        kind is None
+        or not kind.mime.startswith("image/")
+        or file.content_type != kind.mime
+    ):
+        raise HTTPException(status_code=400, detail="Invalid file type.")
+
+    url = await service.set_avatar(content)
+    return {"avatar_url": url}
+
+
+@user_router.delete("/avatar")
+async def delete_avatar(
+    user: CurrentUser,
+    service: UserService,
+):
+    """Deletes the current user's avatar"""
+    await service.delete_avatar()
 
 
 @user_router.get("/friends")
