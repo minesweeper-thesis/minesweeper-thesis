@@ -4,16 +4,15 @@ import Controls from '../components/Controls';
 import DifficultyMenu from '../components/DifficultyMenu';
 import { GameState } from '../utility';
 import VictoryScreen from "../components/VictoryScreen";
-import PauseScreen from "../components/PauseScreen";
 import AdvancedOptions from "../components/AdvancedOptions";
 
 
 export default function GamePage() {
 
-    const [canStart, setCanStart] = useState(false);
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
     const [socket, setSocket] = useState(null);
     const [mines, setMines] = useState(0);
+    const [startField, setStartField] = useState(null);
     const [heuristicData, setHeuristicData] = useState({
         classifier: "lightgbm",
         heuristic: "no",
@@ -22,8 +21,7 @@ export default function GamePage() {
     const [boardData, setBoardData] = useState({
         rows: 9,
         cols: 9,
-        mineCount: 10,
-        startField: null
+        mineCount: 10
     })
 
 
@@ -96,11 +94,9 @@ export default function GamePage() {
                 setSocket(null);
             }
             const res = await initGameRequest();
-            setBoardData(prevData => ({
-                ...prevData,
-                startField: res.start_field
-            }));
-            console.log("start: ", res.start_field);
+            console.log("http response: ", res);
+            setStartField(res.start_field);
+
             ws = connectToGameWebSocket(res.gameplay_id);
             setSocket(ws);
             return ws;
@@ -121,23 +117,14 @@ export default function GamePage() {
                 ws.close();
             }
         };
-    }, []);
-
-    useEffect(() => {
-        if (canStart) {
-            console.log("123: ", boardData);
-            startNewGame();
-            console.log("456: ", boardData);
-            setCanStart(false);
-        }
-    }, [canStart]);
+    }, [boardData]);
 
 
     return (
         <div className="game flex h-screen bg-bg-tertiary justify-center">
             {/* Sidebar */}
             <aside className="w-64 p-4 bg-bg-tertiary">
-                <DifficultyMenu setBoardData={setBoardData} onSelect={() => setCanStart(true)} />
+                <DifficultyMenu setBoardData={setBoardData}/>
                 <AdvancedOptions onSelect={(data) => setHeuristicData(data)} />
             </aside>
 
@@ -159,6 +146,7 @@ export default function GamePage() {
                             socket = {socket}
                             setGameState = {setGameState}
                             setMines = {setMines}
+                            startField = {startField}
                         />
                     ) :
                         <div>Conecting...</div>

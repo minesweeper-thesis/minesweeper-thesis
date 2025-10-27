@@ -1,4 +1,5 @@
 export const State = {
+    LOSING_MINE: -5,
     START_FIELD: -4,
     FLAG: -3,
     NOT_REVEALED: -2,

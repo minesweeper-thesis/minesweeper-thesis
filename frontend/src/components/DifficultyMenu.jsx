@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import { Settings, Zap, Target, Flame } from 'lucide-react';
 
-const DifficultyMenu = ({ setBoardData, onSelect }) => {
+const DifficultyMenu = ({ setBoardData }) => {
     const [selected, setSelected] = useState('easy');
     const [customRows, setCustomRows] = useState(9);
     const [customCols, setCustomCols] = useState(9);
@@ -29,7 +29,6 @@ const DifficultyMenu = ({ setBoardData, onSelect }) => {
             startField: null
         }
         setBoardData(newData);
-        onSelect();
     }
 
 
