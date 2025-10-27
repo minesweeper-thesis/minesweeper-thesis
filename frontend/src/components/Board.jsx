@@ -3,7 +3,7 @@ import Square from "./Square";
 import {GameState, State} from "../utility";
 import "../styles/board.css";
 
-export default function Board({ socket, boardData, setGameState, setMines }) {
+export default function Board({ socket, boardData, setGameState, setMines, startField }) {
     const [board, setBoard] = useState(
         Array.from({ length: boardData.rows }, () =>
             Array(boardData.cols).fill(State.NOT_REVEALED)
@@ -16,14 +16,15 @@ export default function Board({ socket, boardData, setGameState, setMines }) {
                 Array(boardData.cols).fill(State.NOT_REVEALED)
             )
         );
-    }, [boardData.rows, boardData.cols]);
+        setMines(boardData.mineCount);
+    }, []);
 
 
     useEffect(() => {
-        if (boardData.startField != null) {
+        if (startField && startField[0]) {
             setBoard(prevBoard => {
                 const newBoard = prevBoard.map(row => [...row]);
-                newBoard[boardData.startField[0]][boardData.startField[1]]  = State.START_FIELD;
+                newBoard[startField[0]][startField[1]]  = State.START_FIELD;
                 return newBoard;
             });
         }
@@ -36,20 +37,19 @@ export default function Board({ socket, boardData, setGameState, setMines }) {
 
         socket.onmessage = (event) => {
             try {
-                const data = JSON.parse(event.data);
-                console.log("Odebrano:", data);
+                requestAnimationFrame(() => {
+                    const data = JSON.parse(event.data);
 
-                if (data.game_status === "in_progress") {
-                    setGameState(GameState.IN_PROGRESS);
-                }else if (data.game_status === "loss"){
-                    revealMines(data.full_board)
-                    setGameState(GameState.LOST)
-                    return
-                }else if (data.game_status === "win"){
-                    revealBoard(data.full_board)
-                    setGameState(GameState.WON)
-                    return
-                }
+                    if (data.game_status === "in_progress") {
+                        setGameState(GameState.IN_PROGRESS);
+                    } else if (data.game_status === "loss") {
+                        revealMines(data.full_board);
+                        setGameState(GameState.LOST);
+                    } else if (data.game_status === "win") {
+                        revealBoard(data.full_board);
+                        setGameState(GameState.WON);
+                    }
+
 
                 if (!data.revealed_cells || data.game_status != "in_progress"){
                     return
@@ -64,13 +64,13 @@ export default function Board({ socket, boardData, setGameState, setMines }) {
                             newBoard[x][y] = state;
                         }
                     });
-                    if(newBoard[boardData.startField[0]][boardData.startField[1]] === State.START_FIELD){
-                        newBoard[boardData.startField[0]][boardData.startField[1]] = State.NOT_REVEALED
+                    if(newBoard[startField[0]][startField[1]] === State.START_FIELD){
+                        newBoard[startField[0]][startField[1]] = State.NOT_REVEALED
                     }
 
                     return newBoard;
                 });
-
+                });
             } catch (err) {
                 console.error("Error onmessage:", err);
             }
@@ -205,17 +205,22 @@ export default function Board({ socket, boardData, setGameState, setMines }) {
 
     return (
         <div className="board" onContextMenu={(e) => e.preventDefault()}>
-            {Array.from({ length: boardData.rows }).map((_, i) => (
-                <div key={i} className="board-row">
-                    {Array.from({ length: boardData.cols }).map((_, j) => (
-                        <Square
-                            key={`${i}-${j}`}
-                            value={board[i][j]}
-                            onClick={(e) => handleClick(e, i, j)}
-                        />
-                    ))}
-                </div>
-            ))}
+                {board != null ? (
+                        Array.from({ length: board.length}).map((_, i) => (
+                                <div key={i} className="board-row">
+                                    {Array.from({ length: board[0].length }).map((_, j) => (
+                                        <Square
+                                            key={`${i}-${j}`}
+                                            value={board[i][j]}
+                                            onClick={(e) => handleClick(e, i, j)}
+                                        />
+                                    ))}
+                                </div>
+                            ))
+                    ) :
+                    <div>Conecting...</div>
+                }
+
         </div>
     );
 }

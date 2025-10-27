@@ -1,16 +1,22 @@
 .square {
+    aspect-ratio: 1 / 1;
     display: flex;
     align-items: center;
     justify-content: center;
     background: #c0c0c0;
     border: 1px solid #ffffff;
-    float: left;
-    font-size: 24px;
     font-weight: bold;
-    height: 34px;
     width: 34px;
+    /*height: 34px;*/
     cursor: pointer;
     transition: background-color 0.2s ease;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.square.clicked.red_mine {
+    background-color: #ff3333;
+    border: 1px solid #ff3333;
 }
 
 .not-clicked {
@@ -27,13 +33,17 @@
     background-color: #b0b0b0;
 }
 
+
+
 .clicked {
     border: 1px solid #ccc;
+    padding: 2px;
 }
 
 img {
-    height: 24px;
-    width: 24px;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
 }
 
 .number-1 { color: blue; }
@@ -45,8 +55,3 @@ img {
 .number-7 { color: black; }
 .number-8 { color: gray; }
 
-.mine-icon{
-    width: 34px;
-    height: 34px;
-    background-color: #ff3333;
-}
