@@ -6,13 +6,9 @@ from fastapi import Depends
 from fastapi_pagination import Params
 
 from backend import repositories, services
-from backend.core.game.game import GameStatus, InvalidAction, SingleplayerGameplay
+from backend.core.game.game import *
 from backend.models import game_models
-from backend.repositories.exceptions import (
-    BoardNotFound,
-    GameplayNotFound,
-    UnsolvedBoardNotFound,
-)
+from backend.repositories.exceptions import *
 from backend.schemas.game_schemas import *
 from backend.services.auth_service import CurrentUser, OptionalCurrentUser
 from backend.services.exceptions import *
@@ -35,6 +31,7 @@ class GameOverResult(BaseModel):
     game_status: Literal["win", "loss"]
     full_board: list[list[int]]
     elapsed_time: float
+    loss_cause: Optional[LossCause] = None
 
 
 type ActionResult = RevealResult | FlagResult | GameOverResult
@@ -180,6 +177,7 @@ class GameService:
                     game_status=self.gameplay.result.value,
                     full_board=self.gameplay.grid.grid,
                     elapsed_time=self.gameplay.elapsed_time,
+                    loss_cause=self.gameplay.loss_cause,
                 ),
                 True,
             )

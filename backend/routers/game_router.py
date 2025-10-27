@@ -53,7 +53,7 @@ async def play_game_via_websocket(
             game_action = parse_game_action(data)
 
             action_result, is_game_over = await service.handle_game_action(game_action)
-            await websocket.send_json(action_result.model_dump())
+            await websocket.send_json(action_result.model_dump(exclude_none=True))
 
             if is_game_over:
                 await service.save_gameplay_progress()

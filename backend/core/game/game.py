@@ -1,6 +1,8 @@
 import enum
 import time
-from typing import Optional
+from typing import Literal, Optional
+
+from pydantic import BaseModel
 
 from algorithms.boards.functions.moore import moore_neighborhood
 from algorithms.boards.grid import Grid
@@ -22,6 +24,11 @@ class GameResult(enum.Enum):
 
 class InvalidAction(Exception):
     pass
+
+
+class LossCause(BaseModel):
+    type: Literal["mine_clicked", "unsafe_move"]
+    cell: tuple[int, int]
 
 
 class SingleplayerGameplay:
@@ -50,6 +57,7 @@ class SingleplayerGameplay:
         self.elapsed_time = elapsed_time
         self.game_mode = mode
         self.revealed: list[tuple[int, int, int]] = []
+        self.loss_cause: Optional[LossCause] = None
 
         for i, j in revealed_cells:
             self.grid.revealed[i][j] = True
@@ -82,13 +90,14 @@ class SingleplayerGameplay:
         else:
             self.elapsed_time += time.monotonic() - self._time_start
 
-    def finish_game(self, result: GameResult):
+    def finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
         if self.status == GameStatus.finished:
             return
 
         self.update_elapsed_time()
         self.status = GameStatus.finished
         self.result = result
+        self.loss_cause = loss_cause
 
     def get_revealed_cells(self):
         return [
@@ -112,7 +121,9 @@ class SingleplayerGameplay:
 
         if self.game_mode == GameMode.hardcore:
             if (x, y) not in self._get_safe_cells():
-                self.finish_game(GameResult.loss)
+                self.finish_game(
+                    GameResult.loss, LossCause(type="unsafe_move", cell=(x, y))
+                )
                 return
 
         old_revealed = set(self.get_revealed_cells())
@@ -151,7 +162,8 @@ class SingleplayerGameplay:
     def _update_result(self, revealed: list[tuple[int, int]]):
         for x, y in revealed:
             if self.grid.grid[x][y] == -1:
-                self.finish_game(GameResult.loss)
+                loss_cause = LossCause(type="mine_clicked", cell=(x, y))
+                self.finish_game(GameResult.loss, loss_cause=loss_cause)
                 return
 
         if self.grid.check_win():
