@@ -1,5 +1,6 @@
 .env
 minesweeper.db
+static/
 __pycache__/
 .DS_STORE
 node_modules
