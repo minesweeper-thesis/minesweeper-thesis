@@ -3,7 +3,7 @@ import urllib.parse
 
 from .storage import AvatarStorage
 
-STATIC_AVATAR_DIR = "static/avatars"
+STATIC_AVATAR_DIR = os.path.join("static", "avatars")
 
 
 class LocalAvatarStorage(AvatarStorage):
