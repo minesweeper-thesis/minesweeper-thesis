@@ -1,4 +1,5 @@
 export const State = {
+    HINT: -6,
     START_FIELD: -5,
     FLAG: -4,
     NOT_REVEALED: -3,

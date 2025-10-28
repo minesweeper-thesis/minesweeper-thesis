@@ -2,7 +2,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import '../styles/controls.css';
 import {GameState} from "../utility";
 
-export default function Controls({ onReset, mines , gameState }) {
+export default function Controls({ onReset, mines , gameState , onHint}) {
 
     const [seconds, setSeconds] = useState(0);
     const intervalRef = useRef(null);
@@ -35,6 +35,7 @@ export default function Controls({ onReset, mines , gameState }) {
         <div className="controls">
             <p className="mine-counter">{seconds}</p>
             <button className="control-button" onClick={onReset}>😊</button>
+            <button className="control-button" onClick={onHint}>Hint</button>
             <p className="mine-counter">{mines}</p>
         </div>
     );

@@ -137,6 +137,10 @@ export default function GamePage() {
                     onReset={startNewGame}
                     mines={mines}
                     gameState={gameState}
+                    onHint={() =>
+                        {socket.send(JSON.stringify({
+                            type: "hint"
+                        }))}}
                 />
 
                 <div className="game-board flex-1 mt-4 ">

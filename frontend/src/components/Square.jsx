@@ -5,15 +5,20 @@ import { State } from "../utility";
 export default function Square({ value, onClick }) {
     const buttonRef = useRef(null);
 
+    const isHint= value === State.HINT;
     const isRed= value === State.LOSING_MINE;
     const isRevealed = value >= State.LOSING_MINE;
     const isFlagged = value === State.FLAG;
     const isMine = value === State.MINE || value === State.LOSING_MINE;
     const isStart = value === State.START_FIELD;
 
-    const className = `square ${isRevealed ? "clicked" : "not-clicked"} ${
-        value >= 1 && value <= 8 ? `number-${value}` : ""
-    } ${isStart ? "start" : ""} ${isRed ? "red-mine" : ""} }`;
+    const className = `square
+     ${isRevealed ? "clicked" : "not-clicked"}
+     ${value >= 1 && value <= 8 ? `number-${value}` : ""}
+     ${isStart ? "start" : ""}
+     ${isHint ? "hint" : ""}
+     ${isRed ? "red-mine" : ""}
+     }`;
 
     let content = " ";
     if (isFlagged) content = <img src="/flag.svg" alt="I"/>;
