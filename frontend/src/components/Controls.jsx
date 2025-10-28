@@ -17,7 +17,7 @@ export default function Controls({ onReset, mines, gameState, onHint }) {
         if (gameState === GameState.IN_PROGRESS) {
             if (!intervalRef.current) {
                 intervalRef.current = setInterval(() => {
-                    setSeconds(prev => prev + 1);
+                    setSeconds(prev => Math.min(prev + 1, 999));
                 }, 1000);
             }
         } else {

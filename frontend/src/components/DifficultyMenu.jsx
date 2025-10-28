@@ -1,11 +1,14 @@
 import React, {useEffect, useState} from 'react';
 import { Settings, Zap, Target, Flame } from 'lucide-react';
+import ModeSwitch from "./ModeSwitch";
 
 const DifficultyMenu = ({ setBoardData }) => {
     const [selected, setSelected] = useState('easy');
     const [customRows, setCustomRows] = useState(9);
     const [customCols, setCustomCols] = useState(9);
     const [customMines, setCustomMines] = useState(10);
+
+    const [selectedMode, setSelectedMode] = useState(false);
 
     const difficultyInfo = {
         easy: { icon: Zap, label: 'Easy', description: '9×9 grid, 10 mines', color: 'var(--success)' },
@@ -26,7 +29,7 @@ const DifficultyMenu = ({ setBoardData }) => {
             rows: rows,
             cols: cols,
             mineCount: mines,
-            startField: null
+            mode: selectedMode ? "hardcore" : "normal",
         }
         setBoardData(newData);
     }
@@ -102,10 +105,14 @@ const DifficultyMenu = ({ setBoardData }) => {
                     </div>
                 </div>
             )}
+            <ModeSwitch
+                checked={selectedMode}
+                onChange={(e) => setSelectedMode(!selectedMode)}
+            />
 
             <button
                 onClick={handleAccept}
-                className="mt-4 px-4 py-2 bg-accent-primary text-bg-primary rounded-lg font-semibold hover:opacity-90 transition"
+                className="px-4 py-2 bg-accent-primary text-bg-primary rounded-lg font-semibold hover:opacity-90 transition"
             >
                 Start
             </button>
