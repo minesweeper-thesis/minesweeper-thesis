@@ -21,7 +21,8 @@ export default function GamePage() {
     const [boardData, setBoardData] = useState({
         rows: 9,
         cols: 9,
-        mineCount: 10
+        mineCount: 10,
+        mode: "normal",
     })
 
 
@@ -38,7 +39,7 @@ export default function GamePage() {
             columns: boardData.cols,
             mine_count: boardData.mineCount,
         },
-        mode: "normal",
+        mode: boardData.mode,
     };
 
     async function initGameRequest() {
