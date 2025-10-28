@@ -21,9 +21,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 app = FastAPI(lifespan=lifespan)
 
+os.makedirs("static", exist_ok=True)
 app.mount(
     "/static",
-    StaticFiles(directory=os.path.join(os.path.dirname(__file__), "../static")),
+    StaticFiles(directory="static"),
     name="static",
 )
 
