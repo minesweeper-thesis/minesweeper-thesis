@@ -1,9 +1,9 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { GameState } from "../utility";
+import { Lightbulb, RotateCcw } from "lucide-react";
 import '../styles/controls.css';
-import {GameState} from "../utility";
 
-export default function Controls({ onReset, mines , gameState }) {
-
+export default function Controls({ onReset, mines, gameState, onHint }) {
     const [seconds, setSeconds] = useState(0);
     const intervalRef = useRef(null);
 
@@ -16,7 +16,6 @@ export default function Controls({ onReset, mines , gameState }) {
 
         if (gameState === GameState.IN_PROGRESS) {
             if (!intervalRef.current) {
-
                 intervalRef.current = setInterval(() => {
                     setSeconds(prev => prev + 1);
                 }, 1000);
@@ -26,16 +25,26 @@ export default function Controls({ onReset, mines , gameState }) {
             intervalRef.current = null;
         }
 
-        return () => {
-            clearInterval(intervalRef.current);
-        };
+        return () => clearInterval(intervalRef.current);
     }, [gameState]);
 
     return (
-        <div className="controls">
-            <p className="mine-counter">{seconds}</p>
-            <button className="control-button" onClick={onReset}>😊</button>
-            <p className="mine-counter">{mines}</p>
+        <div className="controls-container">
+            <div className="counter-display">
+                {seconds.toString().padStart(3, '0')}
+            </div>
+
+            <button className="control-btn reset" onClick={onReset} title="Restart">
+                <RotateCcw size={22} />
+            </button>
+
+            <button className="control-btn hint-button" onClick={onHint} title="Hint">
+                <Lightbulb size={22} />
+            </button>
+
+            <div className="counter-display">
+                {mines.toString().padStart(2, '0')}
+            </div>
         </div>
     );
 }
