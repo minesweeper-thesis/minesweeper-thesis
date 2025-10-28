@@ -3,7 +3,7 @@ import Square from './Square';
 import { State, GameState } from '../utility';
 import '../styles/board.css';
 
-export default function Board({ board, setBoard, rows, cols, mineCount ,firstClick, setFirstClick, mines, setMines, gameState, setGameState }) {
+export default function Board({ board, setBoard, rows, cols, mineCount ,firstClick, setFirstClick, mines, setMines, gameState, setGameState, heuristicData }) {
     const [clicked, setClicked] = useState(
         Array.from({ length: rows }, () => Array(cols).fill(State.NOT_REVEALED))
     );
@@ -70,12 +70,12 @@ export default function Board({ board, setBoard, rows, cols, mineCount ,firstCli
             columns: cols,
             start_field: [x, y],
             mine_count: mineCount,
-            classifier: "lightgbm",
-            heuristic: "GA",
-            heuristic_args: [10,50,10,0.05],
+            classifier: heuristicData.classifier,
+            heuristic: heuristicData.heuristic,
+            heuristic_args: heuristicData.heuristic_args,
         };
 
-        fetch('http://localhost:8000/board', {
+        fetch('/api/board', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

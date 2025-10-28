@@ -1,14 +1,59 @@
+
 .victory-popup {
-    position: fixed;
-    top: 30%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 200px;
-    height: 150px;
-    background: rgba(184, 184, 184, 0.6);
+    position: absolute;
+    inset: 0;
+    backdrop-filter: blur(3px);
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    z-index: 999;
+    z-index: 40;
+    animation: fadeIn 0.2s ease;
+}
+
+.victory-content {
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-primary);
+    border-radius: 0.75rem;
+    padding: 2rem 3rem;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+}
+
+.victory-content h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+.victory-content h4 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+
+.menu-button {
+    background-color: var(--accent-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.menu-button:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }

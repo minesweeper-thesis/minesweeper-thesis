@@ -6,7 +6,6 @@
 }
 
 body {
-  margin: 20px;
   background: #f1f1f1;
 }
 
@@ -14,6 +13,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.game-board {
+    user-select: none;
 }
 
 .menu {
