@@ -50,26 +50,30 @@ export default function Board({ socket, boardData, setGameState, setMines, start
                         setGameState(GameState.WON);
                     }
 
-
-                if (!data.revealed_cells || data.game_status != "in_progress"){
-                    return
-                }
-
-                setBoard(prevBoard => {
-                    const newBoard = prevBoard.map(row => [...row]);
-
-
-                    data.revealed_cells.forEach(([x, y, state]) => {
-                        if (newBoard[x] && newBoard[x][y] !== undefined) {
-                            newBoard[x][y] = state;
-                        }
-                    });
-                    if(newBoard[startField[0]][startField[1]] === State.START_FIELD){
-                        newBoard[startField[0]][startField[1]] = State.NOT_REVEALED
+                    if (data.safe_cells && data.safe_cells.length > 0) {
+                        setCell(data.safe_cells[0][0], data.safe_cells[0][1], State.HINT);
+                        return;
                     }
 
-                    return newBoard;
-                });
+                    if (!data.revealed_cells || data.game_status != "in_progress"){
+                        return
+                    }
+
+                    setBoard(prevBoard => {
+                        const newBoard = prevBoard.map(row => [...row]);
+
+
+                        data.revealed_cells.forEach(([x, y, state]) => {
+                            if (newBoard[x] && newBoard[x][y] !== undefined) {
+                                newBoard[x][y] = state;
+                            }
+                        });
+                        if(newBoard[startField[0]][startField[1]] === State.START_FIELD){
+                            newBoard[startField[0]][startField[1]] = State.NOT_REVEALED
+                        }
+
+                        return newBoard;
+                    });
                 });
             } catch (err) {
                 console.error("Error onmessage:", err);
@@ -98,7 +102,7 @@ export default function Board({ socket, boardData, setGameState, setMines, start
 
     const handleLeftClick = (x, y) => {
         if (!socket || socket.readyState !== WebSocket.OPEN) return;
-        if(board[x][y] === State.START_FIELD || board[x][y] === State.NOT_REVEALED) {
+        if(board[x][y] === State.START_FIELD || board[x][y] === State.NOT_REVEALED || board[x][y] === State.HINT) {
             let msg = JSON.stringify({
                 type: "reveal_one",
                 cell: [ x, y ]
