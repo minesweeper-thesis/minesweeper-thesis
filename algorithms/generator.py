@@ -19,6 +19,7 @@ from algorithms.heuristics.particle_swarm_heuristic import ParticleSwarmHeuristi
 from algorithms.heuristics.simulated_annealing_heuristic import (
     SimulatedAnnealingHeuristic,
 )
+from algorithms.model_loader import ModelLoader
 
 _classifiers: dict[str, type[Classifier]] = {
     "lightgbm": LightGBMClassifier,
@@ -53,9 +54,10 @@ class Generator:
     ) -> None:
         self.classifier = _classifiers[classifier]()
 
-        iter_str = classifier_iterations if classifier_iterations > -1 else ""
-        classifier_model_file = f"algorithms/models/{rows},{columns},{mine_count}_{classifier}{iter_str}.model"
-        self.classifier.load(classifier_model_file)
+        model_loader = ModelLoader(
+            rows, columns, mine_count, classifier, classifier_iterations
+        )
+        self.classifier.load(model_loader.get_model_path())
 
         self.heuristic = _heuristics[heuristic](
             self.classifier, rows, columns, start_field, mine_count, *heuristic_args
