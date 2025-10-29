@@ -28,11 +28,3 @@
     cursor: pointer;
     transition: background-color 0.2s ease, transform 0.1s ease
 }
-
-.custom-params {
-    margin: 10px;
-}
-
-input {
-    margin: 5px;
-}

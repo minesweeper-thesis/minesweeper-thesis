@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { Settings, Zap, Target, Flame } from 'lucide-react';
+import { Flame, Settings, Target, Zap } from 'lucide-react';
+import { useState } from 'react';
+import ModeSwitch from "./ModeSwitch";
 
-const DifficultyMenu = ({ onSelect }) => {
+const DifficultyMenu = ({ setBoardData }) => {
     const [selected, setSelected] = useState('easy');
     const [customRows, setCustomRows] = useState(9);
     const [customCols, setCustomCols] = useState(9);
     const [customMines, setCustomMines] = useState(10);
+
+    const [selectedMode, setSelectedMode] = useState(false);
 
     const difficultyInfo = {
         easy: { icon: Zap, label: 'Easy', description: '9×9 grid, 10 mines', color: 'var(--success)' },
@@ -15,11 +18,22 @@ const DifficultyMenu = ({ onSelect }) => {
     };
 
     const handleAccept = () => {
-        if (selected === 'easy') onSelect(9, 9, 10);
-        else if (selected === 'medium') onSelect(16, 16, 40);
-        else if (selected === 'hard') onSelect(16, 30, 99);
-        else if (selected === 'custom') onSelect(customRows, customCols, customMines);
+        if (selected === 'easy') setParams(9, 9, 10);
+        else if (selected === 'medium') setParams(16, 16, 40);
+        else if (selected === 'hard') setParams(16, 30, 99);
+        else if (selected === 'custom') setParams(customRows, customCols, customMines);
     };
+
+    const setParams  = (rows, cols, mines) => {
+        let newData = {
+            rows: rows,
+            cols: cols,
+            mineCount: mines,
+            mode: selectedMode ? "hardcore" : "normal",
+        }
+        setBoardData(newData);
+    }
+
 
     return (
         <div className="difficulty-selector card p-4 bg-bg-primary rounded-lg shadow-md">
@@ -91,12 +105,16 @@ const DifficultyMenu = ({ onSelect }) => {
                     </div>
                 </div>
             )}
+            <ModeSwitch
+                checked={selectedMode}
+                onChange={(e) => setSelectedMode(!selectedMode)}
+            />
 
             <button
                 onClick={handleAccept}
-                className="mt-4 px-4 py-2 bg-accent-primary text-bg-primary rounded-lg font-semibold hover:opacity-90 transition"
+                className="px-4 py-2 bg-accent-primary text-bg-primary rounded-lg font-semibold hover:opacity-90 transition"
             >
-                Accept
+                Start
             </button>
         </div>
     );

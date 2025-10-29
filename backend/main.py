@@ -23,6 +23,8 @@ api = FastAPI(lifespan=lifespan)
 
 routers.register_exceptions(api)
 
+routers.register_exceptions(app)
+
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 api.add_middleware(
