@@ -1,5 +1,6 @@
 .env
 minesweeper.db
+algorithms/models_onnx/
 static/
 img/
 frontend/dist/

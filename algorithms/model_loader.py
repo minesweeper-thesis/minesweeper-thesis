@@ -20,9 +20,9 @@ class _ModelLoaderABC(ABC):
         super().__init__()
 
         iter_str = classifier_iterations if classifier_iterations > -1 else ""
-        self._filename = f"{rows},{columns},{mine_count}_{classifier}{iter_str}.model"
+        self._filename = f"{rows},{columns},{mine_count}_{classifier}{iter_str}.onnx"
 
-        self._path = os.path.join("models", self._filename)
+        self._path = os.path.join("models_onnx", self._filename)
 
     def get_model_path(self) -> str: ...
 
@@ -34,7 +34,7 @@ class LocalModelLoader(_ModelLoaderABC):
 
 class RemoteModelLoader(_ModelLoaderABC):
     def get_model_path(self) -> str:
-        dir = os.path.join(tempfile.gettempdir(), "models")
+        dir = os.path.join(tempfile.gettempdir(), "models_onnx")
         os.makedirs(dir, exist_ok=True)
 
         path = os.path.join(dir, self._filename)
