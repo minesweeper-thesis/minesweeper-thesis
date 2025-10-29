@@ -19,7 +19,7 @@ class LocalAvatarStorage(AvatarStorage):
         return self._get_url(filename)
 
     def _get_url(self, filename: str) -> str:
-        base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+        base_url = os.getenv("BACKEND_URL", "http://localhost:8000/api")
         url = f"{base_url}/{self.static_dir}/{urllib.parse.quote(filename)}"
         return url
 
