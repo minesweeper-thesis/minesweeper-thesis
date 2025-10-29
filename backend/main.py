@@ -51,7 +51,7 @@ app = FastAPI()
 app.mount("/api", api)
 
 frontend_build_path = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "frontend", "build"
+    os.path.dirname(os.path.dirname(__file__)), "frontend", "dist"
 )
 if os.path.exists(frontend_build_path):
     app.mount(

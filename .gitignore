@@ -2,6 +2,7 @@
 minesweeper.db
 static/
 img/
+frontend/dist/
 __pycache__/
 .DS_STORE
 node_modules
