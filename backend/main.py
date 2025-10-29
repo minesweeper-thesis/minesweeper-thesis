@@ -19,20 +19,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await engine.dispose()
 
 
-app = FastAPI(lifespan=lifespan)
+api = FastAPI(lifespan=lifespan)
 
-os.makedirs("static", exist_ok=True)
-app.mount(
-    "/static",
-    StaticFiles(directory="static"),
-    name="static",
+os.makedirs("img", exist_ok=True)
+api.mount(
+    "/img",
+    StaticFiles(directory="img"),
+    name="img",
 )
 
-routers.register_exceptions(app)
+routers.register_exceptions(api)
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-app.add_middleware(
+api.add_middleware(
     CORSMiddleware,
     allow_origins=[FRONTEND_URL],
     allow_credentials=True,
@@ -40,8 +40,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(routers.auth_router, prefix="/auth")
-app.include_router(routers.game_router)
-app.include_router(routers.stats_router)
-app.include_router(routers.user_router)
-add_pagination(app)
+api.include_router(routers.auth_router, prefix="/auth")
+api.include_router(routers.game_router)
+api.include_router(routers.stats_router)
+api.include_router(routers.user_router)
+add_pagination(api)
+
+
+app = FastAPI()
+app.mount("/api", api)
+
+frontend_build_path = os.path.join(
+    os.path.dirname(os.path.dirname(__file__)), "frontend", "build"
+)
+if os.path.exists(frontend_build_path):
+    app.mount(
+        "/static",
+        StaticFiles(directory=os.path.join(frontend_build_path, "static")),
+        name="static",
+    )
+    app.mount(
+        "/", StaticFiles(directory=frontend_build_path, html=True), name="frontend"
+    )
