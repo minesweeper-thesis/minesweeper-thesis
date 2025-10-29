@@ -1,7 +1,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, ForeignKey, Index, UniqueConstraint
+from sqlalchemy import JSON, ForeignKey, Index, UniqueConstraint, event
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import Base
@@ -44,8 +44,20 @@ class Board(Base):
         "SingleplayerGameplay", back_populates="board"
     )
 
-    __table_args__ = (
-        UniqueConstraint(
-            "board_type_id", "minefields", name="uq_board_type_minefields"
-        ),
-    )
+
+@event.listens_for(Board.__table__, "after_create")
+def create_postgres_unique_index(target, connection, **kw):
+    if connection.dialect.name == "postgresql":
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX uq_board_type_minefields 
+            ON board (board_type_id, (minefields::text))
+            """
+        )
+    else:
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX uq_board_type_minefields 
+            ON board (board_type_id, minefields)
+            """
+        )
