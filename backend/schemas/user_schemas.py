@@ -1,5 +1,4 @@
 import uuid
-from typing import Optional
 
 from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 from pydantic import BaseModel, ConfigDict
@@ -14,7 +13,6 @@ class UserCreate(BaseUserCreate):
 
 class UserRead(BaseUser[uuid.UUID]):
     nickname: str
-    avatar_url: Optional[str] = None
 
 
 class UserUpdate(BaseUserUpdate):

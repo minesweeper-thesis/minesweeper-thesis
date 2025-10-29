@@ -4,19 +4,15 @@ import Controls from '../components/Controls';
 import DifficultyMenu from '../components/DifficultyMenu';
 import { GameState } from '../utility';
 import VictoryScreen from "../components/VictoryScreen";
-import PauseScreen from "../components/PauseScreen";
 import AdvancedOptions from "../components/AdvancedOptions";
 
 
 export default function GamePage() {
 
-    // const [data, setData] = useState(null);
-    const [firstClick, setFirstClick] = useState(null);
-    // const [boardKey, setBoardKey] = useState(Date.now());
+    const [gameState, setGameState] = useState(GameState.NOT_STARTED);
+    const [socket, setSocket] = useState(null);
     const [mines, setMines] = useState(0);
-    const [rows, setRows] = useState(9);
-    const [cols, setCols] = useState(9);
-    const [mineCount, setMineCount] = useState(10);
+    const [startField, setStartField] = useState(null);
     const [heuristicData, setHeuristicData] = useState({
         classifier: "lightgbm",
         heuristic: "no",
@@ -26,42 +22,9 @@ export default function GamePage() {
         rows: 9,
         cols: 9,
         mineCount: 10,
-        startField: null
+        mode: "normal",
     })
 
-    // const [gameState, setGameState] = useState(GameState.NOT_STARTED);
-    const [socket, setSocket] = useState(null);
-
-    // const handleReset = () => {
-    //     setBoardKey(Date.now());
-    //     setGameState(GameState.NOT_STARTED);
-    // }
-    //
-    // const handleNewGame = () => {
-    //     setData(null);
-    //     setFirstClick(null);
-    //     setMines(0);
-    //     setGameState(GameState.NOT_STARTED);
-    // };
-    //
-    // const startGame = (r, c, m) => {
-    //     setRows(r);
-    //     setCols(c);
-    //     setMineCount(m);
-    //     setData(null);
-    //     setGameState(GameState.NOT_STARTED);
-    // };
-    //
-    // const pauseGame = () => {
-    //     console.log('gameState in Controls:', gameState);
-    //     console.log('GameState.IN_PROGRESS:', GameState.IN_PROGRESS);
-    //     if(gameState === GameState.IN_PROGRESS)
-    //     setGameState(GameState.PAUSED);
-    // };
-    //
-    // const resumeGame = () => {
-    //     setGameState(GameState.IN_PROGRESS);
-    // };
 
 
     const REQUEST_BODY = {
@@ -72,11 +35,11 @@ export default function GamePage() {
             },
         },
         difficulty_level: {
-            rows: rows,
-            columns: cols,
-            mine_count: mineCount,
+            rows: boardData.rows,
+            columns: boardData.cols,
+            mine_count: boardData.mineCount,
         },
-        mode: "normal",
+        mode: boardData.mode,
     };
 
     async function initGameRequest() {
@@ -103,21 +66,12 @@ export default function GamePage() {
         }
     }
 
-    function connectToGameWebSocket(gameplay_id, onMessage, onClose) {
+    function connectToGameWebSocket(gameplay_id) {
         const socketUrl = `game_api/game/${gameplay_id}/ws`;
         const socket = new WebSocket(socketUrl);
 
         socket.onopen = () => {
             console.log("WebSocket connected:", socketUrl);
-        };
-
-        socket.onmessage = (event) => {
-            try {
-                const data = JSON.parse(event.data);
-                // onMessage?.(data);
-            } catch (err) {
-                console.warn("Niepoprawny JSON z serwera:", event.data);
-            }
         };
 
         socket.onerror = (error) => {
@@ -126,69 +80,78 @@ export default function GamePage() {
 
         socket.onclose = (event) => {
             console.log("WebSocket closed:", event);
-            // onClose?.(event);
         };
 
         return socket;
     }
 
+    async function startNewGame() {
+        let ws;
+        setGameState(GameState.NOT_STARTED);
+
+        try {
+            if (socket) {
+                socket.close();
+                setSocket(null);
+            }
+            const res = await initGameRequest();
+            console.log("http response: ", res);
+            setStartField(res.start_field);
+
+            ws = connectToGameWebSocket(res.gameplay_id);
+            setSocket(ws);
+            return ws;
+        } catch (err) {
+            console.error("Game initialization error:", err);
+        }
+    }
+
     useEffect(() => {
         let ws;
 
-        async function init() {
-            try {
-                const res = await initGameRequest();
-                setBoardData(prevData => ({
-                    ...prevData,
-                    startField: res.start_field
-                }));
-                console.log("start: ", res.start_field)
-                ws = connectToGameWebSocket(res.gameplay_id);
-                setSocket(ws);
-
-            } catch (err) {
-                console.error("Game initialization error:", err);
-            }
-        }
-
-        init();
+        startNewGame().then(socket => {
+            ws = socket;
+        });
 
         return () => {
             if (ws) {
                 ws.close();
             }
         };
-    }, []);
-
+    }, [boardData]);
 
 
     return (
         <div className="game flex h-screen bg-bg-tertiary justify-center">
             {/* Sidebar */}
             <aside className="w-64 p-4 bg-bg-tertiary">
-                {/*<DifficultyMenu onSelect={startGame} />*/}
+                <DifficultyMenu setBoardData={setBoardData}/>
                 <AdvancedOptions onSelect={(data) => setHeuristicData(data)} />
             </aside>
 
             {/* Main game area */}
             <main className="p-4 overflow-auto game-area relative w-full max-w-4xl">
-                {/* Overlay screens */}
-                {/*{gameState === GameState.WON && <VictoryScreen onPlayAgain={handleNewGame} />}*/}
-                {/*{gameState === GameState.PAUSED && <PauseScreen resumeGame={resumeGame} />}*/}
+                {/* Overlay screen */}
+                {gameState === GameState.WON && <VictoryScreen onPlayAgain={startNewGame} />}
 
-                {/*<Controls*/}
-                {/*    onReset={handleReset}*/}
-                {/*    onNewGame={handleNewGame}*/}
-                {/*    mines={mines}*/}
-                {/*    onPause={pauseGame}*/}
-                {/*    gameState={gameState}*/}
-                {/*/>*/}
+                <Controls
+                    onReset={startNewGame}
+                    mines={mines}
+                    gameState={gameState}
+                    onHint={() =>
+                        {socket.send(JSON.stringify({
+                            type: "hint"
+                        }))}}
+                />
 
                 <div className="game-board flex-1 mt-4 ">
                     {socket != null ? (
                         <Board
                             boardData = {boardData}
                             socket = {socket}
+                            setGameState = {setGameState}
+                            setMines = {setMines}
+                            startField = {startField}
                         />
                     ) :
                         <div>Conecting...</div>
