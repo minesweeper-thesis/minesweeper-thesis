@@ -104,7 +104,7 @@ export default function GamePage() {
     }
 
     function connectToGameWebSocket(gameplay_id, onMessage, onClose) {
-        const socketUrl = `game_api/game/${gameplay_id}/ws`;
+        const socketUrl = `api/game/${gameplay_id}/ws`;
         const socket = new WebSocket(socketUrl);
 
         socket.onopen = () => {
