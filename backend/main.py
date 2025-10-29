@@ -21,13 +21,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 api = FastAPI(lifespan=lifespan)
 
-os.makedirs("img", exist_ok=True)
-api.mount(
-    "/img",
-    StaticFiles(directory="img"),
-    name="img",
-)
-
 routers.register_exceptions(api)
 
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
@@ -45,6 +38,13 @@ api.include_router(routers.game_router)
 api.include_router(routers.stats_router)
 api.include_router(routers.user_router)
 add_pagination(api)
+
+os.makedirs("img", exist_ok=True)
+api.mount(
+    "/img",
+    StaticFiles(directory="img"),
+    name="img",
+)
 
 
 app = FastAPI()
