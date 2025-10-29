@@ -8,22 +8,16 @@ import {
     User,
     Gamepad2
 } from 'lucide-react';
-import {NavLink, useLocation} from "react-router-dom";
+import { NavLink, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { useLogout } from '../hooks/useLogout';
 
-
-const Layout = ({ children }) => {
-
+const Navbar = ({ children }) => {
+    const { user, loading } = useAuth();
+    const logout = useLogout();
     const location = useLocation();
-    const { hash, pathname, search } = location;
-    const user = { username: 'PlaceholderUser' };
+    const { pathname } = location;
 
-    // PLACEHOLDER
-    const logout = () => {
-        alert('Placeholder logout action');
-    };
-
-
-    // PLACEHOLDER
     const navigation = [
         { path: '/', icon: Play, label: 'Game' },
         { path: '/friends', icon: Users, label: 'Friends' },
@@ -36,52 +30,63 @@ const Layout = ({ children }) => {
             <div className="max-w-6xl mx-auto px-5 flex flex-col md:flex-row items-center justify-between h-auto md:h-[70px] gap-4 py-4 md:py-0">
 
                 {/* Logo */}
-                <div className="flex items-center gap-3 text-accent-primary">
-                    <Gamepad2 size={32} />
-                    <h1 className="text-2xl font-bold">Minesweeper Pro</h1>
+                <div  className="flex gap-4">
+                    <div className="flex items-center gap-3 text-accent-primary">
+                        <Gamepad2 size={32} />
+                        <h1 className="text-2xl font-bold">Minesweeper Pro</h1>
+                    </div>
+                    {/* Navigation */}
+                    <nav className="flex gap-2 justify-center w-full md:w-auto order-3 md:order-none">
+                        {navigation.map(({ path, icon: Icon, label }) => (
+                            <NavLink
+                                key={path}
+                                to={path}
+                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition
+                    ${
+                                    pathname === path
+                                        ? 'bg-accent-primary text-bg-secondary'
+                                        : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
+                                }
+                  `}
+                            >
+                                <Icon size={20} />
+                                <span className="hidden md:inline">{label}</span>
+                            </NavLink>
+                        ))}
+                    </nav>
                 </div>
-
-                {/* Navigation */}
-                <nav className="flex gap-2 justify-center w-full md:w-auto order-3 md:order-none">
-                    {navigation.map(({ path, icon: Icon, label }) => (
-                        <NavLink
-                            key={path}
-                            to={path}
-                          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition
-                            ${
-                              pathname === path
-                                  ? 'bg-accent-primary text-bg-secondary'
-                                  : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
-                            }
-                          `}
-                        >
-                            <Icon size={20} />
-                            <span className="hidden md:inline">{label}</span>
-                        </NavLink>
-
-                    ))}
-                </nav>
 
                 {/* User Menu */}
                 <div className="flex items-center gap-4 order-2 md:order-none">
-                    {/* User info */}
-                    <div className="flex items-center gap-2 text-text-primary font-medium">
-                        <User size={20} />
-                        <span>{user?.username || 'Guest'}</span>
-                    </div>
+                    {!loading && user ? (
+                        <>
+                            {/* User info */}
+                            <div className="flex items-center gap-2 text-text-primary font-medium">
+                                <User size={20} />
+                                <span>{user.nickname || user.username}</span>
+                            </div>
 
-                    {/* Logout button */}
-                    <button
-                        className="flex items-center gap-2 px-4 py-2 text-text-secondary border-1 border-border-primary rounded-lg bg-bg-tertiary hover:bg-bg-primary transition"
-                        onClick={logout}
-                    >
-                        <LogOut size={16} />
-                        Logout
-                    </button>
+                            {/* Logout button */}
+                            <button
+                                className="flex items-center gap-2 px-4 py-2 text-text-secondary border border-border-primary rounded-lg bg-bg-tertiary hover:bg-bg-primary transition"
+                                onClick={logout}
+                            >
+                                <LogOut size={16} />
+                                Logout
+                            </button>
+                        </>
+                    ) : (
+                        <NavLink
+                            to="/login"
+                            className="px-4 py-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition"
+                        >
+                            Login
+                        </NavLink>
+                    )}
                 </div>
             </div>
         </header>
     );
 };
 
-export default Layout;
+export default Navbar;
