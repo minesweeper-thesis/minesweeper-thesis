@@ -55,10 +55,5 @@ frontend_build_path = os.path.join(
 )
 if os.path.exists(frontend_build_path):
     app.mount(
-        "/static",
-        StaticFiles(directory=os.path.join(frontend_build_path, "static")),
-        name="static",
-    )
-    app.mount(
         "/", StaticFiles(directory=frontend_build_path, html=True), name="frontend"
     )
