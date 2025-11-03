@@ -11,14 +11,14 @@ const DifficultyMenu = ({ setBoardData }) => {
     const [selectedMode, setSelectedMode] = useState(false);
 
     const difficultyInfo = {
-        easy: { icon: Zap, label: 'Easy', description: '9×9 grid, 10 mines', color: 'var(--success)' },
+        easy: { icon: Zap, label: 'Easy', description: '10×10 grid, 15 mines', color: 'var(--success)' },
         medium: { icon: Target, label: 'Medium', description: '16×16 grid, 40 mines', color: 'var(--warning)' },
         hard: { icon: Flame, label: 'Hard', description: '16×30 grid, 99 mines', color: 'var(--error)' },
         custom: { icon: Settings, label: 'Custom', description: 'Your settings', color: 'var(--accent-primary)' },
     };
 
     const handleAccept = () => {
-        if (selected === 'easy') setParams(9, 9, 10);
+        if (selected === 'easy') setParams(10, 10, 15);
         else if (selected === 'medium') setParams(16, 16, 40);
         else if (selected === 'hard') setParams(16, 30, 99);
         else if (selected === 'custom') setParams(customRows, customCols, customMines);
