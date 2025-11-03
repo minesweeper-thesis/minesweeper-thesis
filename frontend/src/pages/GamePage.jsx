@@ -29,7 +29,7 @@ export default function GamePage() {
 
     const REQUEST_BODY = {
         generator: {
-            type: "random",
+            type: "ml",
             settings: {
                 ...heuristicData
             },
