@@ -79,3 +79,7 @@
 body {
     background-color: var(--bg-tertiary);
 }
+
+html, body {
+    @apply h-full m-0 p-0;
+}

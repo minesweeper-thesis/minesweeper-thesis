@@ -2,6 +2,9 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import GamePage from "./pages/GamePage";
 import AppLayout from "./pages/AppLayout";
 import FriendsPage from "./pages/FriendsPage";
+import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import NotFoundPage from "./pages/NotFoundPage";
 
 function App() {
     return (
@@ -9,7 +12,14 @@ function App() {
             <Routes>
                 <Route path="/" element={<AppLayout />}>
                     <Route index element={<GamePage />} />
-                    <Route path="/friends" element={<FriendsPage />} />
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/register" element={<RegisterPage />} />
+                    <Route path="/friends" element={<NotFoundPage />} />
+                    <Route path="/stats" element={<NotFoundPage />} />
+                    <Route path="/setting" element={<NotFoundPage />} />
+
+
+                    <Route path="*" element={<NotFoundPage />} />
                 </Route>
             </Routes>
         </BrowserRouter>

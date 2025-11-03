@@ -1,5 +1,5 @@
-import { Flame, Settings, Target, Zap } from 'lucide-react';
-import { useState } from 'react';
+import React, {useEffect, useState} from 'react';
+import { Settings, Zap, Target, Flame } from 'lucide-react';
 import ModeSwitch from "./ModeSwitch";
 
 const DifficultyMenu = ({ setBoardData }) => {
