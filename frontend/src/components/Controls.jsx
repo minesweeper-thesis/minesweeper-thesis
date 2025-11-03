@@ -1,7 +1,7 @@
-import { Lightbulb, RotateCcw } from "lucide-react";
-import { useEffect, useRef, useState } from 'react';
-import '../styles/controls.css';
+import React, { useEffect, useRef, useState } from 'react';
 import { GameState } from "../utility";
+import { Lightbulb, RotateCcw } from "lucide-react";
+import '../styles/controls.css';
 
 export default function Controls({ onReset, mines, gameState, onHint }) {
     const [seconds, setSeconds] = useState(0);

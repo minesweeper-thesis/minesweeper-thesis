@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import AdvancedOptions from "../components/AdvancedOptions";
+import React, {useEffect, useState} from 'react';
 import Board from '../components/Board';
 import Controls from '../components/Controls';
 import DifficultyMenu from '../components/DifficultyMenu';
-import VictoryScreen from "../components/VictoryScreen";
 import { GameState } from '../utility';
+import VictoryScreen from "../components/VictoryScreen";
+import AdvancedOptions from "../components/AdvancedOptions";
 
 
 export default function GamePage() {
@@ -106,6 +106,7 @@ export default function GamePage() {
         }
     }
 
+
     useEffect(() => {
         let ws;
 
@@ -122,9 +123,9 @@ export default function GamePage() {
 
 
     return (
-        <div className="game flex h-screen bg-bg-tertiary justify-center">
+        <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
             {/* Sidebar */}
-            <aside className="w-64 p-4 bg-bg-tertiary">
+            <aside className="w-64 p-4">
                 <DifficultyMenu setBoardData={setBoardData}/>
                 <AdvancedOptions onSelect={(data) => setHeuristicData(data)} />
             </aside>

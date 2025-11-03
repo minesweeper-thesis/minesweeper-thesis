@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
-import "../styles/board.css";
-import { GameState, State } from "../utility";
+import React, {useEffect, useState} from "react";
 import Square from "./Square";
+import {GameState, State} from "../utility";
+import "../styles/board.css";
 
 export default function Board({ socket, boardData, setGameState, setMines, startField }) {
     const [board, setBoard] = useState(
@@ -32,6 +32,7 @@ export default function Board({ socket, boardData, setGameState, setMines, start
     }, []);
 
     useEffect(() => {
+
         if (!socket) return;
 
         socket.onmessage = (event) => {

@@ -1,3 +1,4 @@
+import React from 'react';
 import '../styles/victoryScreen.css';
 
 export default function VictoryScreen({ onPlayAgain }) {
