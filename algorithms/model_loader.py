@@ -2,10 +2,10 @@ import os
 import tempfile
 from abc import ABC
 
-AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
-AWS_REGION = os.getenv("AWS_REGION")
-AWS_BUCKET_NAME = os.getenv("AWS_BUCKET_NAME")
+AWS_ACCESS_KEY_ID = os.getenv("BUCKETEER_AWS_ACCESS_KEY_ID")
+AWS_SECRET_ACCESS_KEY = os.getenv("BUCKETEER_AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("BUCKETEER_AWS_REGION")
+AWS_BUCKET_NAME = os.getenv("BUCKETEER_BUCKET_NAME")
 
 
 class _ModelLoaderABC(ABC):

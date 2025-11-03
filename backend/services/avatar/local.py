@@ -25,5 +25,4 @@ class LocalAvatarStorage(AvatarStorage):
 
     async def delete(self, filename: str) -> None:
         file_path = os.path.join(self.static_dir, filename)
-        print(file_path)
         os.remove(file_path)
