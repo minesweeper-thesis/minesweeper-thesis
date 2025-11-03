@@ -10,7 +10,7 @@ const AdvancedOptions = ({ onSelect }) => {
     const classifiers = [
         "lightgbm",
         "catboost",
-        "gaussian",
+        "gaussiannb",
         "mlp",
         "xgboost",
         "gradientboosting",
@@ -22,9 +22,9 @@ const AdvancedOptions = ({ onSelect }) => {
         setOpenSection((prev) => (prev === section ? null : section));
     };
 
-    const handleAccept = () => {
+    React.useEffect(() => {
         onSelect({ classifier, heuristic });
-    };
+    }, [classifier, heuristic, onSelect]);
 
     return (
         <div className="advanced-options card p-4 mt-4 bg-bg-primary rounded-lg shadow-md w-full">
