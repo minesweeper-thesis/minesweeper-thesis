@@ -10,7 +10,7 @@ const AdvancedOptions = ({ onSelect }) => {
     const classifiers = [
         "lightgbm",
         "catboost",
-        "gaussian",
+        "gaussiannb",
         "mlp",
         "xgboost",
         "gradientboosting",
