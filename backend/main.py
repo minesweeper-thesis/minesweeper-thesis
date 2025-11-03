@@ -1,9 +1,11 @@
 import os
+from pathlib import Path
 from typing import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.concurrency import asynccontextmanager
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
@@ -50,10 +52,20 @@ api.mount(
 app = FastAPI()
 app.mount("/api", api)
 
-frontend_build_path = os.path.join(
-    os.path.dirname(os.path.dirname(__file__)), "frontend", "dist"
-)
-if os.path.exists(frontend_build_path):
-    app.mount(
-        "/", StaticFiles(directory=frontend_build_path, html=True), name="frontend"
-    )
+frontend_build_path = Path(__file__).parent.parent / "frontend" / "dist"
+
+if frontend_build_path.exists():
+
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        index_path = frontend_build_path / "index.html"
+        file_path = frontend_build_path / full_path
+        file_path = file_path.resolve()
+
+        if not file_path.is_relative_to(frontend_build_path):
+            return FileResponse(index_path)
+
+        if file_path.is_file():
+            return FileResponse(file_path)
+
+        return FileResponse(index_path)
