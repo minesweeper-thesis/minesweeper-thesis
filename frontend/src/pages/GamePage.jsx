@@ -19,9 +19,9 @@ export default function GamePage() {
         heuristic_args: []
     });
     const [boardData, setBoardData] = useState({
-        rows: 9,
-        cols: 9,
-        mineCount: 10,
+        rows: 10,
+        cols: 10,
+        mineCount: 15,
         mode: "normal",
     })
 
