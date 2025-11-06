@@ -10,8 +10,6 @@ class GaussianNBClassifier(Classifier):
         self.model = None
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
-        raise NotImplementedError("Training is not supported in production environment")
-
         import numpy as np
         from sklearn.metrics import balanced_accuracy_score
         from sklearn.model_selection import train_test_split

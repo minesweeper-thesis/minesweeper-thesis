@@ -49,8 +49,6 @@ class CNNClassifier(Classifier):
         self.model = CNN().to(self.device)
 
     def fit(self, data: list[tuple["Board", bool]]) -> float:
-        raise NotImplementedError("Training is not supported in production environment")
-
         import random
 
         import torch.optim as optim
