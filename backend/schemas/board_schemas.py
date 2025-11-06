@@ -2,9 +2,7 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
-type ClassifierType = Literal[
-    "lightgbm", "catboost", "gaussian", "mlp", "xgboost", "gradientboosting"
-]
+type ClassifierType = Literal["lightgbm", "catboost", "gaussiannb", "xgboost"]
 type HeuristicType = Literal["no", "naive", "GA", "MCTS", "PSO", "SA"]
 
 

@@ -1,6 +1,6 @@
-import { defineConfig, loadEnv} from 'vite';
+import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig, loadEnv } from 'vite';
 
 
 export default ({ mode }) => {
@@ -16,11 +16,6 @@ export default ({ mode }) => {
                     target: process.env.VITE_API_URL,
                     changeOrigin: true,
                     rewrite: (path) => path.replace(/^\/api/, ''),
-                },
-                '/game_api': {
-                    target: process.env.VITE_GAME_URL,
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/game_api\//, ''),
                 },
             },
         },

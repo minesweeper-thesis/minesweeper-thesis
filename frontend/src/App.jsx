@@ -16,7 +16,7 @@ function App() {
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/friends" element={<NotFoundPage />} />
                     <Route path="/stats" element={<NotFoundPage />} />
-                    <Route path="/setting" element={<NotFoundPage />} />
+                    <Route path="/settings" element={<NotFoundPage />} />
 
 
                     <Route path="*" element={<NotFoundPage />} />

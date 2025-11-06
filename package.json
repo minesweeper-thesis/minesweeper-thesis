@@ -1,0 +1,10 @@
+{
+    "engines": {
+        "node": "22.x",
+        "npm": "11.x"
+    },
+    "scripts": {
+        "heroku-prebuild": "cd frontend && npm ci",
+        "heroku-postbuild": "cd frontend && npm run build"
+    }
+}
