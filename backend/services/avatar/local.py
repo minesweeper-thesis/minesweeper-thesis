@@ -3,7 +3,7 @@ import urllib.parse
 
 from .storage import AvatarStorage
 
-STATIC_AVATAR_DIR = os.path.join("static", "avatars")
+STATIC_AVATAR_DIR = "img"
 
 
 class LocalAvatarStorage(AvatarStorage):
@@ -19,11 +19,10 @@ class LocalAvatarStorage(AvatarStorage):
         return self._get_url(filename)
 
     def _get_url(self, filename: str) -> str:
-        base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
-        url = f"{base_url}/static/avatars/{urllib.parse.quote(filename)}"
+        base_url = os.getenv("BACKEND_URL", "http://localhost:8000/api")
+        url = f"{base_url}/{self.static_dir}/{urllib.parse.quote(filename)}"
         return url
 
     async def delete(self, filename: str) -> None:
         file_path = os.path.join(self.static_dir, filename)
-        print(file_path)
         os.remove(file_path)

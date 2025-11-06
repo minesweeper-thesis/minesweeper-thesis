@@ -1,5 +1,9 @@
 .env
 minesweeper.db
+algorithms/models_onnx/
+static/
+img/
+frontend/dist/
 __pycache__/
 .DS_STORE
 node_modules
@@ -41,4 +45,3 @@ packages/react-devtools-fusebox/dist
 packages/react-devtools-inline/dist
 packages/react-devtools-shell/dist
 packages/react-devtools-timeline/dist
-*.json

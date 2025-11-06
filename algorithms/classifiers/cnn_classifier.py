@@ -1,28 +1,9 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from sklearn.metrics import balanced_accuracy_score
+
 from algorithms.boards.board import Board
 from algorithms.classifiers.classifier import Classifier
-import torch
-import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset
-import random
 
-class BoardDataset(Dataset):
-    def __init__(self, data):
-        self.samples = data
-
-    def __len__(self):
-        return len(self.samples)
-
-    def __getitem__(self, idx):
-        board, label = self.samples[idx]
-        x = torch.tensor(board.model_input(), dtype=torch.float32)
-        y = torch.tensor(float(label), dtype=torch.float32)
-        return x, y
 
 class CNN(nn.Module):
     def __init__(self):
@@ -32,22 +13,18 @@ class CNN(nn.Module):
             nn.BatchNorm2d(32),
             nn.ReLU(),
             nn.MaxPool2d(2),
-
             nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
             nn.MaxPool2d(2),
-
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
             nn.MaxPool2d(2),
-
             nn.Conv2d(128, 256, kernel_size=3, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(),
-
-            nn.AdaptiveAvgPool2d((1, 1))
+            nn.AdaptiveAvgPool2d((1, 1)),
         )
         self.classifier = nn.Sequential(
             nn.Flatten(),
@@ -58,12 +35,13 @@ class CNN(nn.Module):
             nn.ReLU(),
             nn.Dropout(0.5),
             nn.Linear(64, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
         x = self.features(x)
         return self.classifier(x)
+
 
 class CNNClassifier(Classifier):
     def __init__(self, device=None):
@@ -71,6 +49,25 @@ class CNNClassifier(Classifier):
         self.model = CNN().to(self.device)
 
     def fit(self, data: list[tuple["Board", bool]]) -> float:
+        import random
+
+        import torch.optim as optim
+        from sklearn.metrics import balanced_accuracy_score
+        from torch.utils.data import DataLoader, Dataset
+
+        class BoardDataset(Dataset):
+            def __init__(self, data):
+                self.samples = data
+
+            def __len__(self):
+                return len(self.samples)
+
+            def __getitem__(self, idx):
+                board, label = self.samples[idx]
+                x = torch.tensor(board.model_input(), dtype=torch.float32)
+                y = torch.tensor(float(label), dtype=torch.float32)
+                return x, y
+
         random.shuffle(data)
 
         total = len(data)
@@ -78,8 +75,8 @@ class CNNClassifier(Classifier):
         val_size = int(0.1 * total)
 
         train_set = BoardDataset(data[:train_size])
-        val_set = BoardDataset(data[train_size:train_size + val_size])
-        test_set = BoardDataset(data[train_size + val_size:])
+        val_set = BoardDataset(data[train_size : train_size + val_size])
+        test_set = BoardDataset(data[train_size + val_size :])
 
         train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
         val_loader = DataLoader(val_set, batch_size=32)
@@ -139,7 +136,11 @@ class CNNClassifier(Classifier):
 
     def classify(self, board: "Board") -> float:
         self.model.eval()
-        x = torch.tensor(board.model_input(), dtype=torch.float32).unsqueeze(0).to(self.device)
+        x = (
+            torch.tensor(board.model_input(), dtype=torch.float32)
+            .unsqueeze(0)
+            .to(self.device)
+        )
         with torch.no_grad():
             output = self.model(x)
         return float(output.item())
