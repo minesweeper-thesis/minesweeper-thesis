@@ -1,4 +1,4 @@
-from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.boards.random_neighbour_board import RandomNeighbourBoard

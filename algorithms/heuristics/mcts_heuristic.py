@@ -1,4 +1,4 @@
-from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.semi_random_board import SemiRandomBoard
 from algorithms.classifiers.base_classifier import BaseClassifier

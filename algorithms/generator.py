@@ -2,7 +2,7 @@ from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.checker.checker import Checker
 from algorithms.heuristics.genetic_algorithm_heuristic import GeneticAlgorithmHeuristic
-from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 from algorithms.heuristics.mcts_heuristic import MCTSHeuristic
 from algorithms.heuristics.naive_heuristic import NaiveHeuristic
 from algorithms.heuristics.no_heuristic import NoHeuristic
