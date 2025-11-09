@@ -15,6 +15,7 @@ class Classifier(ABC):
     def save(self, filename: str) -> None:
         pass
 
+    @classmethod
     @abstractmethod
-    def load(self, filename: str) -> None:
+    def load(cls, filename: str) -> "Classifier":
         pass
