@@ -7,11 +7,11 @@ from algorithms.classifiers.classifier import Classifier
 
 class GradientBoostingClassifier(Classifier):
     def __init__(self, n_estimators: int = 100) -> None:
+        super().__init__()
         self.n_estimators = n_estimators
-        self.model = None
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
-        if self.model is None:
+        if self.model:
             raise RuntimeError("Model already loaded.")
 
         import numpy as np
@@ -35,9 +35,3 @@ class GradientBoostingClassifier(Classifier):
 
     def save(self, filename: str) -> None:
         joblib.dump(self.model, filename)
-
-    @classmethod
-    def load(cls, filename: str) -> "GradientBoostingClassifier":
-        instance = cls()
-        instance.model = joblib.load(filename)
-        return instance
