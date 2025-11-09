@@ -1,16 +1,16 @@
-from algorithms.heuristics.heuristic import Heuristic
-from algorithms.boards.board import Board
+from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.boards.random_neighbour_board import RandomNeighbourBoard
-from algorithms.classifiers.classifier import Classifier
+from algorithms.classifiers.base_classifier import BaseClassifier
 import math
 import random
 
 
-class SimulatedAnnealingHeuristic(Heuristic):
+class SimulatedAnnealingHeuristic(BaseHeuristic):
     def __init__(
         self,
-        classifier: Classifier,
+        classifier: BaseClassifier,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
@@ -20,13 +20,13 @@ class SimulatedAnnealingHeuristic(Heuristic):
         T_MAX: float = 100.0,
         T_MIN: float = 1e-3,
     ) -> None:
-        Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
+        BaseHeuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.iterations = iterations
         self.fields_changed = fields_changed
         self.T_MAX = T_MAX
         self.T_MIN = T_MIN
 
-    def run(self) -> Board:
+    def run(self) -> BaseBoard:
         best_board = None
         best_score = 0.0
         board = RandomBoard(self.rows, self.columns, self.start_field, self.mine_count)

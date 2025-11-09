@@ -1,16 +1,16 @@
 import joblib
 import lightgbm as lgb
 
-from algorithms.boards.board import Board
-from algorithms.classifiers.classifier import Classifier
+from algorithms.boards.base_board import BaseBoard
+from algorithms.classifiers.classifier import BaseClassifier
 
 
-class LightGBMClassifier(Classifier):
+class LightGBMClassifier(BaseClassifier):
     def __init__(self, num_boost_round: int = 100) -> None:
         super().__init__()
         self.num_boost_round = num_boost_round
 
-    def fit(self, data: list[tuple[Board, bool]]) -> float:
+    def fit(self, data: list[tuple[BaseBoard, bool]]) -> float:
         if self.model:
             raise RuntimeError("Model already loaded.")
 
@@ -42,7 +42,7 @@ class LightGBMClassifier(Classifier):
         preds_binary = (preds > 0.5).astype(int)
         return balanced_accuracy_score(y_test, preds_binary)
 
-    def classify(self, board: Board) -> float:
+    def classify(self, board: BaseBoard) -> float:
         if self.model is None:
             raise RuntimeError("Model not loaded. Call load() first.")
         return float(self.model.predict(board.model_input().reshape(1, -1))[0])

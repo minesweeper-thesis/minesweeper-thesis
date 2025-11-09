@@ -1,33 +1,32 @@
-from algorithms.heuristics.heuristic import Heuristic
-from algorithms.boards.board import Board
+from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.pso_board import PSOBoard
-from algorithms.classifiers.classifier import Classifier
+from algorithms.classifiers.base_classifier import BaseClassifier
 from copy import deepcopy
 
 
-class ParticleSwarmHeuristic(Heuristic):
+class ParticleSwarmHeuristic(BaseHeuristic):
     def __init__(
         self,
-        classifier: Classifier,
+        classifier: BaseClassifier,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        
         iterations: int,
         particle_count: int,
         w_coefficient: float = 0.729,
         c1_coefficient: float = 1.49445,
         c2_coefficient: float = 1.49445,
     ) -> None:
-        Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
+        BaseHeuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.iterations = iterations
         self.w = w_coefficient
         self.c1 = c1_coefficient
         self.c2 = c2_coefficient
         self.particle_count = particle_count
 
-    def run(self) -> Board:
+    def run(self) -> BaseBoard:
         best_global_position = None
         best_score = 0
         particles = [
@@ -63,7 +62,7 @@ class ParticleSwarmHeuristic(Heuristic):
                         best_global_position = deepcopy(board.mined_fields)
                         best_score = current_particle_score
 
-        return Board(
+        return BaseBoard(
             self.rows,
             self.columns,
             self.start_field,

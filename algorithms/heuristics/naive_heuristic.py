@@ -1,23 +1,23 @@
-from algorithms.heuristics.heuristic import Heuristic
-from algorithms.boards.board import Board
+from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
-from algorithms.classifiers.classifier import Classifier
+from algorithms.classifiers.base_classifier import BaseClassifier
 
 
-class NaiveHeuristic(Heuristic):
+class NaiveHeuristic(BaseHeuristic):
     def __init__(
         self,
-        classifier: Classifier,
+        classifier: BaseClassifier,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
         tries: int,
     ) -> None:
-        Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
+        BaseHeuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.tries = tries
 
-    def run(self) -> Board:
+    def run(self) -> BaseBoard:
         best_score = 0
         best_board = None
 

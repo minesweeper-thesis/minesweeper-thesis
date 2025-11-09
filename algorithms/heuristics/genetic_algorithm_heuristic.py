@@ -1,31 +1,30 @@
-from algorithms.heuristics.heuristic import Heuristic
-from algorithms.classifiers.classifier import Classifier
-from algorithms.boards.board import Board
+from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.classifiers.base_classifier import BaseClassifier
+from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.ga_board import GABoard
 import random
 
 
-class GeneticAlgorithmHeuristic(Heuristic):
+class GeneticAlgorithmHeuristic(BaseHeuristic):
     def __init__(
         self,
-        classifier: Classifier,
+        classifier: BaseClassifier,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        
         generations: int,
         population_size: int,
         parents_size: int,
         random_specimens_rate: float,
     ) -> None:
-        Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
+        BaseHeuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.generations = generations
         self.population_size = population_size
         self.parents_size = parents_size
         self.random_specimens_rate = random_specimens_rate
 
-    def run(self) -> Board:
+    def run(self) -> BaseBoard:
         boards = [
             GABoard(self.rows, self.columns, self.start_field, self.mine_count)
             for _ in range(self.population_size)

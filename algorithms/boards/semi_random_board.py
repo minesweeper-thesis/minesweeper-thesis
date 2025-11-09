@@ -1,9 +1,9 @@
-from algorithms.boards.board import Board
+from algorithms.boards.board import BaseBoard
 from algorithms.boards.functions.all_fields import all_fields
 import random
 
 
-class SemiRandomBoard(Board):
+class SemiRandomBoard(BaseBoard):
     def __init__(
         self,
         rows: int,
@@ -22,4 +22,4 @@ class SemiRandomBoard(Board):
         mined_fields = (
             already_mined_fields + fields[: mine_count - len(already_mined_fields)]
         )
-        Board.__init__(self, rows, columns, start_field, mine_count, mined_fields)
+        BaseBoard.__init__(self, rows, columns, start_field, mine_count, mined_fields)

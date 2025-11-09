@@ -3,7 +3,7 @@ from typing import Callable
 from algorithms.boards.grid import Grid
 
 
-class Board:
+class BaseBoard:
     def __init__(
         self,
         rows: int,
@@ -23,15 +23,15 @@ class Board:
 
     def __transform(
         self, function: Callable[[tuple[int, int]], tuple[int, int]]
-    ) -> "Board":
+    ) -> "BaseBoard":
         start_field = function(self.start_field)
         mined_fields = [function(field) for field in self.mined_fields]
 
-        return Board(
+        return BaseBoard(
             self.rows, self.columns, start_field, self.mine_count, mined_fields
         )
 
-    def symmetries(self) -> tuple["Board"]:
+    def symmetries(self) -> tuple["BaseBoard"]:
         if self.rows == self.columns:
             return (
                 self,

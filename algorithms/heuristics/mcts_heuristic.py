@@ -1,7 +1,7 @@
-from algorithms.heuristics.heuristic import Heuristic
-from algorithms.boards.board import Board
+from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.semi_random_board import SemiRandomBoard
-from algorithms.classifiers.classifier import Classifier
+from algorithms.classifiers.base_classifier import BaseClassifier
 from algorithms.boards.functions.all_fields import all_fields
 import math
 import random
@@ -37,10 +37,10 @@ class Node:
         )
 
 
-class MCTSHeuristic(Heuristic):
+class MCTSHeuristic(BaseHeuristic):
     def __init__(
         self,
-        classifier: Classifier,
+        classifier: BaseClassifier,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
@@ -50,7 +50,7 @@ class MCTSHeuristic(Heuristic):
         simulation_count: int,
         c: int = math.sqrt(2),
     ) -> None:
-        Heuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
+        BaseHeuristic.__init__(self, classifier, rows, columns, start_field, mine_count)
         self.tries = tries
         self.depth = depth
         self.c = c
@@ -111,7 +111,7 @@ class MCTSHeuristic(Heuristic):
             reward = self._rollout(expanded_node)
             self._propagate(reward, expanded_node)
 
-    def run(self) -> Board:
+    def run(self) -> BaseBoard:
         root = Node([], None, [], self.c)
 
         for i in range(self.mine_count):
@@ -119,7 +119,7 @@ class MCTSHeuristic(Heuristic):
                 self._mcts(root)
             root = max(root.children, key=lambda n: n.visits)
 
-        return Board(
+        return BaseBoard(
             self.rows,
             self.columns,
             self.start_field,

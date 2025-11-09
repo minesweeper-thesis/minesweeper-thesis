@@ -1,15 +1,15 @@
 import joblib
 from sklearn.naive_bayes import GaussianNB as SklearnGaussianNB
 
-from algorithms.boards.board import Board
-from algorithms.classifiers.classifier import Classifier
+from algorithms.boards.base_board import BaseBoard
+from algorithms.classifiers.classifier import BaseClassifier
 
 
-class GaussianNBClassifier(Classifier):
+class GaussianNBClassifier(BaseClassifier):
     def __init__(self) -> None:
         super().__init__()
 
-    def fit(self, data: list[tuple[Board, bool]]) -> float:
+    def fit(self, data: list[tuple[BaseBoard, bool]]) -> float:
         if self.model:
             raise RuntimeError("Model already loaded.")
 
@@ -27,7 +27,7 @@ class GaussianNBClassifier(Classifier):
         preds = self.model.predict(X_test)
         return balanced_accuracy_score(y_test, preds)
 
-    def classify(self, board: Board) -> float:
+    def classify(self, board: BaseBoard) -> float:
         if self.model is None:
             raise RuntimeError("Model not loaded. Call load() first.")
         return float(self.model.predict_proba(board.model_input().reshape(1, -1))[0][1])

@@ -1,8 +1,8 @@
-from algorithms.boards.board import Board
+from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.checker.checker import Checker
 from algorithms.heuristics.genetic_algorithm_heuristic import GeneticAlgorithmHeuristic
-from algorithms.heuristics.heuristic import Heuristic
+from algorithms.heuristics.heuristic import BaseHeuristic
 from algorithms.heuristics.mcts_heuristic import MCTSHeuristic
 from algorithms.heuristics.naive_heuristic import NaiveHeuristic
 from algorithms.heuristics.no_heuristic import NoHeuristic
@@ -13,7 +13,7 @@ from algorithms.heuristics.simulated_annealing_heuristic import (
 from algorithms.model_loader import ModelLoader
 from algorithms.onnx_classifier import OnnxClassifier
 
-_heuristics: dict[str, type[Heuristic]] = {
+_heuristics: dict[str, type[BaseHeuristic]] = {
     "no": NoHeuristic,
     "naive": NaiveHeuristic,
     "GA": GeneticAlgorithmHeuristic,
@@ -44,7 +44,7 @@ class Generator:
             self.classifier, rows, columns, start_field, mine_count, *heuristic_args
         )
 
-    def generate(self) -> Board:
+    def generate(self) -> BaseBoard:
         checker = Checker(
             self.heuristic.rows,
             self.heuristic.columns,
