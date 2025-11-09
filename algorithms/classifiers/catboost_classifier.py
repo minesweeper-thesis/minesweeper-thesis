@@ -11,6 +11,9 @@ class CatBoostClassifier(Classifier):
         self.model = None
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
+        if self.model is None:
+            raise RuntimeError("Model already loaded.")
+
         import numpy as np
         from sklearn.metrics import balanced_accuracy_score
         from sklearn.model_selection import train_test_split
@@ -40,5 +43,8 @@ class CatBoostClassifier(Classifier):
     def save(self, filename: str) -> None:
         joblib.dump(self.model, filename)
 
-    def load(self, filename: str) -> None:
-        self.model = joblib.load(filename)
+    @classmethod
+    def load(cls, filename: str) -> "CatBoostClassifier":
+        instance = cls()
+        instance.model = joblib.load(filename)
+        return instance

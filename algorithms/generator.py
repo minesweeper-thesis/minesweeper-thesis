@@ -35,11 +35,10 @@ class Generator:
         mine_count: int,
         classifier_iterations: int = -1,
     ) -> None:
-        self.classifier = OnnxClassifier()
         model_loader = ModelLoader(
             rows, columns, mine_count, classifier, classifier_iterations
         )
-        self.classifier.load(model_loader.get_model_path())
+        self.classifier = OnnxClassifier.load(model_loader.get_model_path())
 
         self.heuristic = _heuristics[heuristic](
             self.classifier, rows, columns, start_field, mine_count, *heuristic_args

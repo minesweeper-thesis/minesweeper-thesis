@@ -6,10 +6,10 @@ from algorithms.classifiers.classifier import Classifier
 
 
 class OnnxClassifier(Classifier):
-    def fit(self, X: np.ndarray, y: np.ndarray) -> None:
+    def fit(self, _: list[tuple[Board, bool]]) -> None:
         raise RuntimeError("ONNX classifier does not support training.")
 
-    def save(self, filename: str) -> None:
+    def save(self, _: str) -> None:
         raise RuntimeError("ONNX classifier does not support saving.")
 
     def __init__(self) -> None:
@@ -37,14 +37,15 @@ class OnnxClassifier(Classifier):
         else:
             return float(output)
 
-    def load(self, filename: str) -> None:
+    @classmethod
+    def load(cls, filename: str) -> "OnnxClassifier":
+        instance = cls()
         try:
-            self.session = rt.InferenceSession(
+            instance.session = rt.InferenceSession(
                 filename, providers=["CPUExecutionProvider"]
             )
-
-            self.input_name = self.session.get_inputs()[0].name
-            self.output_name = self.session.get_outputs()[0].name
-
+            instance.input_name = instance.session.get_inputs()[0].name
+            instance.output_name = instance.session.get_outputs()[0].name
+            return instance
         except Exception as e:
             raise RuntimeError(f"Cannot load ONNX model from file '{filename}': {e}")
