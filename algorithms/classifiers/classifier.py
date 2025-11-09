@@ -1,8 +1,12 @@
 from abc import ABC, abstractmethod
 from algorithms.boards.board import Board
+import joblib
 
 
 class Classifier(ABC):
+    def __init__(self):
+        self.model = None
+
     @abstractmethod
     def fit(self, data: list[tuple[Board, bool]]) -> float:
         pass
@@ -16,6 +20,7 @@ class Classifier(ABC):
         pass
 
     @classmethod
-    @abstractmethod
     def load(cls, filename: str) -> "Classifier":
-        pass
+        instance = cls()
+        instance.model = joblib.load(filename)
+        return instance

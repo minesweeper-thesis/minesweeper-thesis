@@ -7,11 +7,11 @@ from algorithms.classifiers.classifier import Classifier
 
 class LightGBMClassifier(Classifier):
     def __init__(self, num_boost_round: int = 100) -> None:
+        super().__init__()
         self.num_boost_round = num_boost_round
-        self.model = None
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
-        if self.model is None:
+        if self.model:
             raise RuntimeError("Model already loaded.")
 
         import numpy as np
@@ -50,9 +50,3 @@ class LightGBMClassifier(Classifier):
     def save(self, filename: str) -> None:
         open(filename, "w").close()
         joblib.dump(self.model, filename)
-
-    @classmethod
-    def load(cls, filename: str) -> "LightGBMClassifier":
-        instance = cls()
-        instance.model = joblib.load(filename)
-        return instance

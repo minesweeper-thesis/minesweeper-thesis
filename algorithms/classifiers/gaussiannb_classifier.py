@@ -7,10 +7,10 @@ from algorithms.classifiers.classifier import Classifier
 
 class GaussianNBClassifier(Classifier):
     def __init__(self) -> None:
-        self.model = None
+        super().__init__()
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
-        if self.model is None:
+        if self.model:
             raise RuntimeError("Model already loaded.")
 
         import numpy as np
@@ -34,9 +34,3 @@ class GaussianNBClassifier(Classifier):
 
     def save(self, filename: str) -> None:
         joblib.dump(self.model, filename)
-
-    @classmethod
-    def load(cls, filename: str) -> "GaussianNBClassifier":
-        instance = cls()
-        instance.model = joblib.load(filename)
-        return instance

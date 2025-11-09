@@ -7,12 +7,12 @@ from algorithms.classifiers.classifier import Classifier
 
 class MLPClassifier(Classifier):
     def __init__(self, hidden_layer_sizes=(100,), max_iter=200) -> None:
+        super().__init__()
         self.hidden_layer_sizes = hidden_layer_sizes
         self.max_iter = max_iter
-        self.model = None
 
     def fit(self, data: list[tuple[Board, bool]]) -> float:
-        if self.model is None:
+        if self.model:
             raise RuntimeError("Model already loaded.")
 
         import numpy as np
@@ -41,9 +41,3 @@ class MLPClassifier(Classifier):
 
     def save(self, filename: str) -> None:
         joblib.dump(self.model, filename)
-
-    @classmethod
-    def load(cls, filename: str) -> "MLPClassifier":
-        instance = cls()
-        instance.model = joblib.load(filename)
-        return instance
