@@ -1,4 +1,4 @@
-from algorithms.boards.board import Board
+from algorithms.boards.board import BaseBoard
 from algorithms.checker.field_state import FieldState
 from algorithms.checker.hint_generator import HintGenerator
 
@@ -12,7 +12,7 @@ class Checker:
         self.start_field = start_field
         self.mine_count = mine_count
 
-    def is_solvable(self, board: Board) -> bool:
+    def is_solvable(self, board: BaseBoard) -> bool:
         first_click = True
 
         possible_moves = []

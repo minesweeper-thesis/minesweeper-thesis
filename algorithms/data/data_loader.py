@@ -1,4 +1,4 @@
-from algorithms.boards.board import Board
+from algorithms.boards.board import BaseBoard
 import json
 
 
@@ -12,13 +12,13 @@ class DataLoader:
             "data/" + str(rows) + "," + str(columns) + "," + str(mine_count) + ".json"
         )
 
-    def load(self) -> list[tuple[Board, bool]]:
+    def load(self) -> list[tuple[BaseBoard, bool]]:
         result = []
 
         with open(self.filename, "r") as f:
             for line in f:
                 board_json = json.loads(line)
-                boards = Board(
+                boards = BaseBoard(
                     self.rows,
                     self.columns,
                     tuple(board_json["start_field"]),

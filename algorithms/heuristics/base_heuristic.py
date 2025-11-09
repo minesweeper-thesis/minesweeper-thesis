@@ -1,12 +1,12 @@
 from abc import ABC, abstractmethod
-from algorithms.boards.board import Board
-from algorithms.classifiers.classifier import Classifier
+from algorithms.boards.base_board import BaseBoard
+from algorithms.classifiers.base_classifier import BaseClassifier
 
 
-class Heuristic(ABC):
+class BaseHeuristic(ABC):
     def __init__(
         self,
-        classifier: Classifier,
+        classifier: BaseClassifier,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
@@ -19,5 +19,5 @@ class Heuristic(ABC):
         self.mine_count = mine_count
 
     @abstractmethod
-    def run(self) -> Board:
+    def run(self) -> BaseBoard:
         pass

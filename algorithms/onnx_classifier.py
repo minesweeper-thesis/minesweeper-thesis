@@ -1,12 +1,12 @@
 import numpy as np
 import onnxruntime as rt
 
-from algorithms.boards.board import Board
-from algorithms.classifiers.classifier import Classifier
+from algorithms.boards.base_board import BaseBoard
+from algorithms.classifiers.classifier import BaseClassifier
 
 
-class OnnxClassifier(Classifier):
-    def fit(self, _: list[tuple[Board, bool]]) -> None:
+class OnnxClassifier(BaseClassifier):
+    def fit(self, _: list[tuple[BaseBoard, bool]]) -> None:
         raise RuntimeError("ONNX classifier does not support training.")
 
     def save(self, _: str) -> None:
@@ -17,7 +17,7 @@ class OnnxClassifier(Classifier):
         self.input_name = None
         self.output_name = None
 
-    def classify(self, board: Board) -> float:
+    def classify(self, board: BaseBoard) -> float:
         if self.session is None:
             raise RuntimeError(
                 "Model not loaded. Call 'load' method before classification."

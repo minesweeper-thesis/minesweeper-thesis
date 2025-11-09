@@ -1,16 +1,16 @@
 import joblib
 from sklearn.ensemble import GradientBoostingClassifier as SklearnGBC
 
-from algorithms.boards.board import Board
-from algorithms.classifiers.classifier import Classifier
+from algorithms.boards.base_board import BaseBoard
+from algorithms.classifiers.classifier import BaseClassifier
 
 
-class GradientBoostingClassifier(Classifier):
+class GradientBoostingClassifier(BaseClassifier):
     def __init__(self, n_estimators: int = 100) -> None:
         super().__init__()
         self.n_estimators = n_estimators
 
-    def fit(self, data: list[tuple[Board, bool]]) -> float:
+    def fit(self, data: list[tuple[BaseBoard, bool]]) -> float:
         if self.model:
             raise RuntimeError("Model already loaded.")
 
@@ -28,7 +28,7 @@ class GradientBoostingClassifier(Classifier):
         preds = self.model.predict(X_test)
         return balanced_accuracy_score(y_test, preds)
 
-    def classify(self, board: Board) -> float:
+    def classify(self, board: BaseBoard) -> float:
         if self.model is None:
             raise RuntimeError("Model not loaded. Call load() first.")
         return float(self.model.predict_proba(board.model_input().reshape(1, -1))[0][1])

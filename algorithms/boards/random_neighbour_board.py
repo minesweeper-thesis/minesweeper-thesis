@@ -1,11 +1,11 @@
-from algorithms.boards.board import Board
+from algorithms.boards.board import BaseBoard
 from algorithms.boards.functions.all_fields import all_fields
 import random
 from copy import deepcopy
 
 
-class RandomNeighbourBoard(Board):
-    def __init__(self, other_board: Board, fields_changed: int) -> None:
+class RandomNeighbourBoard(BaseBoard):
+    def __init__(self, other_board: BaseBoard, fields_changed: int) -> None:
         mined_fields = deepcopy(other_board.mined_fields)
         new_mined_fields = random.sample(
             all_fields(
@@ -19,7 +19,7 @@ class RandomNeighbourBoard(Board):
         random.shuffle(mined_fields)
         mined_fields = new_mined_fields + mined_fields
 
-        Board.__init__(
+        BaseBoard.__init__(
             self,
             other_board.rows,
             other_board.columns,
