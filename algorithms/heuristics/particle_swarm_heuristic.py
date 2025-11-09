@@ -1,4 +1,4 @@
-from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.pso_board import PSOBoard
 from algorithms.classifiers.base_classifier import BaseClassifier

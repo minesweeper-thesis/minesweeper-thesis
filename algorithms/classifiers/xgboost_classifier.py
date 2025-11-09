@@ -2,7 +2,7 @@ import joblib
 import xgboost as xgb
 
 from algorithms.boards.base_board import BaseBoard
-from algorithms.classifiers.classifier import BaseClassifier
+from algorithms.classifiers.base_classifier import BaseClassifier
 
 
 class XGBoostClassifier(BaseClassifier):

@@ -1,4 +1,4 @@
-from algorithms.boards.board import BaseBoard
+from algorithms.boards.base_board import BaseBoard
 from algorithms.checker.field_state import FieldState
 from algorithms.checker.hint_generator import HintGenerator
 

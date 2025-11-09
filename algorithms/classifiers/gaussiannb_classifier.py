@@ -2,7 +2,7 @@ import joblib
 from sklearn.naive_bayes import GaussianNB as SklearnGaussianNB
 
 from algorithms.boards.base_board import BaseBoard
-from algorithms.classifiers.classifier import BaseClassifier
+from algorithms.classifiers.base_classifier import BaseClassifier
 
 
 class GaussianNBClassifier(BaseClassifier):

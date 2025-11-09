@@ -1,4 +1,4 @@
-from algorithms.boards.board import BaseBoard
+from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.functions.all_fields import all_fields
 import random
 

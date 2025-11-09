@@ -1,7 +1,7 @@
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.classifiers.base_classifier import BaseClassifier
-from algorithms.heuristics.heuristic import BaseHeuristic
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 
 
 class NoHeuristic(BaseHeuristic):
