@@ -1,20 +1,22 @@
 from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
-from backend.schemas.user_schemas import *
+from backend.lib.auth import auth_backend, fastapi_users, get_current_user
 
-from ..db import *
-from ..models import *
-from ..services.auth_service import auth_backend, fastapi_users, get_current_user
+from .schemas.user_schemas import *
 
 auth_router = APIRouter(tags=["auth"])
 
 
 auth_router.include_router(fastapi_users.get_auth_router(auth_backend))
 
-auth_router.include_router(fastapi_users.get_register_router(UserRead, UserCreate))
+auth_router.include_router(
+    fastapi_users.get_register_router(CurrentUserResponse, UserCreateRequest)
+)
 
-auth_router.include_router(fastapi_users.get_users_router(UserRead, UserUpdate))
+auth_router.include_router(
+    fastapi_users.get_users_router(CurrentUserResponse, UserUpdateRequest)
+)
 
 
 @auth_router.post(

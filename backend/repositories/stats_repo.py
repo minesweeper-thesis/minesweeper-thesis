@@ -1,37 +1,36 @@
 import uuid
-from typing import Annotated, Literal
+from typing import Literal
 
-from fastapi import Depends
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import Float, func, select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db import get_async_session
-from ..models import Board, Friendship, SingleplayerGameplay, User
+from backend.db.db import DBSession
+
+from .orm import *
 
 
 class StatsRepository:
-    def __init__(self, session: Annotated[AsyncSession, Depends(get_async_session)]):
+    def __init__(self, session: DBSession):
         self.session = session
 
     async def get_gameplays_global_ranking(
         self,
-        board_type_id: uuid.UUID,
+        difficulty_level_id: uuid.UUID,
         pagination_params: Params,
     ):
         stmt = (
             select(
-                SingleplayerGameplay.id.label("gameplay_id"),
-                User.id.label("user_id"),
-                User.nickname,
-                SingleplayerGameplay.time,
+                SingleplayerGameplayORM.id.label("gameplay_id"),
+                UserORM.id.label("user_id"),
+                UserORM.nickname,
+                SingleplayerGameplayORM.time,
             )
-            .join(User, SingleplayerGameplay.user_id == User.id)
-            .join(Board, SingleplayerGameplay.board_id == Board.id)
-            .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_hints == False)
-            .order_by(SingleplayerGameplay.time.asc())
+            .join(UserORM, SingleplayerGameplayORM.user_id == UserORM.id)
+            .join(BoardORM, SingleplayerGameplayORM.board_id == BoardORM.id)
+            .where(BoardORM.difficulty_level_id == difficulty_level_id)
+            .where(SingleplayerGameplayORM.used_hints == False)
+            .order_by(SingleplayerGameplayORM.time.asc())
         )
 
         return await apaginate(self.session, stmt, pagination_params)
@@ -39,68 +38,77 @@ class StatsRepository:
     async def get_gameplays_friends_ranking(
         self,
         user_id: uuid.UUID,
-        board_type_id: uuid.UUID,
+        difficulty_level_id: uuid.UUID,
         pagination_params: Params,
     ):
         stmt = (
             select(
-                SingleplayerGameplay.id.label("gameplay_id"),
-                User.id.label("user_id"),
-                User.nickname,
-                SingleplayerGameplay.time,
+                SingleplayerGameplayORM.id.label("gameplay_id"),
+                UserORM.id.label("user_id"),
+                UserORM.nickname,
+                SingleplayerGameplayORM.time,
             )
-            .join(User, SingleplayerGameplay.user_id == User.id)
-            .join(Board, SingleplayerGameplay.board_id == Board.id)
+            .join(UserORM, SingleplayerGameplayORM.user_id == UserORM.id)
+            .join(BoardORM, SingleplayerGameplayORM.board_id == BoardORM.id)
             .join(
-                Friendship,
-                (Friendship.friend_id == User.id) & (Friendship.user_id == user_id),
+                FriendshipORM,
+                (FriendshipORM.friend_id == UserORM.id)
+                & (FriendshipORM.user_id == user_id),
             )
-            .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_hints == False)
-            .order_by(SingleplayerGameplay.time.asc())
+            .where(BoardORM.difficulty_level_id == difficulty_level_id)
+            .where(SingleplayerGameplayORM.used_hints == False)
+            .order_by(SingleplayerGameplayORM.time.asc())
         )
 
         return await apaginate(self.session, stmt, pagination_params)
 
     async def get_global_user_ranking(
         self,
-        board_type_id: uuid.UUID,
+        difficulty_level_id: uuid.UUID,
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
         stmt = (
             select(
-                User.id.label("user_id"),
-                User.nickname,
+                UserORM.id.label("user_id"),
+                UserORM.nickname,
                 (
-                    func.cast(func.count(SingleplayerGameplay.won), Float)
-                    / func.count(SingleplayerGameplay.id)
+                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    / func.count(SingleplayerGameplayORM.id)
                 ).label("win_rate"),
-                func.avg(SingleplayerGameplay.time)
-                .filter(SingleplayerGameplay.won == True)
-                .label("average_time"),
-                func.count(SingleplayerGameplay.id).label("total_games"),
-                func.count(SingleplayerGameplay.won).label("won_games"),
+                func.coalesce(
+                    func.avg(SingleplayerGameplayORM.time).filter(
+                        SingleplayerGameplayORM.status == True
+                    ),
+                    0.0,
+                ).label("average_time"),
+                func.count(SingleplayerGameplayORM.id).label("total_games"),
+                func.count(SingleplayerGameplayORM.result).label("won_games"),
             )
-            .join(SingleplayerGameplay, SingleplayerGameplay.user_id == User.id)
-            .join(Board, SingleplayerGameplay.board_id == Board.id)
-            .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_hints == False)
-            .group_by(User.id)
+            .join(
+                SingleplayerGameplayORM, SingleplayerGameplayORM.user_id == UserORM.id
+            )
+            .join(BoardORM, SingleplayerGameplayORM.board_id == BoardORM.id)
+            .where(BoardORM.difficulty_level_id == difficulty_level_id)
+            .where(SingleplayerGameplayORM.used_hints == False)
+            .group_by(UserORM.id)
         )
 
         if sort_by == "win_rate":
             stmt = stmt.order_by(
                 (
-                    func.cast(func.count(SingleplayerGameplay.won), Float)
-                    / func.count(SingleplayerGameplay.id)
+                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    / func.count(SingleplayerGameplayORM.id)
                 ).desc()
             )
         else:
             stmt = stmt.order_by(
-                func.avg(SingleplayerGameplay.time)
-                .filter(SingleplayerGameplay.won == True)
-                .asc()
+                func.coalesce(
+                    func.avg(SingleplayerGameplayORM.time).filter(
+                        SingleplayerGameplayORM.status == True
+                    ),
+                    0.0,
+                ).asc()
             )
 
         return await apaginate(self.session, stmt, pagination_params)
@@ -108,47 +116,56 @@ class StatsRepository:
     async def get_friends_user_ranking(
         self,
         user_id: uuid.UUID,
-        board_type_id: uuid.UUID,
+        difficulty_level_id: uuid.UUID,
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
         stmt = (
             select(
-                User.id.label("user_id"),
-                User.nickname,
+                UserORM.id.label("user_id"),
+                UserORM.nickname,
                 (
-                    func.cast(func.count(SingleplayerGameplay.won), Float)
-                    / func.count(SingleplayerGameplay.id)
+                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    / func.count(SingleplayerGameplayORM.id)
                 ).label("win_rate"),
-                func.avg(SingleplayerGameplay.time)
-                .filter(SingleplayerGameplay.won == True)
-                .label("average_time"),
-                func.count(SingleplayerGameplay.id).label("total_games"),
-                func.count(SingleplayerGameplay.won).label("won_games"),
+                func.coalesce(
+                    func.avg(SingleplayerGameplayORM.time).filter(
+                        SingleplayerGameplayORM.status == True
+                    ),
+                    0.0,
+                ).label("average_time"),
+                func.count(SingleplayerGameplayORM.id).label("total_games"),
+                func.count(SingleplayerGameplayORM.result).label("won_games"),
             )
-            .join(SingleplayerGameplay, SingleplayerGameplay.user_id == User.id)
-            .join(Board, SingleplayerGameplay.board_id == Board.id)
             .join(
-                Friendship,
-                (Friendship.friend_id == User.id) & (Friendship.user_id == user_id),
+                SingleplayerGameplayORM, SingleplayerGameplayORM.user_id == UserORM.id
             )
-            .where(Board.board_type_id == board_type_id)
-            .where(SingleplayerGameplay.used_hints == False)
-            .group_by(User.id)
+            .join(BoardORM, SingleplayerGameplayORM.board_id == BoardORM.id)
+            .join(
+                FriendshipORM,
+                (FriendshipORM.friend_id == UserORM.id)
+                & (FriendshipORM.user_id == user_id),
+            )
+            .where(BoardORM.difficulty_level_id == difficulty_level_id)
+            .where(SingleplayerGameplayORM.used_hints == False)
+            .group_by(UserORM.id)
         )
 
         if sort_by == "win_rate":
             stmt = stmt.order_by(
                 (
-                    func.cast(func.count(SingleplayerGameplay.won), Float)
-                    / func.count(SingleplayerGameplay.id)
+                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    / func.count(SingleplayerGameplayORM.id)
                 ).desc()
             )
         else:
             stmt = stmt.order_by(
-                func.avg(SingleplayerGameplay.time)
-                .filter(SingleplayerGameplay.won == True)
-                .asc()
+                func.coalesce(
+                    func.avg(SingleplayerGameplayORM.time).filter(
+                        SingleplayerGameplayORM.status == True
+                    ),
+                    0.0,
+                ).asc()
             )
 
         return await apaginate(self.session, stmt, pagination_params)

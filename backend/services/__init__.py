@@ -1,6 +1,15 @@
-from .board_service import BoardService
-from .game_service import GameService
+from .friends_service import FriendsService
+from .lobby_service import LobbyService
+from .multiplayer_service import MultiplayerService
+from .singleplayer_service import SingleplayerService
 from .stats_service import StatsService
 from .user_service import UserService
 
-__all__ = ["UserService", "GameService", "StatsService", "BoardService"]
+__all__ = [
+    "UserService",
+    "FriendsService",
+    "SingleplayerService",
+    "MultiplayerService",
+    "StatsService",
+    "LobbyService",
+]

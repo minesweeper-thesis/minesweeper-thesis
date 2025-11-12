@@ -3,7 +3,7 @@ import uuid
 from pydantic import BaseModel, ConfigDict
 
 
-class GameplayRanking(BaseModel):
+class GameplayRankingResponse(BaseModel):
     gameplay_id: uuid.UUID
     user_id: uuid.UUID
     nickname: str
@@ -12,7 +12,7 @@ class GameplayRanking(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class UserRanking(BaseModel):
+class UserRankingResponse(BaseModel):
     user_id: uuid.UUID
     nickname: str
     win_rate: float
