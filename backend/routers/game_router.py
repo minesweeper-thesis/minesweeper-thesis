@@ -1,14 +1,17 @@
-import asyncio
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
-from backend.schemas.game_schemas import *
+from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
+from backend.routers.schemas import create_response
 from backend.services import exceptions as service_exceptions
-from backend.services.auth_service import OptionalCurrentUser
 
-GameService = Annotated[services.GameService, Depends()]
+from .schemas.game_schemas import *
+
+SingleplayerService = Annotated[services.SingleplayerService, Depends()]
+MultiplayerService = Annotated[services.MultiplayerService, Depends()]
 
 game_exceptions = {
     service_exceptions.BoardNotExists: HTTPException(404, "Board not found"),
@@ -22,30 +25,33 @@ game_exceptions = {
 }
 
 
-game_router = APIRouter(prefix="/game", tags=["game"])
+game_router = APIRouter(tags=["game"])
 
 
-@game_router.post("/single/init")
+@game_router.post("/single")
 async def start_singleplayer_game(
-    new_game_input: NewGameInput, user: OptionalCurrentUser, service: GameService
+    new_game_input: NewGameRequest,
+    user: OptionalCurrentUser,
+    service: SingleplayerService,
 ) -> NewGameResponse:
     """Starts a new game."""
-    return await service.create_singleplayer_gameplay(user, new_game_input)
+    gameplay, board = await service.create_singleplayer_gameplay(
+        user, new_game_input.to_game_settings()
+    )
+    return NewGameResponse(
+        gameplay_id=gameplay.id,
+        board_id=board.id,
+        start_field=board.start_field,
+    )
 
 
-@game_router.websocket("/{gameplay_id}/ws")
-async def play_game_via_websocket(
+@game_router.websocket("/single/{gameplay_id}/play")
+async def play_single(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
-    service: GameService,
+    service: SingleplayerService,
 ):
     """WebSocket endpoint for playing a game."""
-
-    async def sender():
-        return
-        while True:
-            await asyncio.sleep(2)
-            await websocket.send_text("Serwer: ping")
 
     async def receiver():
         while True:
@@ -53,7 +59,7 @@ async def play_game_via_websocket(
             game_action = parse_game_action(data)
 
             action_result, is_game_over = await service.handle_game_action(game_action)
-            await websocket.send_json(action_result.model_dump(exclude_none=True))
+            await websocket.send_text(create_response(action_result))
 
             if is_game_over:
                 await service.save_gameplay_progress()
@@ -64,7 +70,40 @@ async def play_game_via_websocket(
         await service.load_gameplay(gameplay_id)
         await websocket.accept()
 
-        await asyncio.gather(sender(), receiver())
+        await receiver()
 
     except WebSocketDisconnect:
         await service.save_gameplay_progress()
+
+
+@game_router.websocket("/multi/{gameplay_id}/play")
+async def play_multi(
+    gameplay_id: uuid.UUID,
+    websocket: WebSocket,
+    # service: MultiplayerService,
+    user: CurrentUserWebSocket,
+):
+    """WebSocket endpoint for playing a game."""
+
+    async def receiver():
+        while True:
+            data = await websocket.receive_json()
+            game_action = parse_game_action(data)
+
+            # action_result, is_game_over = await service.handle_game_action(game_action)
+            # await websocket.send_json(action_result.model_dump(exclude_none=True))
+
+            # if is_game_over:
+            #     await service.save_gameplay_progress()
+            #     await websocket.close()
+            #     return
+
+    try:
+        # await service.load_gameplay(gameplay_id)
+        await websocket.accept()
+
+        await receiver()
+
+    except WebSocketDisconnect:
+        pass
+        # await service.save_gameplay_progress()

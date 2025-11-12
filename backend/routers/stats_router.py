@@ -4,9 +4,9 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page, Params
 
-import backend.schemas.stats_schemas as schemas
+import backend.routers.schemas.stats_schemas as schemas
 from backend import services
-from backend.services.auth_service import CurrentUser
+from backend.lib.auth import CurrentUser
 
 StatsService = Annotated[services.StatsService, Depends()]
 PaginationParams = Annotated[Params, Depends()]
@@ -15,51 +15,53 @@ CompareBy = Annotated[Literal["win_rate", "average_time"], Query()]
 stats_router = APIRouter(prefix="/stats", tags=["stats"])
 
 
-@stats_router.get("/gameplays-ranking/{board_type_id}/global")
+@stats_router.get("/gameplays-ranking/{difficulty_level_id}/global")
 async def get_gameplays_global_ranking(
     service: StatsService,
-    board_type_id: uuid.UUID,
+    difficulty_level_id: uuid.UUID,
     pagination_params: PaginationParams,
-) -> Page[schemas.GameplayRanking]:
+) -> Page[schemas.GameplayRankingResponse]:
     """Get global gameplays ranking sorted by time."""
-    return await service.get_gameplays_global_ranking(board_type_id, pagination_params)
+    return await service.get_gameplays_global_ranking(
+        difficulty_level_id, pagination_params
+    )
 
 
-@stats_router.get("/gameplays-ranking/{board_type_id}/friends")
+@stats_router.get("/gameplays-ranking/{difficulty_level_id}/friends")
 async def get_gameplays_friends_ranking(
     service: StatsService,
     user: CurrentUser,
-    board_type_id: uuid.UUID,
+    difficulty_level_id: uuid.UUID,
     pagination_params: PaginationParams,
-) -> Page[schemas.GameplayRanking]:
+) -> Page[schemas.GameplayRankingResponse]:
     """Get friends gameplays ranking sorted by time."""
     return await service.get_gameplays_friends_ranking(
-        user.id, board_type_id, pagination_params
+        user, difficulty_level_id, pagination_params
     )
 
 
-@stats_router.get("/users-ranking/{board_type_id}/global")
+@stats_router.get("/users-ranking/{difficulty_level_id}/global")
 async def get_users_global_ranking(
     service: StatsService,
-    board_type_id: uuid.UUID,
+    difficulty_level_id: uuid.UUID,
     compare_by: CompareBy,
     pagination_params: PaginationParams,
-) -> Page[schemas.UserRanking]:
+) -> Page[schemas.UserRankingResponse]:
     """Get global users ranking sorted by win rate or average time."""
     return await service.get_users_global_ranking(
-        board_type_id, compare_by, pagination_params
+        difficulty_level_id, compare_by, pagination_params
     )
 
 
-@stats_router.get("/users-ranking/{board_type_id}/friends")
+@stats_router.get("/users-ranking/{difficulty_level_id}/friends")
 async def get_users_friends_ranking(
     service: StatsService,
     user: CurrentUser,
-    board_type_id: uuid.UUID,
+    difficulty_level_id: uuid.UUID,
     compare_by: CompareBy,
     pagination_params: PaginationParams,
-) -> Page[schemas.UserRanking]:
+) -> Page[schemas.UserRankingResponse]:
     """Get friends users ranking sorted by win rate or average time."""
     return await service.get_users_friends_ranking(
-        user.id, board_type_id, compare_by, pagination_params
+        user, difficulty_level_id, compare_by, pagination_params
     )

@@ -1,86 +1,92 @@
-from typing import Annotated, Optional
+import uuid
+from typing import Optional
 
-from fastapi import Depends
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
-from backend.models.board_models import *
-from backend.models.game_models import SingleplayerGameplay
-from backend.models.user_models import User
-from backend.schemas.board_schemas import DifficultyLevel
+from backend.core.board import Board, DifficultyLevel
+from backend.db.db import DBSession
 
-from ..db import get_async_session
 from .exceptions import *
+from .orm import *
 
 
 class BoardRepository:
-    def __init__(self, session: Annotated[AsyncSession, Depends(get_async_session)]):
+    def __init__(self, session: DBSession):
         self.session = session
 
-    async def add_board(self, board: Board) -> Board:
-        self.session.add(board)
-        await self.session.commit()
-        await self.session.refresh(board, attribute_names=["board_type"])
-        return board
+    async def add_board(self, board: Board) -> None:
+        difficulty_level_orm = await self._get_difficulty_level(board.difficulty_level)
+        board_orm = BoardORM.from_board(board, difficulty_level_orm.id)
 
-    async def get_board_type(
-        self, rows: int, columns: int, mine_count: int
-    ) -> BoardType:
-        stmt = select(BoardType).where(
-            BoardType.rows == rows,
-            BoardType.columns == columns,
-            BoardType.mine_count == mine_count,
+        self.session.add(board_orm)
+        await self.session.commit()
+
+    async def _get_difficulty_level(
+        self, difficulty_level: DifficultyLevel
+    ) -> DifficultyLevelORM:
+        rows = difficulty_level.rows
+        columns = difficulty_level.columns
+        mine_count = difficulty_level.mine_count
+
+        stmt = select(DifficultyLevelORM).where(
+            DifficultyLevelORM.rows == rows,
+            DifficultyLevelORM.columns == columns,
+            DifficultyLevelORM.mine_count == mine_count,
         )
         result = await self.session.execute(stmt)
-        board_type = result.scalar_one_or_none()
+        difficulty_level = result.scalar_one_or_none()
 
-        if board_type is None:
-            board_type = BoardType(rows=rows, columns=columns, mine_count=mine_count)
-            self.session.add(board_type)
+        if difficulty_level is None:
+            difficulty_level = DifficultyLevelORM(
+                rows=rows, columns=columns, mine_count=mine_count
+            )
+            self.session.add(difficulty_level)
             await self.session.commit()
-            await self.session.refresh(board_type)
+            await self.session.refresh(difficulty_level)
 
-        return board_type
+        return difficulty_level
 
     async def get_board_by_id(self, board_id: uuid.UUID) -> Board:
         try:
             stmt = (
-                select(Board)
-                .where(Board.id == board_id)
-                .options(selectinload(Board.board_type))
+                select(BoardORM)
+                .where(BoardORM.id == board_id)
+                .options(selectinload(BoardORM.difficulty_level))
             )
             result = await self.session.execute(stmt)
-            return result.scalar_one()
+            return result.scalar_one().to_board()
+
         except NoResultFound:
             raise BoardNotFound(f"Board with id {board_id} not found") from None
 
     async def get_unsolved_board(
-        self, difficulty_level: DifficultyLevel, user: Optional[User] = None
+        self, difficulty_level: DifficultyLevel, user: Optional[UserORM] = None
     ) -> Board:
         try:
-            board_type = await self.get_board_type(**difficulty_level.model_dump())
+            difficulty_level = await self._get_difficulty_level(difficulty_level)
 
             stmt = (
-                select(Board)
-                .join(Board.board_type)
-                .where(Board.board_type_id == board_type.id)
-                .options(selectinload(Board.board_type))
+                select(BoardORM)
+                .join(BoardORM.difficulty_level)
+                .where(BoardORM.difficulty_level_id == difficulty_level.id)
+                .options(selectinload(BoardORM.difficulty_level))
                 .order_by(func.random())
                 .limit(1)
             )
 
             if user is not None:
                 stmt = stmt.outerjoin(
-                    SingleplayerGameplay,
-                    (SingleplayerGameplay.board_id == Board.id)
-                    & (SingleplayerGameplay.user_id == user.id),
-                ).where(SingleplayerGameplay.id == None)
+                    SingleplayerGameplayORM,
+                    (SingleplayerGameplayORM.board_id == BoardORM.id)
+                    & (SingleplayerGameplayORM.user_id == user.id),
+                ).where(SingleplayerGameplayORM.id == None)
 
             result = await self.session.execute(stmt)
-            return result.scalar_one()
+            return result.scalar_one().to_board()
+
         except NoResultFound:
             raise UnsolvedBoardNotFound(
                 f"No unsolved board found for difficulty level {difficulty_level}"

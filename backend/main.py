@@ -21,7 +21,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await engine.dispose()
 
 
-api = FastAPI(lifespan=lifespan)
+api = FastAPI()
 
 routers.register_exceptions(api)
 
@@ -36,9 +36,11 @@ api.add_middleware(
 )
 
 api.include_router(routers.auth_router, prefix="/auth")
-api.include_router(routers.game_router)
+api.include_router(routers.game_router, prefix="/game")
+api.include_router(routers.lobby_router, prefix="/lobby")
 api.include_router(routers.stats_router)
 api.include_router(routers.user_router)
+api.include_router(routers.friends_router)
 add_pagination(api)
 
 os.makedirs("img", exist_ok=True)
@@ -49,7 +51,7 @@ api.mount(
 )
 
 
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 app.mount("/api", api)
 
 frontend_build_path = Path(__file__).parent.parent / "frontend" / "dist"

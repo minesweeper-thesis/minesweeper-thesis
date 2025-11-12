@@ -1,4 +1,4 @@
-from backend.schemas.board_schemas import DifficultyLevel
+from backend.core.board import DifficultyLevel
 
 
 class UsersNotFriends(Exception):
@@ -22,6 +22,10 @@ class CannotFriendRequestYourself(Exception):
 
 
 class BoardNotExists(Exception):
+    pass
+
+
+class RequestedFriendNotExists(Exception):
     pass
 
 

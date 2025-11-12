@@ -1,10 +1,10 @@
-import React, {useEffect, useState} from 'react';
+import { useEffect, useState } from 'react';
+import AdvancedOptions from "../components/AdvancedOptions";
 import Board from '../components/Board';
 import Controls from '../components/Controls';
 import DifficultyMenu from '../components/DifficultyMenu';
-import { GameState } from '../utility';
 import VictoryScreen from "../components/VictoryScreen";
-import AdvancedOptions from "../components/AdvancedOptions";
+import { GameState } from '../utility';
 
 
 export default function GamePage() {
@@ -44,7 +44,7 @@ export default function GamePage() {
 
     async function initGameRequest() {
         try {
-            const response = await fetch("api/game/single/init", {
+            const response = await fetch("api/game/single", {
                 method: "POST",
                 headers: {
                     "accept": "application/json",
@@ -67,7 +67,7 @@ export default function GamePage() {
     }
 
     function connectToGameWebSocket(gameplay_id) {
-        const socketUrl = `api/game/${gameplay_id}/ws`;
+        const socketUrl = `api/game/single/${gameplay_id}/play`;
         const socket = new WebSocket(socketUrl);
 
         socket.onopen = () => {
