@@ -155,7 +155,16 @@ export default function GamePage() {
                             startField = {startField}
                         />
                     ) :
-                        <div>Conecting...</div>
+                        <div className="flex flex-col items-center justify-center h-full text-text-primary">
+                            <div className="relative w-10 h-10 mb-3 mt-20">
+                                <div className="absolute inset-0 border-4 border-border-primary rounded-full opacity-20"></div>
+                                <div className="absolute inset-0 border-4 border-accent-primary rounded-full border-t-transparent animate-spin"></div>
+                            </div>
+                            <p className="text-lg font-medium animate-pulse">
+                                Connecting<span className="dots"></span>
+                            </p>
+                        </div>
+
                     }
                 </div>
             </main>
