@@ -33,6 +33,7 @@ friends_exceptions = {
 }
 
 friends_router = APIRouter(prefix="/friends", tags=["friends"])
+friend_requests_router = APIRouter(prefix="/friend-requests", tags=["friend-requests"])
 
 
 @friends_router.get("")
@@ -47,18 +48,17 @@ async def get_friends(
     return page
 
 
-@friends_router.post("/{friend_id}")
-async def make_friend_request(
+@friends_router.delete("/{friend_id}")
+async def remove_friend(
     friend_id: uuid.UUID,
     user: CurrentUser,
     service: FriendsService,
 ):
-    """Makes a friend request to user with given id"""
-    friend_request = await service.make_friend_request(friend_id)
-    return FriendRequestResponse.from_friend_request(friend_request)
+    """Removes a friend from friends list"""
+    return await service.remove_friend(friend_id)
 
 
-@friends_router.get("/pending")
+@friend_requests_router.get("/pending")
 async def get_pending_friend_requests(
     user: CurrentUser,
     service: FriendsService,
@@ -70,7 +70,7 @@ async def get_pending_friend_requests(
     return page
 
 
-@friends_router.get("/sent")
+@friend_requests_router.get("/sent")
 async def get_sent_friend_requests(
     user: CurrentUser,
     service: FriendsService,
@@ -82,7 +82,18 @@ async def get_sent_friend_requests(
     return page
 
 
-@friends_router.post("/accept/{friend_request_id}")
+@friend_requests_router.post("")
+async def make_friend_request(
+    friend_id: uuid.UUID,
+    user: CurrentUser,
+    service: FriendsService,
+):
+    """Makes a friend request to user with given id"""
+    friend_request = await service.make_friend_request(friend_id)
+    return FriendRequestResponse.from_friend_request(friend_request)
+
+
+@friend_requests_router.put("/{friend_request_id}/accept")
 async def accept_friend_request(
     friend_request_id: uuid.UUID,
     user: CurrentUser,
@@ -92,7 +103,7 @@ async def accept_friend_request(
     return await service.accept_friend_request(friend_request_id)
 
 
-@friends_router.post("/reject/{friend_request_id}")
+@friend_requests_router.put("/{friend_request_id}/reject")
 async def reject_friend_request(
     friend_request_id: uuid.UUID,
     user: CurrentUser,
@@ -100,13 +111,3 @@ async def reject_friend_request(
 ):
     """Rejects friend request with given id"""
     return await service.reject_friend_request(friend_request_id)
-
-
-@friends_router.delete("/{friend_id}")
-async def remove_friend(
-    friend_id: uuid.UUID,
-    user: CurrentUser,
-    service: FriendsService,
-):
-    """Removes a friend from friends list"""
-    return await service.remove_friend(friend_id)

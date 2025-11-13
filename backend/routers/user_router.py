@@ -17,7 +17,7 @@ user_exceptions = {}
 user_router = APIRouter(tags=["user"])
 
 
-@user_router.put("/avatar")
+@user_router.post("/avatar")
 async def upload_avatar(file: UploadFile, user: CurrentUser, service: UserService):
     content = await file.read()
     kind = filetype.guess(content)

@@ -37,10 +37,12 @@ api.add_middleware(
 
 api.include_router(routers.auth_router, prefix="/auth")
 api.include_router(routers.game_router, prefix="/game")
-api.include_router(routers.lobby_router, prefix="/lobby")
+api.include_router(routers.lobby_router)
+api.include_router(routers.invitations_router)
 api.include_router(routers.stats_router)
 api.include_router(routers.user_router)
 api.include_router(routers.friends_router)
+api.include_router(routers.friend_requests_router)
 add_pagination(api)
 
 os.makedirs("img", exist_ok=True)

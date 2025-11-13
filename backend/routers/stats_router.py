@@ -15,10 +15,10 @@ CompareBy = Annotated[Literal["win_rate", "average_time"], Query()]
 stats_router = APIRouter(prefix="/stats", tags=["stats"])
 
 
-@stats_router.get("/gameplays-ranking/{difficulty_level_id}/global")
+@stats_router.get("/gameplays/global")
 async def get_gameplays_global_ranking(
     service: StatsService,
-    difficulty_level_id: uuid.UUID,
+    difficulty_level_id: Annotated[uuid.UUID, Query()],
     pagination_params: PaginationParams,
 ) -> Page[schemas.GameplayRankingResponse]:
     """Get global gameplays ranking sorted by time."""
@@ -27,11 +27,11 @@ async def get_gameplays_global_ranking(
     )
 
 
-@stats_router.get("/gameplays-ranking/{difficulty_level_id}/friends")
+@stats_router.get("/gameplays/friends")
 async def get_gameplays_friends_ranking(
     service: StatsService,
     user: CurrentUser,
-    difficulty_level_id: uuid.UUID,
+    difficulty_level_id: Annotated[uuid.UUID, Query()],
     pagination_params: PaginationParams,
 ) -> Page[schemas.GameplayRankingResponse]:
     """Get friends gameplays ranking sorted by time."""
@@ -40,10 +40,10 @@ async def get_gameplays_friends_ranking(
     )
 
 
-@stats_router.get("/users-ranking/{difficulty_level_id}/global")
+@stats_router.get("/users/global")
 async def get_users_global_ranking(
     service: StatsService,
-    difficulty_level_id: uuid.UUID,
+    difficulty_level_id: Annotated[uuid.UUID, Query()],
     compare_by: CompareBy,
     pagination_params: PaginationParams,
 ) -> Page[schemas.UserRankingResponse]:
@@ -53,11 +53,11 @@ async def get_users_global_ranking(
     )
 
 
-@stats_router.get("/users-ranking/{difficulty_level_id}/friends")
+@stats_router.get("/users/friends")
 async def get_users_friends_ranking(
     service: StatsService,
     user: CurrentUser,
-    difficulty_level_id: uuid.UUID,
+    difficulty_level_id: Annotated[uuid.UUID, Query()],
     compare_by: CompareBy,
     pagination_params: PaginationParams,
 ) -> Page[schemas.UserRankingResponse]:
