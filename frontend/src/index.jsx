@@ -1,13 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import './components/ThemeProvider.js';
 import App from "./App";
 import {AuthProvider} from "./contexts/AuthContext";
+import {FriendsProvider} from "./contexts/FriendsContext";
+import { initTheme } from './contexts/ThemeProvider.js';
 
+initTheme();
 ReactDOM.createRoot(document.getElementById('root')).render(
 
     <AuthProvider>
-        <App />
+        <FriendsProvider>
+            <App />
+        </FriendsProvider>
     </AuthProvider>
 );
