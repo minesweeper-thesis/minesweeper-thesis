@@ -1,6 +1,7 @@
 import uuid
 
-from sqlalchemy import select
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
 
 from backend.core.user import User
@@ -31,3 +32,33 @@ class UserRepository:
         user.avatar_url = url
         await self.session.commit()
         await self.session.refresh(user)
+
+    async def search_users(self, query: str, params):
+        priority = case(
+            (UserORM.nickname.ilike(f"{query}%"), 1),
+            (UserORM.email.ilike(f"{query}%"), 2),  # type: ignore
+            (UserORM.nickname.ilike(f"%{query}%"), 3),
+            (UserORM.email.ilike(f"%{query}%"), 4),  # type: ignore
+            else_=5,
+        )
+
+        stmt = (
+            select(UserORM)
+            .where(
+                UserORM.nickname.ilike(f"%{query}%")
+                | UserORM.email.ilike(f"%{query}%")  # type: ignore
+            )
+            .order_by(
+                priority,
+                func.length(UserORM.nickname),
+                UserORM.nickname,
+                func.length(UserORM.email),
+                UserORM.email,
+            )
+        )
+        return await apaginate(
+            self.session,
+            stmt,
+            params,
+            transformer=lambda items: [user.to_user() for user in items],
+        )
