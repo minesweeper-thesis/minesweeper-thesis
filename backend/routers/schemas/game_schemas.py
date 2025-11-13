@@ -104,6 +104,13 @@ class RemoveFlagRequest(CellGameActionRequest):
         return RemoveFlagAction(self.cell)
 
 
+class GameStateRequest(GameActionRequest):
+    type: ClassVar[str] = "get_state"
+
+    def to_action(self) -> GameStateAction:
+        return GameStateAction()
+
+
 def parse_game_action(data: dict) -> GameAction:
     try:
         action_type = data["type"]
@@ -138,6 +145,7 @@ class GameActionResponse(ABC, BaseModel):
             FlagResult: FlagResponse,
             HintResult: HintResponse,
             GameOverResult: GameOverResponse,
+            GameStateResult: GameStateResponse,
         }
         return mapping[type(result)]._from_action_result(result)  # type: ignore
 
@@ -171,6 +179,28 @@ class GameOverResponse(GameActionResponse):
             full_board=result.full_board,
             elapsed_time=result.elapsed_time,
             loss_cause=result.loss_cause,
+        )
+
+
+class GameStateResponse(GameActionResponse):
+    status: GameStatus
+    result: Optional[GameResult]
+    revealed_cells: list[RevealedCell]
+    elapsed_time: float
+    loss_cause: Optional[LossCause] = None
+    start_field: Cell
+
+    @staticmethod
+    def _from_action_result(
+        result: GameStateResult,
+    ) -> "GameStateResponse":
+        return GameStateResponse(
+            status=result.status,
+            result=result.result,
+            revealed_cells=result.revealed_cells,
+            elapsed_time=result.elapsed_time,
+            loss_cause=result.loss_cause,
+            start_field=result.start_field,
         )
 
 

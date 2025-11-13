@@ -36,6 +36,16 @@ class LossCause:
 
 
 @dataclass
+class GameStateResult:
+    status: GameStatus
+    result: Optional[Literal["win", "loss"]]
+    revealed_cells: list[RevealedCell]
+    elapsed_time: float
+    start_field: Cell
+    loss_cause: Optional[LossCause] = None
+
+
+@dataclass
 class GameOverResult:
     result: Literal["win", "loss"]
     full_board: list[list[int]]
@@ -43,7 +53,7 @@ class GameOverResult:
     loss_cause: Optional[LossCause] = None
 
 
-type ActionResult = RevealResult | FlagResult | HintResult | GameOverResult
+type ActionResult = RevealResult | FlagResult | HintResult | GameOverResult | GameStateResult
 type IsGameOver = bool
 
 
@@ -54,6 +64,7 @@ class Gameplay(Protocol):
     def remove_flag(self, x: int, y: int) -> ActionResult: ...
     def use_hint(self) -> ActionResult: ...
     def is_game_over(self) -> bool: ...
+    def get_game_state(self) -> GameStateResult: ...
 
 
 @dataclass
@@ -66,6 +77,11 @@ class NewGameSettings:
 
 class GameAction(ABC):
     def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]: ...
+
+
+class GameStateAction(GameAction):
+    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]:
+        return gameplay.get_game_state(), gameplay.is_game_over()
 
 
 class HintAction(GameAction):

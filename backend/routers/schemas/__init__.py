@@ -21,6 +21,7 @@ def create_response(data: Any) -> str:
         FlagResult: GameActionResponse,
         HintResult: GameActionResponse,
         GameOverResult: GameActionResponse,
+        GameStateResult: GameActionResponse,
     }
 
     mapping = {**lobby_mapping, **game_mapping}
