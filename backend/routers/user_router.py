@@ -39,3 +39,14 @@ async def delete_avatar(
 ):
     """Deletes the current user's avatar"""
     await service.delete_avatar()
+
+
+@user_router.get("/search")
+async def search_users(
+    query: str,
+    pagination_params: PaginationParams,
+    service: UserService,
+):
+    page = await service.search_users(query, pagination_params)
+    page.items = [UserResponse.from_user(user) for user in page.items]
+    return page
