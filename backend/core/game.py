@@ -40,7 +40,6 @@ class GameStateResult:
     status: GameStatus
     result: Optional[Literal["win", "loss"]]
     revealed_cells: list[RevealedCell]
-    # flagi jeszcze -4
     elapsed_time: float
     start_field: Cell
     loss_cause: Optional[LossCause] = None
