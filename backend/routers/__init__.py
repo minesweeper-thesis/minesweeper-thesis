@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 
 from .auth_router import auth_router
-from .friends_router import friends_exceptions, friends_router
+from .friends_router import friend_requests_router, friends_exceptions, friends_router
 from .game_router import game_exceptions, game_router
-from .lobby_router import lobby_router
+from .lobby_router import invitations_router, lobby_router
 from .stats_router import stats_router
 from .user_router import user_exceptions, user_router
 
@@ -27,7 +27,9 @@ __all__ = [
     "auth_router",
     "user_router",
     "friends_router",
+    "friend_requests_router",
     "lobby_router",
+    "invitations_router",
     "stats_router",
     "game_router",
     "user_exceptions",

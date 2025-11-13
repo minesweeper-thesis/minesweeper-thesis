@@ -12,7 +12,8 @@ from .schemas.lobby_schemas import *
 
 LobbyService = Annotated[services.LobbyService, Depends()]
 
-lobby_router = APIRouter(tags=["lobby"])
+lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
+invitations_router = APIRouter(prefix="/invitations", tags=["lobby-invitations"])
 
 user_websockets: dict[uuid.UUID, WebSocket] = {}
 online_users: set[uuid.UUID] = set()
@@ -36,47 +37,51 @@ async def create_lobby(
     return InvitationLobbyResponse.create(lobby)
 
 
-@lobby_router.post("/{lobby_id}")
+@lobby_router.put("/{lobby_id}")
 async def update_lobby_config(
     lobby_id: uuid.UUID,
     service: LobbyService,
     user: CurrentUser,
     config: UpdateGameConfigRequest,
 ):
+    """Updates lobby configuration."""
     await service.update_lobby(lobby_id, user, config.game_config, notify)
 
 
-@lobby_router.post("/{lobby_id}/invite/{user_id}")
+@lobby_router.post("/{lobby_id}/invitations")
 async def invite_user_to_lobby(
     lobby_id: uuid.UUID,
     service: LobbyService,
     user: CurrentUser,
     user_id: uuid.UUID,
 ):
+    """Sends an invitation to join the lobby."""
     await service.invite_to_lobby(lobby_id, user, user_id, notify)
 
 
-@lobby_router.post("/join/{invitation_id}")
+@lobby_router.post("/{lobby_id}/join")
 async def join_lobby(
+    lobby_id: uuid.UUID,
     service: LobbyService,
     user: CurrentUser,
     invitation_id: uuid.UUID,
 ):
+    """Joins a lobby using an invitation."""
     lobby = await service.join_lobby(user, invitation_id, notify)
     return LobbyResponse.create(lobby)
 
 
-@lobby_router.post("/leave/{lobby_id}")
+@lobby_router.post("/{lobby_id}/leave")
 async def leave_lobby(
+    lobby_id: uuid.UUID,
     service: LobbyService,
     user: CurrentUser,
-    lobby_id: uuid.UUID,
 ):
-    """Leaves the lobby."""
+    """Leaves the lobby or removes a member."""
     await service.remove_user_from_lobby(lobby_id, user, notify)
 
 
-@lobby_router.delete("/invitation/{invitation_id}")
+@invitations_router.delete("/{invitation_id}")
 async def reject_game_invitation(
     user: CurrentUser,
     service: LobbyService,

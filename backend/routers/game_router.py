@@ -45,7 +45,7 @@ async def start_singleplayer_game(
     )
 
 
-@game_router.websocket("/single/{gameplay_id}/play")
+@game_router.websocket("/single/{gameplay_id}")
 async def play_single(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
@@ -76,7 +76,7 @@ async def play_single(
         await service.save_gameplay_progress()
 
 
-@game_router.websocket("/multi/{gameplay_id}/play")
+@game_router.websocket("/multi/{gameplay_id}")
 async def play_multi(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
