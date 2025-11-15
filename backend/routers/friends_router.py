@@ -7,6 +7,7 @@ from fastapi_pagination import Params
 import backend.services.exceptions as service_exceptions
 from backend import services
 from backend.lib.auth import CurrentUser
+from backend.lib.connections_manager import ConnectionsManager
 
 from .schemas.user_schemas import *
 
@@ -34,6 +35,16 @@ friends_exceptions = {
 
 friends_router = APIRouter(prefix="/friends", tags=["friends"])
 friend_requests_router = APIRouter(prefix="/friend-requests", tags=["friend-requests"])
+
+
+async def notify(receiver_id: uuid.UUID, data: FriendRequest):
+    if ConnectionsManager.is_user_online(receiver_id):
+        websocket = ConnectionsManager.get_user_websocket(receiver_id)
+        await websocket.send_text(
+            FriendRequestNotificationResponse.from_friend_request(data).model_dump_json(
+                exclude_none=True
+            )
+        )
 
 
 @friends_router.get("")
@@ -84,30 +95,30 @@ async def get_sent_friend_requests(
 
 @friend_requests_router.post("")
 async def make_friend_request(
-    friend_id: uuid.UUID,
+    body: MakeFriendRequest,
     user: CurrentUser,
     service: FriendsService,
 ):
     """Makes a friend request to user with given id"""
-    friend_request = await service.make_friend_request(friend_id)
+    friend_request = await service.make_friend_request(body.friend_id, notify)
     return FriendRequestResponse.from_friend_request(friend_request)
 
 
-@friend_requests_router.put("/{friend_request_id}/accept")
+@friend_requests_router.post("/{friend_request_id}/accept")
 async def accept_friend_request(
     friend_request_id: uuid.UUID,
     user: CurrentUser,
     service: FriendsService,
 ):
     """Accepts friend request with given id"""
-    return await service.accept_friend_request(friend_request_id)
+    await service.accept_friend_request(friend_request_id)
 
 
-@friend_requests_router.put("/{friend_request_id}/reject")
+@friend_requests_router.post("/{friend_request_id}/reject")
 async def reject_friend_request(
     friend_request_id: uuid.UUID,
     user: CurrentUser,
     service: FriendsService,
 ):
     """Rejects friend request with given id"""
-    return await service.reject_friend_request(friend_request_id)
+    await service.reject_friend_request(friend_request_id)

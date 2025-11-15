@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
 from backend.core.board import Board, DifficultyLevel
+from backend.core.user import User
 from backend.db.db import DBSession
 
 from .exceptions import *
@@ -63,7 +64,7 @@ class BoardRepository:
             raise BoardNotFound(f"Board with id {board_id} not found") from None
 
     async def get_unsolved_board(
-        self, difficulty_level: DifficultyLevel, user: Optional[UserORM] = None
+        self, difficulty_level: DifficultyLevel, user: Optional[User] = None
     ) -> Board:
         try:
             difficulty_level = await self._get_difficulty_level(difficulty_level)

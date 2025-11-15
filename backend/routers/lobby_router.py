@@ -1,11 +1,12 @@
 import asyncio
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.lib.auth import CurrentUser, CurrentUserWebSocket
+from backend.lib.connections_manager import ConnectionsManager
 from backend.routers.schemas import create_response
 
 from .schemas.lobby_schemas import *
@@ -13,18 +14,13 @@ from .schemas.lobby_schemas import *
 LobbyService = Annotated[services.LobbyService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
-invitations_router = APIRouter(prefix="/invitations", tags=["lobby-invitations"])
-
-user_websockets: dict[uuid.UUID, WebSocket] = {}
-online_users: set[uuid.UUID] = set()
+invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
 
 
-async def notify(receiver_id: uuid.UUID, data: Any):
-    await user_websockets[receiver_id].send_text(create_response(data))
-
-
-def is_user_online(user_id: uuid.UUID) -> bool:
-    return user_id in online_users
+async def notify(receiver_id: uuid.UUID, data):
+    if ConnectionsManager.is_user_online(receiver_id):
+        websocket = ConnectionsManager.get_user_websocket(receiver_id)
+        await websocket.send_text(create_response(data))
 
 
 @lobby_router.post("")
@@ -97,13 +93,11 @@ async def send_notifications(
     user: CurrentUserWebSocket,
 ):
     """WebSocket endpoint for receiving game invitations."""
-    online_users.add(user.id)
+    ConnectionsManager.add_user(user.id, websocket)
 
     try:
         await websocket.accept()
-        user_websockets[user.id] = websocket
         while True:
             await asyncio.sleep(5)
     except WebSocketDisconnect:
-        online_users.discard(user.id)
-        user_websockets.pop(user.id, None)
+        ConnectionsManager.remove_user(user.id)
