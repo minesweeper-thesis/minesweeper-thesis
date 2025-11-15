@@ -62,7 +62,11 @@ const Navbar = ({ children }) => {
                         <>
                             {/* User info */}
                             <div className="flex items-center gap-2 text-text-primary font-medium">
-                                <User size={20} />
+                                <img
+                                    src={user.avatar_url || "/avatar.svg"}
+                                    alt="avatar"
+                                    className="w-10 h-10 rounded-full bg-white border-2 border-border-primary object-cover"
+                                />
                                 <span>{user.nickname || user.username}</span>
                             </div>
 

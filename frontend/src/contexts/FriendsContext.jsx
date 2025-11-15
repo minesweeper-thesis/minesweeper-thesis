@@ -15,6 +15,9 @@ export const FriendsProvider = ({ children }) => {
 
     const [loading, setLoading] = useState(false);
 
+    const [searchPage, setSearchPage] = useState(1);
+    const [searchTotalPages, setSearchTotalPages] = useState(1);
+
     const authFetch = async (url, options = {}) => {
         const res = await fetch(url, {
             ...options,
@@ -98,15 +101,22 @@ export const FriendsProvider = ({ children }) => {
         reload();
     };
 
-    const searchUsers = async (query) => {
+    const searchUsers = async (query, page = 1) => {
         try {
-            const data = await authFetch(`${API_BASE}/users/search?query=${encodeURIComponent(query)}`);
-            return data;
+            const data = await authFetch(
+                `api/search?query=${encodeURIComponent(query)}&page=${page}&size=10`
+            );
+
+            setSearchPage(data.page || 1);
+            setSearchTotalPages(data.pages || 1);
+
+            return data.items || [];
         } catch (e) {
             console.error("Search failed", e);
             return [];
         }
     };
+
 
     return (
         <FriendsContext.Provider
@@ -126,6 +136,9 @@ export const FriendsProvider = ({ children }) => {
                 requestsPage,
                 requestsTotalPages,
                 loading,
+                searchPage,
+                searchTotalPages,
+                setSearchPage,
             }}
         >
             {children}
