@@ -184,6 +184,16 @@ class SingleplayerGameplay:
     def _set_revealed(self, revealed: list[tuple[int, int]]):
         self.revealed = sorted((x, y, self.grid.grid[x][y]) for (x, y) in revealed)
 
+    def get_game_state(self) -> GameStateResult:
+        return GameStateResult(
+            status=self.status,
+            result=self.result,
+            revealed_cells=self.revealed,
+            elapsed_time=self.elapsed_time,
+            loss_cause=self.loss_cause,
+            start_field=self.start_field,
+        )
+
     def flag(self, x: int, y: int):
         self.start_game_if_not_started()
         self._validate_coords(x, y)

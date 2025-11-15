@@ -2,6 +2,7 @@ from typing import Annotated
 
 import filetype
 from fastapi import Depends
+from fastapi_pagination import Params
 
 from backend import repositories
 from backend.lib.auth import CurrentUser
@@ -49,3 +50,6 @@ class UserService:
 
             await self.avatar_storage.delete(filename)
             await self.user_repo.set_avatar_url(self.user.id, None)
+
+    async def search_users(self, query: str, pagination_params: Params):
+        return await self.user_repo.search_users(query, pagination_params)
