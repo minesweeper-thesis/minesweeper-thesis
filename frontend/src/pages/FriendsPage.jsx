@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, {useEffect, useState} from "react";
 import { useFriends } from "../contexts/FriendsContext";
+import FriendCard from "../components/FriendCard";
 
 export default function FriendsPage() {
     const {
@@ -18,34 +19,22 @@ export default function FriendsPage() {
         requestsPage,
         requestsTotalPages,
         loading,
+        searchPage,
+        searchTotalPages,
+        setSearchPage,
     } = useFriends();
 
     const [activeTab, setActiveTab] = useState("friends");
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
 
+    // SEARCH
     const handleSearch = async (e) => {
         e.preventDefault();
-        if (!searchQuery.trim()) {
-            setSearchResults([]);
-            return;
-        }
+        if (!searchQuery.trim()) return;
 
-        try {
-            const results = await searchUsers(searchQuery);
-
-            // Placeholder
-            if (!Array.isArray(results)) {
-                setSearchResults([
-                    { id: "1", username: "mock_user_1" },
-                    { id: "2", username: "mock_user_2" },
-                ]);
-            } else {
-                setSearchResults(results);
-            }
-        } catch (err) {
-            console.error("Search failed", err);
-        }
+        const results = await searchUsers(searchQuery, searchPage);
+        setSearchResults(results);
     };
 
     const renderPagination = (page, totalPages, onPrev, onNext) => (
@@ -57,9 +46,9 @@ export default function FriendsPage() {
             >
                 Prev
             </button>
-            <span className="text-text-secondary text-sm">
-        Page {page} of {totalPages}
-      </span>
+
+            <span className="text-text-secondary text-sm">Page {page} / {totalPages}</span>
+
             <button
                 className="px-3 py-1 text-sm rounded bg-bg-secondary border border-border-primary disabled:opacity-50"
                 onClick={onNext}
@@ -70,62 +59,36 @@ export default function FriendsPage() {
         </div>
     );
 
-    const renderFriendCard = (friend) => (
-        <div
-            key={friend.id}
-            className="flex items-center justify-between p-3 bg-bg-secondary border border-border-primary rounded-xl"
-        >
-            <div className="text-text-primary font-medium">{friend.username}</div>
-            <button
-                onClick={() => removeFriend(friend.id)}
-                className="text-accent-primary hover:underline"
-            >
-                Remove
-            </button>
-        </div>
-    );
-
-    const renderRequestCard = (req, type = "incoming") => (
-        <div
-            key={req.id}
-            className="flex items-center justify-between p-3 bg-bg-secondary border border-border-primary rounded-xl"
-        >
-            <div className="text-text-primary font-medium">{req.from_user?.username || req.to_user?.username}</div>
-            {type === "incoming" ? (
-                <div className="flex gap-2">
-                    <button
-                        onClick={() => acceptFriendRequest(req.id)}
-                        className="px-2 py-1 text-sm bg-green-600/20 text-green-500 rounded-md hover:bg-green-600/30"
-                    >
-                        Accept
-                    </button>
-                    <button
-                        onClick={() => rejectFriendRequest(req.id)}
-                        className="px-2 py-1 text-sm bg-red-600/20 text-red-500 rounded-md hover:bg-red-600/30"
-                    >
-                        Reject
-                    </button>
-                </div>
-            ) : (
-                <span className="text-text-secondary text-sm">Pending</span>
-            )}
-        </div>
-    );
-
     const renderTab = () => {
-        if (loading) {
+        if (loading)
             return <div className="text-text-secondary text-center py-6">Loading...</div>;
-        }
 
         switch (activeTab) {
+            // ---------------------------------------------------------
+            // FRIENDS
+            // ---------------------------------------------------------
             case "friends":
                 return (
                     <>
                         {friends.length === 0 ? (
-                            <div className="text-text-secondary text-center py-6">You have no friends yet 😢</div>
+                            <div className="text-text-secondary text-center py-6">
+                                You have no friends yet 😢
+                            </div>
                         ) : (
-                            <div className="flex flex-col gap-2">{friends.map(renderFriendCard)}</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {friends.map(friend => (
+                                <FriendCard
+                                    key={friend.id}
+                                    avatar={friend.avatar_url ?? "/avatar.svg"}
+                                    nickname={friend.nickname}
+                                    variant="friend"
+                                    onInvite={() => console.log("Invite not implemented yet")}
+                                    onRemove={() => removeFriend(friend.id)}
+                                />
+                            ))}
+                            </div>
                         )}
+
                         {renderPagination(
                             friendsPage,
                             friendsTotalPages,
@@ -135,25 +98,48 @@ export default function FriendsPage() {
                     </>
                 );
 
+            // ---------------------------------------------------------
+            // REQUESTS
+            // ---------------------------------------------------------
             case "requests":
                 return (
                     <>
-                        <h3 className="text-lg font-semibold text-text-primary mb-2">Incoming Requests</h3>
+                        <h3 className="text-lg font-semibold text-text-primary mb-2">Incoming</h3>
                         {friendRequests.length === 0 ? (
-                            <div className="text-text-secondary mb-4">No incoming friend requests.</div>
+                            <div className="text-text-secondary mb-4">No incoming requests</div>
                         ) : (
-                            <div className="flex flex-col gap-2 mb-4">
-                                {friendRequests.map((req) => renderRequestCard(req, "incoming"))}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {friendRequests.map(r => (
+                                    <FriendCard
+                                        key={r.id}
+                                        avatar={r.user.avatar_url}
+                                        nickname={r.user.nickname}
+                                        type="incoming"
+                                        onAccept={() => acceptFriendRequest(r.id)}
+                                        onReject={() => rejectFriendRequest(r.id)}
+                                    />
+                                ))}
                             </div>
                         )}
-                        <h3 className="text-lg font-semibold text-text-primary mb-2">Sent Requests</h3>
+
+                        <h3 className="text-lg font-semibold text-text-primary mb-2">Sent</h3>
                         {sentRequests.length === 0 ? (
-                            <div className="text-text-secondary mb-4">No sent friend requests.</div>
+                            <div className="text-text-secondary">No sent requests</div>
                         ) : (
-                            <div className="flex flex-col gap-2">
-                                {sentRequests.map((req) => renderRequestCard(req, "sent"))}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {sentRequests.map(r => (
+                                    <FriendCard
+                                        key={r.id}
+                                        avatar={r.friend.avatar_url}
+                                        nickname={r.friend.nickname}
+                                        type="sent"
+                                        onCancel={() => rejectFriendRequest(r.id)} // or cancel endpoint
+                                     />
+
+                        ))}
                             </div>
                         )}
+
                         {renderPagination(
                             requestsPage,
                             requestsTotalPages,
@@ -163,6 +149,9 @@ export default function FriendsPage() {
                     </>
                 );
 
+            // ---------------------------------------------------------
+            // ADD FRIEND
+            // ---------------------------------------------------------
             case "add":
                 return (
                     <div className="flex flex-col gap-3">
@@ -182,26 +171,41 @@ export default function FriendsPage() {
                             </button>
                         </form>
 
-                        {searchResults.length > 0 ? (
-                            <div className="flex flex-col gap-2">
-                                {searchResults.map((user) => (
-                                    <div
-                                        key={user.id}
-                                        className="flex items-center justify-between p-3 bg-bg-secondary border border-border-primary rounded-xl"
-                                    >
-                                        <div className="text-text-primary font-medium">{user.username}</div>
-                                        <button
-                                            onClick={() => sendFriendRequest(user.id)}
-                                            className="text-accent-primary hover:underline"
-                                        >
-                                            Add Friend
-                                        </button>
-                                    </div>
-                                ))}
+                        {searchResults.length === 0 ? (
+                            <div className="text-text-secondary text-center py-6">
+                                Search for new friends 🔍
                             </div>
                         ) : (
-                            <div className="text-text-secondary text-center py-6">Search for new friends 🔍</div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {searchResults.map(u => (
+                                    <FriendCard
+                                        key={u.id}
+                                        avatar={u.avatar_url}
+                                        nickname={u.nickname}
+                                        type="search"
+                                        onAdd={() => sendFriendRequest(u.id)}
+                                        onChallenge={() => challenge(u.id)}
+                                    />
+
+                                ))}
+                            </div>
                         )}
+
+                        {searchResults.length > 0 &&
+                            renderPagination(
+                                searchPage,
+                                searchTotalPages,
+                                async () => {
+                                    const newPage = searchPage - 1;
+                                    setSearchPage(newPage);
+                                    setSearchResults(await searchUsers(searchQuery, newPage));
+                                },
+                                async () => {
+                                    const newPage = searchPage + 1;
+                                    setSearchPage(newPage);
+                                    setSearchResults(await searchUsers(searchQuery, newPage));
+                                }
+                            )}
                     </div>
                 );
 
@@ -214,36 +218,19 @@ export default function FriendsPage() {
         <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
             <main className="p-6 flex flex-col gap-6 text-text-primary relative w-full max-w-4xl">
                 <div className="flex justify-around border-b border-border-primary pb-2">
-                    <button
-                        onClick={() => setActiveTab("friends")}
-                        className={`pb-2 ${
-                            activeTab === "friends"
-                                ? "text-accent-primary border-b-2 border-accent-primary"
-                                : "text-text-secondary"
-                        }`}
-                    >
-                        Friends
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("requests")}
-                        className={`pb-2 ${
-                            activeTab === "requests"
-                                ? "text-accent-primary border-b-2 border-accent-primary"
-                                : "text-text-secondary"
-                        }`}
-                    >
-                        Requests
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("add")}
-                        className={`pb-2 ${
-                            activeTab === "add"
-                                ? "text-accent-primary border-b-2 border-accent-primary"
-                                : "text-text-secondary"
-                        }`}
-                    >
-                        Add Friend
-                    </button>
+                    {["friends", "requests", "add"].map(tab => (
+                        <button
+                            key={tab}
+                            onClick={() => setActiveTab(tab)}
+                            className={`pb-2 ${
+                                activeTab === tab
+                                    ? "text-accent-primary border-b-2 border-accent-primary"
+                                    : "text-text-secondary"
+                            }`}
+                        >
+                            {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                        </button>
+                    ))}
                 </div>
 
                 <div>{renderTab()}</div>

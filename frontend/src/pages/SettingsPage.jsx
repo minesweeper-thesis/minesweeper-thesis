@@ -8,12 +8,41 @@ export default function SettingsPage() {
     const [theme, setTheme] = useState("system");
     const [avatar, setAvatar] = useState(null);
 
-    const handleAvatarChange = (e) => {
+    const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
-        if (file) {
-            setAvatar(URL.createObjectURL(file));
+        if (!file) return;
+
+        // Optional: validate file size (2MB max)
+        const maxSizeMB = 2;
+        if (file.size / 1024 / 1024 > maxSizeMB) {
+            alert(`File is too large. Max size is ${maxSizeMB}MB.`);
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("api/avatar", {
+                method: "POST",
+                body: formData,
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                console.log(response);
+                const errorData = await response.json();
+                throw new Error(errorData.detail || "Failed to upload avatar.");
+            }
+
+            const data = await response.json();
+            setAvatar(data.avatar_url);
+        } catch (err) {
+            console.error(err);
+            alert(err.message);
         }
     };
+
 
     const handleSaveProfile = (e) => {
         e.preventDefault();

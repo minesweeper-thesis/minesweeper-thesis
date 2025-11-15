@@ -12,7 +12,7 @@ export default function GamePage() {
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
     const [socket, setSocket] = useState(null);
     const [mines, setMines] = useState(0);
-    const [startField, setStartField] = useState(null);
+    let startField = null;
     const [heuristicData, setHeuristicData] = useState({
         classifier: "lightgbm",
         heuristic: "no",
@@ -96,7 +96,7 @@ export default function GamePage() {
             }
             const res = await initGameRequest();
             console.log("http response: ", res);
-            setStartField(res.start_field);
+           startField = res.start_field;
 
             ws = connectToGameWebSocket(res.gameplay_id);
             setSocket(ws);
