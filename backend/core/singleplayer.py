@@ -37,7 +37,7 @@ class SingleplayerGameplay:
         self.result: Optional[GameResult] = result
         self.used_hints = used_hints
         self.elapsed_time = elapsed_time
-        self.game_mode = mode
+        self.game_mode: GameMode = mode
         self.revealed: list[tuple[int, int, int]] = []
         self.loss_cause: Optional[LossCause] = None
 
