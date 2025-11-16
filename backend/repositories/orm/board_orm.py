@@ -47,12 +47,6 @@ class BoardORM(Base):
     start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
 
     difficulty_level: Mapped[DifficultyLevelORM] = relationship()
-    singleplayer_gameplays: Mapped[list["SingleplayerGameplayORM"]] = relationship(
-        back_populates="board"
-    )
-    multiplayer_gameplays: Mapped[list["MultiplayerGameplayORM"]] = relationship(
-        back_populates="board"
-    )
 
     def to_board(self) -> Board:
         difficulty_level = self.difficulty_level.to_difficulty_level()
