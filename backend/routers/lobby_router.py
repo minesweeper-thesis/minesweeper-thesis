@@ -1,11 +1,10 @@
-import asyncio
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends
 
 from backend import services
-from backend.lib.auth import CurrentUser, CurrentUserWebSocket
+from backend.lib.auth import CurrentUser
 from backend.lib.connections_manager import ConnectionsManager
 from backend.routers.schemas import create_response
 
@@ -85,19 +84,3 @@ async def reject_game_invitation(
 ):
     """Rejects a game invitation."""
     await service.reject_game_invitation(invitation_id, user, notify)
-
-
-@lobby_router.websocket("/ws")
-async def send_notifications(
-    websocket: WebSocket,
-    user: CurrentUserWebSocket,
-):
-    """WebSocket endpoint for receiving game invitations."""
-    ConnectionsManager.add_user(user.id, websocket)
-
-    try:
-        await websocket.accept()
-        while True:
-            await asyncio.sleep(5)
-    except WebSocketDisconnect:
-        ConnectionsManager.remove_user(user.id)

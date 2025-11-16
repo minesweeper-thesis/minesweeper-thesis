@@ -1,5 +1,5 @@
 import uuid
-from typing import Literal
+from typing import ClassVar, Literal
 
 from pydantic import BaseModel
 
@@ -14,6 +14,7 @@ class UpdateGameConfigRequest(BaseModel):
 
 
 class GameConfigUpdatedResponse(BaseModel):
+    type: ClassVar[Literal["game_config_updated"]] = "game_config_updated"
     lobby_id: uuid.UUID
     game_config: GameConfig
 
@@ -55,6 +56,7 @@ class LobbyResponse(BaseModel):
 
 
 class InvitationResponse(BaseModel):
+    type: ClassVar[Literal["invitation"]] = "invitation"
     id: uuid.UUID
     lobby: InvitationLobbyResponse
 
@@ -67,6 +69,7 @@ class InvitationResponse(BaseModel):
 
 
 class InvitationAnswerResponse(BaseModel):
+    type: ClassVar[Literal["invitation_response"]] = "invitation_response"
     invitation: InvitationResponse
     response: Literal["accepted", "rejected"]
 
@@ -81,6 +84,7 @@ class InvitationAnswerResponse(BaseModel):
 
 
 class UserConnectionStatusResponse(BaseModel):
+    type: ClassVar[Literal["user_connection_status"]] = "user_connection_status"
     lobby_id: uuid.UUID
     user: UserResponse
     status: Literal["connected", "disconnected"]

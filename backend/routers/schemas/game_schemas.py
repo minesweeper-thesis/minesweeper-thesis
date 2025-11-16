@@ -188,7 +188,6 @@ class GameOverResponse(GameActionResponse):
 
 class GameStateResponse(GameActionResponse):
     type: ClassVar[str] = "game_state"
-
     status: GameStatus
     result: Optional[GameResult]
     revealed_cells: list[RevealedCell]
