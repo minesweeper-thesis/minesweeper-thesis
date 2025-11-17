@@ -30,10 +30,26 @@ class SingleplayerRepository:
         await self.session.commit()
 
     async def get_gameplays(self, user_id: uuid.UUID, pagination_params: Params):
-        stmt = select(SingleplayerGameplayORM).where(
-            SingleplayerGameplayORM.user_id == user_id,
+        stmt = (
+            select(SingleplayerGameplayORM)
+            .options(
+                selectinload(SingleplayerGameplayORM.board).selectinload(
+                    BoardORM.difficulty_level
+                ),
+                selectinload(SingleplayerGameplayORM.user),
+            )
+            .where(
+                SingleplayerGameplayORM.user_id == user_id,
+            )
         )
-        return await apaginate(self.session, stmt, pagination_params)
+        res = await apaginate(
+            self.session,
+            stmt,
+            pagination_params,
+            transformer=lambda items: [item.to_gameplay() for item in items],
+        )
+        print(res)
+        return res
 
     async def _get_gameplay_orm(
         self, gameplay_id: uuid.UUID

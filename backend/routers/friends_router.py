@@ -41,9 +41,9 @@ async def notify(receiver_id: uuid.UUID, data: FriendRequest):
     if ConnectionsManager.is_user_online(receiver_id):
         websocket = ConnectionsManager.get_user_websocket(receiver_id)
         await websocket.send_text(
-            FriendRequestNotificationResponse.from_friend_request(data).model_dump_json(
-                exclude_none=True
-            )
+            FriendRequestNotificationResponse.from_friend_request(
+                data
+            ).model_dump_json()
         )
 
 

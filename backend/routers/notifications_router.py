@@ -1,4 +1,3 @@
-import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
@@ -18,13 +17,25 @@ notifications_router = APIRouter(tags=["notifications"])
 async def send_notifications(
     websocket: WebSocket,
     user: CurrentUserWebSocket,
+    lobby_service: LobbyService,
 ):
     """WebSocket endpoint for receiving game invitations."""
     ConnectionsManager.add_user(user.id, websocket)
 
+    async def receiver():
+        while True:
+            data = await websocket.receive_json()
+            request_type = data.get("type")
+
+            if request_type == "pending_invitations":
+                invitations = lobby_service.lobby_repo.get_pending_invitations(user)
+                response = PendingInvitationsResponse.create(invitations)
+                await websocket.send_text(response.model_dump_json())
+
     try:
         await websocket.accept()
-        while True:
-            await asyncio.sleep(5)
+
+        await receiver()
+
     except WebSocketDisconnect:
         ConnectionsManager.remove_user(user.id)
