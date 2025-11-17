@@ -16,11 +16,7 @@ export default ({ mode }) => {
                     target: process.env.VITE_API_URL,
                     changeOrigin: true,
                     rewrite: (path) => path.replace(/^\/api/, ''),
-                },'/game_api': {
-                    target: process.env.VITE_GAME_URL,
-                    changeOrigin: true,
-                    rewrite: (path) => path.replace(/^\/api/, ''),
-                },
+                }
             }
         },
     });
