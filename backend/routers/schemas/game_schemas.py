@@ -134,7 +134,7 @@ def parse_game_action(data: dict) -> GameAction:
 class NewGameResponse(BaseModel):
     gameplay_id: uuid.UUID
     board_id: uuid.UUID
-    start_field: Optional[tuple[int, int]] = None
+    start_field: tuple[int, int]
 
 
 class GameActionResponse(ABC, BaseModel):

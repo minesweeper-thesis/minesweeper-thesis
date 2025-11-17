@@ -9,6 +9,7 @@ from sqlalchemy.sql.expression import func
 from backend.core.board import Board, DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
+from backend.repositories.utils import _get_difficulty_level_orm
 
 from .exceptions import *
 from .orm import *
@@ -19,36 +20,13 @@ class BoardRepository:
         self.session = session
 
     async def add_board(self, board: Board) -> None:
-        difficulty_level_orm = await self._get_difficulty_level(board.difficulty_level)
+        difficulty_level_orm = await _get_difficulty_level_orm(
+            self, board.difficulty_level
+        )
         board_orm = BoardORM.from_board(board, difficulty_level_orm.id)
 
         self.session.add(board_orm)
         await self.session.commit()
-
-    async def _get_difficulty_level(
-        self, difficulty_level: DifficultyLevel
-    ) -> DifficultyLevelORM:
-        rows = difficulty_level.rows
-        columns = difficulty_level.columns
-        mine_count = difficulty_level.mine_count
-
-        stmt = select(DifficultyLevelORM).where(
-            DifficultyLevelORM.rows == rows,
-            DifficultyLevelORM.columns == columns,
-            DifficultyLevelORM.mine_count == mine_count,
-        )
-        result = await self.session.execute(stmt)
-        difficulty_level = result.scalar_one_or_none()
-
-        if difficulty_level is None:
-            difficulty_level = DifficultyLevelORM(
-                rows=rows, columns=columns, mine_count=mine_count
-            )
-            self.session.add(difficulty_level)
-            await self.session.commit()
-            await self.session.refresh(difficulty_level)
-
-        return difficulty_level
 
     async def get_board_by_id(self, board_id: uuid.UUID) -> Board:
         try:
@@ -67,12 +45,14 @@ class BoardRepository:
         self, difficulty_level: DifficultyLevel, user: Optional[User] = None
     ) -> Board:
         try:
-            difficulty_level = await self._get_difficulty_level(difficulty_level)
+            difficulty_level_orm = await _get_difficulty_level_orm(
+                self, difficulty_level
+            )
 
             stmt = (
                 select(BoardORM)
                 .join(BoardORM.difficulty_level)
-                .where(BoardORM.difficulty_level_id == difficulty_level.id)
+                .where(BoardORM.difficulty_level_id == difficulty_level_orm.id)
                 .options(selectinload(BoardORM.difficulty_level))
                 .order_by(func.random())
                 .limit(1)
