@@ -89,12 +89,23 @@ const Navbar = ({ children }) => {
                             </button>
                         </>
                     ) : (
+                        <span className={`gap-2`}>
+
+
+                        <NavLink
+                            to="/register"
+                            className="px-4 py-2 mr-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition"
+                        >
+                            Register
+                        </NavLink>
+
                         <NavLink
                             to="/login"
                             className="px-4 py-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition"
                         >
                             Login
                         </NavLink>
+                        </span>
                     )}
                 </div>
             </div>
