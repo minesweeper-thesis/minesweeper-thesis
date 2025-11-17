@@ -12,7 +12,7 @@ export default function GamePage() {
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
     const [socket, setSocket] = useState(null);
     const [mines, setMines] = useState(0);
-    const [startField, setStartField] = useState(null);
+    let startField = null;
     const [heuristicData, setHeuristicData] = useState({
         classifier: "lightgbm",
         heuristic: "no",
@@ -51,6 +51,7 @@ export default function GamePage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(REQUEST_BODY),
+                credentials: "include"
             });
 
             if (!response.ok) {
@@ -96,7 +97,7 @@ export default function GamePage() {
             }
             const res = await initGameRequest();
             console.log("http response: ", res);
-            setStartField(res.start_field);
+           startField = res.start_field;
 
             ws = connectToGameWebSocket(res.gameplay_id);
             setSocket(ws);
@@ -155,7 +156,16 @@ export default function GamePage() {
                             startField = {startField}
                         />
                     ) :
-                        <div>Conecting...</div>
+                        <div className="flex flex-col items-center justify-center h-full text-text-primary">
+                            <div className="relative w-10 h-10 mb-3 mt-20">
+                                <div className="absolute inset-0 border-4 border-border-primary rounded-full opacity-20"></div>
+                                <div className="absolute inset-0 border-4 border-accent-primary rounded-full border-t-transparent animate-spin"></div>
+                            </div>
+                            <p className="text-lg font-medium animate-pulse">
+                                Connecting<span className="dots"></span>
+                            </p>
+                        </div>
+
                     }
                 </div>
             </main>
