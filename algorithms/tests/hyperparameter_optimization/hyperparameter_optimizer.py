@@ -6,7 +6,7 @@ import joblib
 from skopt import Optimizer
 
 from algorithms.boards.functions.all_fields import all_fields
-from algorithms.generator import Generator
+from algorithms.generator_joblib import Generator
 
 
 class HyperparameterOptimizer:
