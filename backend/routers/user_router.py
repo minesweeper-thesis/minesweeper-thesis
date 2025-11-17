@@ -41,7 +41,10 @@ async def delete_avatar(
     await service.delete_avatar()
 
 
-@user_router.get("/search")
+@user_router.get(
+    "/search",
+    responses={200: {"model": Page[UserResponse]}},
+)
 async def search_users(
     query: str,
     pagination_params: PaginationParams,

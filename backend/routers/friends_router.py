@@ -47,7 +47,10 @@ async def notify(receiver_id: uuid.UUID, data: FriendRequest):
         )
 
 
-@friends_router.get("")
+@friends_router.get(
+    "",
+    responses={200: {"model": Page[FriendResponse]}},
+)
 async def get_friends(
     user: CurrentUser,
     service: FriendsService,
@@ -69,7 +72,10 @@ async def remove_friend(
     return await service.remove_friend(friend_id)
 
 
-@friend_requests_router.get("/pending")
+@friend_requests_router.get(
+    "/pending",
+    responses={200: {"model": Page[FriendRequestResponse]}},
+)
 async def get_pending_friend_requests(
     user: CurrentUser,
     service: FriendsService,
@@ -81,7 +87,10 @@ async def get_pending_friend_requests(
     return page
 
 
-@friend_requests_router.get("/sent")
+@friend_requests_router.get(
+    "/sent",
+    responses={200: {"model": Page[FriendRequestResponse]}},
+)
 async def get_sent_friend_requests(
     user: CurrentUser,
     service: FriendsService,
