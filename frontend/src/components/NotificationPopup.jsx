@@ -15,7 +15,7 @@ export default function NotificationPopup() {
         if (!lastMessage) return;
 
         try {
-            const msg = JSON.parse(lastMessage);
+            const msg = lastMessage;
 
             if (["friend_request", "invitation"].includes(msg.type)) {
                 setNotifications(prev => {

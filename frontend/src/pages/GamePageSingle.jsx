@@ -18,7 +18,7 @@ export default function GamePage() {
     const [startField, setStartField] = useState(null);
 
     const REQUEST_BODY = {
-        generator: { type: "random", settings: { ...heuristicData } },
+        generator: { type: "ml", settings: { ...heuristicData } },
         difficulty_level: { rows: boardData.rows, columns: boardData.cols, mine_count: boardData.mineCount },
         mode: boardData.mode,
     };
@@ -46,9 +46,7 @@ export default function GamePage() {
             setGameplayId(res.gameplay_id);
             setMines(res.mine_count ?? boardData.mineCount);
             setStartField(res.start_field);
-            // if (res.start_field && boardRef.current?.dispatchCommand) {
-            //     boardRef.current.dispatchCommand({ type: "SET_START_FIELD", start: res.start_field });
-            // }
+
         } catch (err) {
             console.error("Game initialization error:", err);
         }
@@ -65,7 +63,7 @@ export default function GamePage() {
         <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
             <aside className="w-64 p-4">
                 <DifficultyMenu setBoardData={setBoardData} />
-                {/*<AdvancedOptions onSelect={(data) => setHeuristicData(data)} />*/}
+                <AdvancedOptions onSelect={(data) => setHeuristicData(data)} />
             </aside>
 
             <main className="p-4 overflow-auto game-area relative w-full max-w-4xl">
