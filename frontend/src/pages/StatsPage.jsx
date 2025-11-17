@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { ChevronLeft, ChevronRight, Users, Globe, Lock } from "lucide-react";
 
@@ -8,7 +8,7 @@ export default function StatsPage() {
     const [rankingType, setRankingType] = useState("users"); // "users" | "gameplays"
     const [scope, setScope] = useState("global"); // "global" | "friends"
     const [compareBy, setCompareBy] = useState("win_rate");
-    const [difficultyLevelId, setDifficultyLevelId] = useState(null); // TODO: dynamic later
+    const [selected, setSelected] = useState("easy");
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
@@ -16,41 +16,49 @@ export default function StatsPage() {
 
     const loggedIn = !!user && !authLoading;
 
+    const diff = useMemo(() => {
+        if (selected === "easy") return [10, 10, 15];
+        if (selected === "medium") return [16, 16, 40];
+        return [16, 30, 99];
+    }, [selected]);
+
     async function fetchStats() {
         if (scope === "friends" && !loggedIn) {
             setStats([]);
+            setTotalPages(1);
             return;
         }
 
         setLoading(true);
         try {
-            const diffId = difficultyLevelId || "00000000-0000-0000-0000-000000000000";
-            let url = `/api/stats/${rankingType}/${scope}?difficulty_level_id=${diffId}&page=${page}&size=10`;
-
+            let url = `/api/stats/${rankingType}/${scope}?rows=${diff[0]}&cols=${diff[1]}&mine_count=${diff[2]}&page=${page}&size=10`;
             if (rankingType === "users") url += `&compare_by=${compareBy}`;
 
-            const res = await fetch(url, {
-                method: "GET",
-                credentials: "include",
-            });
-
+            const res = await fetch(url, { credentials: "include" });
             if (!res.ok) throw new Error("Failed to load stats");
 
+
             const data = await res.json();
+            console.log(data);
+
             setStats(data.items || []);
             setTotalPages(data.pages || 1);
         } catch (err) {
             console.error(err);
+            setStats([]);
+            setTotalPages(1);
         } finally {
             setLoading(false);
         }
     }
 
     useEffect(() => {
-        if (!authLoading) {
-            fetchStats();
-        }
-    }, [rankingType, scope, compareBy, page, authLoading]);
+        setPage(1);
+    }, [rankingType, scope, compareBy, selected]);
+
+    useEffect(() => {
+        if (!authLoading) fetchStats();
+    }, [rankingType, scope, compareBy, page, authLoading, diff]);
 
     const tabs = [
         { id: "users", label: "Users Ranking" },
@@ -119,7 +127,15 @@ export default function StatsPage() {
                         {!loggedIn && <Lock size={14} />}
                     </button>
                 </div>
-
+                    <select
+                        className="bg-bg-secondary text-text-primary border border-border-primary rounded-lg px-3 py-2"
+                        value={selected}
+                        onChange={(e) => setSelected(e.target.value)}
+                    >
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
                 {rankingType === "users" && (
                     <select
                         className="bg-bg-secondary text-text-primary border border-border-primary rounded-lg px-3 py-2"
@@ -144,11 +160,12 @@ export default function StatsPage() {
                 </div>
             ) : (
                 <div className="bg-bg-secondary rounded-2xl border border-border-primary overflow-hidden shadow-sm">
-                    <div className="grid grid-cols-4 font-semibold text-text-secondary bg-bg-tertiary px-4 py-3">
+                    <div className="grid grid-cols-5 font-semibold text-text-secondary bg-bg-tertiary px-4 py-3">
                         <span>#</span>
                         <span>User</span>
                         <span>{rankingType === "users" ? "Win Rate" : "Time"}</span>
                         <span>Games</span>
+                        <span>Average time</span>
                     </div>
 
                     {loading ? (
@@ -162,20 +179,23 @@ export default function StatsPage() {
                     ) : (
                         stats.map((row, idx) => (
                             <div
-                                key={row.user_id || idx}
-                                className="grid grid-cols-4 px-4 py-3 border-t border-border-primary hover:bg-bg-tertiary/50 transition"
+                                key={row.gameplay_id || row.user_id}
+                                className="grid grid-cols-5 px-4 py-3 border-t border-border-primary hover:bg-bg-tertiary/50 transition"
                             >
                 <span className="font-medium text-text-primary">
                   {(page - 1) * 10 + idx + 1}
                 </span>
-                                <span className="text-text-primary">{row.username || "Anonymous"}</span>
+                                <span className="text-text-primary">{row.nickname || "Anonymous"}</span>
                                 <span className="text-accent-primary">
                   {rankingType === "users"
                       ? `${(row.win_rate * 100).toFixed(1)}%`
                       : `${row.time}s`}
                 </span>
+                <span className="text-text-secondary">
+                  {row.total_games}
+                </span>
                                 <span className="text-text-secondary">
-                  {row.games_played || row.total_games}
+                  {row.average_time}
                 </span>
                             </div>
                         ))
