@@ -15,8 +15,7 @@ export function GameServiceProvider({ children }) {
     const reconnectTimeout = useRef(null);
     const isUnmounted = useRef(false);
 
-    //potem cos z tym zrobie jesli bedzie trzeba
-    const WS_URL = "ws://localhost:8000/api/ws";
+    const WS_URL = "game_api/ws";
 
     const socketRef = useRef(null);
 

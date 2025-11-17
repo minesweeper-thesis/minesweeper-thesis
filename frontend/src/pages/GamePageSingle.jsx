@@ -52,7 +52,7 @@ export default function GamePage() {
         }
     }, [boardData, heuristicData]);
 
-    const socketUrl = gameplayId ? `ws://localhost:8000/api/game/single/${gameplayId}` : null;
+    const socketUrl = gameplayId ? `game_api/game/single/${gameplayId}` : null;
     const { send } = useGameWebSocket(socketUrl, gameInterpreter, boardRef);
 
     useEffect(() => {
