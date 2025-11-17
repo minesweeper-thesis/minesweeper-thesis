@@ -6,13 +6,14 @@ import InvitePopup from "../components/InvitePopup";
 
 export default function MultiplayerLobby() {
 
-    const { lobby, chatMessages, leaveLobby  } = useGame();
+    const { lobby, chatMessages, leaveLobby, createLobby  } = useGame();
     const { user } = useAuth();
 
     const [inputMessage, setInputMessage] = useState("");
     const [showInvitePopup, setShowInvitePopup] = useState(false);
 
     if (!lobby) {
+        createLobby();
         return (
             <div className="w-full flex justify-center items-center h-full text-text-primary">
                 Loading lobby...
