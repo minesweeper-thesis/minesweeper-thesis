@@ -47,6 +47,9 @@ export function GameServiceProvider({ children }) {
 
             switch (msg.type) {
                 case "current_lobby":
+                    if (!msg.lobby){
+                        break;
+                    }
                     console.log("[WS] Ustawiam current lobby:", msg.lobby);
                     setLobby(msg.lobby);
                     break;
