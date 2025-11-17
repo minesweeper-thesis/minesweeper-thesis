@@ -43,6 +43,7 @@ api.include_router(routers.stats_router)
 api.include_router(routers.user_router)
 api.include_router(routers.friends_router)
 api.include_router(routers.friend_requests_router)
+api.include_router(routers.notifications_router)
 add_pagination(api)
 
 os.makedirs("img", exist_ok=True)

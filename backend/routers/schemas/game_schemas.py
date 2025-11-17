@@ -138,6 +138,8 @@ class NewGameResponse(BaseModel):
 
 
 class GameActionResponse(ABC, BaseModel):
+    type: ClassVar[str]
+
     @staticmethod
     def create(result: ActionResult) -> "GameActionResponse":
         mapping: dict[type[ActionResult], type[GameActionResponse]] = {
@@ -151,6 +153,7 @@ class GameActionResponse(ABC, BaseModel):
 
 
 class RevealResponse(GameActionResponse):
+    type: ClassVar[str] = "reveal"
     revealed_cells: list[RevealedCell]
     game_status: GameStatus
 
@@ -165,6 +168,7 @@ class RevealResponse(GameActionResponse):
 
 
 class GameOverResponse(GameActionResponse):
+    type: ClassVar[str] = "game_over"
     game_status: GameResult
     full_board: list[list[int]]
     elapsed_time: float
@@ -183,6 +187,7 @@ class GameOverResponse(GameActionResponse):
 
 
 class GameStateResponse(GameActionResponse):
+    type: ClassVar[str] = "game_state"
     status: GameStatus
     result: Optional[GameResult]
     revealed_cells: list[RevealedCell]
@@ -205,6 +210,7 @@ class GameStateResponse(GameActionResponse):
 
 
 class FlagResponse(GameActionResponse):
+    type: ClassVar[str] = "flag"
     game_status: GameStatus
 
     @staticmethod
@@ -217,7 +223,8 @@ class FlagResponse(GameActionResponse):
 
 
 class RemoveFlagResponse(GameActionResponse):
-    game_staus: GameStatus
+    type: ClassVar[str] = "remove_flag"
+    game_status: GameStatus
 
     @staticmethod
     def _from_action_result(
@@ -229,6 +236,7 @@ class RemoveFlagResponse(GameActionResponse):
 
 
 class HintResponse(GameActionResponse):
+    type: ClassVar[str] = "hint"
     safe_cells: list[Cell]
 
     @staticmethod
