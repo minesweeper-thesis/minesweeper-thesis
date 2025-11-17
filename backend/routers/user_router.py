@@ -2,7 +2,7 @@ from typing import Annotated
 
 import filetype
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi_pagination import Params
+from fastapi_pagination import Page, Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
@@ -41,7 +41,10 @@ async def delete_avatar(
     await service.delete_avatar()
 
 
-@user_router.get("/search")
+@user_router.get(
+    "/search",
+    responses={200: {"model": Page[UserResponse]}},
+)
 async def search_users(
     query: str,
     pagination_params: PaginationParams,

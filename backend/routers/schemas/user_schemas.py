@@ -42,6 +42,8 @@ class MakeFriendRequest(BaseModel):
 
 
 class FriendRequestResponse(BaseModel):
+    type: ClassVar[str] = "friend_request"
+
     id: uuid.UUID
     user: UserResponse
     friend: UserResponse
