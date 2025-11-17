@@ -144,7 +144,7 @@ class NewGameResponse(BaseModel):
 
 
 class GameActionResponse(ABC, BaseModel):
-    type: ClassVar[str]
+    type: str
 
     @staticmethod
     def create(result: ActionResult) -> "GameActionResponse":
@@ -159,7 +159,7 @@ class GameActionResponse(ABC, BaseModel):
 
 
 class RevealResponse(GameActionResponse):
-    type: ClassVar[str] = "reveal"
+    type: str = "reveal"
     revealed_cells: list[RevealedCell]
     game_status: GameStatus
 
@@ -174,7 +174,7 @@ class RevealResponse(GameActionResponse):
 
 
 class GameOverResponse(GameActionResponse):
-    type: ClassVar[str] = "game_over"
+    type: str = "game_over"
     game_status: GameResult
     full_board: list[list[int]]
     elapsed_time: float
@@ -193,7 +193,7 @@ class GameOverResponse(GameActionResponse):
 
 
 class GameStateResponse(GameActionResponse):
-    type: ClassVar[str] = "game_state"
+    type: str = "game_state"
     status: GameStatus
     result: Optional[GameResult]
     revealed_cells: list[RevealedCell]
@@ -216,7 +216,7 @@ class GameStateResponse(GameActionResponse):
 
 
 class FlagResponse(GameActionResponse):
-    type: ClassVar[str] = "flag"
+    type: str = "flag"
     game_status: GameStatus
 
     @staticmethod
@@ -229,7 +229,7 @@ class FlagResponse(GameActionResponse):
 
 
 class RemoveFlagResponse(GameActionResponse):
-    type: ClassVar[str] = "remove_flag"
+    type: str = "remove_flag"
     game_status: GameStatus
 
     @staticmethod
@@ -242,7 +242,7 @@ class RemoveFlagResponse(GameActionResponse):
 
 
 class HintResponse(GameActionResponse):
-    type: ClassVar[str] = "hint"
+    type: str = "hint"
     safe_cells: list[Cell]
 
     @staticmethod
