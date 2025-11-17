@@ -1,10 +1,11 @@
 import uuid
+from contextlib import suppress
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
-from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
+from backend.lib.auth import CurrentUser, CurrentUserWebSocket, OptionalCurrentUser
 from backend.routers.schemas import create_response
 from backend.services import exceptions as service_exceptions
 
@@ -34,7 +35,6 @@ async def start_singleplayer_game(
     user: OptionalCurrentUser,
     service: SingleplayerService,
 ) -> NewGameResponse:
-    """Starts a new game."""
     gameplay, board = await service.create_singleplayer_gameplay(
         user, new_game_input.to_game_settings()
     )
@@ -51,8 +51,6 @@ async def play_single(
     websocket: WebSocket,
     service: SingleplayerService,
 ):
-    """WebSocket endpoint for playing a game."""
-
     async def receiver():
         while True:
             data = await websocket.receive_json()
@@ -76,34 +74,64 @@ async def play_single(
         await service.save_gameplay_progress()
 
 
-@game_router.websocket("/multi/{gameplay_id}")
+@game_router.post("/{lobby_id}/ready")
+async def set_user_ready(
+    lobby_id: uuid.UUID,
+    user: CurrentUser,
+    # service: LobbyService,
+):
+    """Sets the user as ready in the lobby."""
+    # await service.set_user_ready(lobby_id, user, notify)
+
+
+@game_router.websocket("/multi/{session_id}")
 async def play_multi(
-    gameplay_id: uuid.UUID,
+    session_id: uuid.UUID,
     websocket: WebSocket,
-    # service: MultiplayerService,
+    service: MultiplayerService,
     user: CurrentUserWebSocket,
 ):
-    """WebSocket endpoint for playing a game."""
+    async def send_round_start(start_time, end_time):
+        await websocket.send_text(
+            RoundStartResponse(
+                start_at=start_time,
+                end_at=end_time,
+            ).model_dump_json(exclude_none=True)
+        )
+
+    async def send_round_end():
+        await websocket.send_text(RoundEndResponse().model_dump_json(exclude_none=True))
+
+    async def send_data(data):
+        await websocket.send_text(create_response(data))  # todo: create_response
 
     async def receiver():
         while True:
             data = await websocket.receive_json()
-            game_action = parse_game_action(data)
 
-            # action_result, is_game_over = await service.handle_game_action(game_action)
-            # await websocket.send_json(action_result.model_dump(exclude_none=True))
+            with suppress(ValueError):
+                msg = parse_multiplayer_session_message(data)
+                await service.handle_multiplayer_session_message(msg)
 
-            # if is_game_over:
-            #     await service.save_gameplay_progress()
-            #     await websocket.close()
-            #     return
+            with suppress(ValueError):
+                msg = parse_game_action(data)
+                action_result, is_session_over = await service.handle_game_action(msg)
+                await websocket.send_text(create_response(action_result))
+
+                if is_session_over:
+                    await websocket.send_text(
+                        SessionEndResponse().model_dump_json(
+                            exclude_none=True
+                        )  # todo: add ranking
+                    )
+                    await websocket.close()
+                    return
 
     try:
-        # await service.load_gameplay(gameplay_id)
+        await service.load_session(session_id, user, send_data)
         await websocket.accept()
 
         await receiver()
 
     except WebSocketDisconnect:
         pass
-        # await service.save_gameplay_progress()

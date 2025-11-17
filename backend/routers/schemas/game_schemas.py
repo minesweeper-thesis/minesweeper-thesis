@@ -5,6 +5,11 @@ from pydantic import BaseModel, Field, model_validator
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
+from backend.core.multiplayer import (
+    MultiplayerSessionMessage,
+    NotReadyMessage,
+    ReadyMessage,
+)
 
 from .board_schemas import *
 
@@ -61,14 +66,14 @@ class NewGameRequest(BaseModel):
 class GameActionRequest(BaseModel):
     type: ClassVar[str]
 
-    def to_action(self) -> GameAction:
+    def to_core(self) -> GameAction:
         raise NotImplementedError()
 
 
 class HintRequest(GameActionRequest):
     type: ClassVar[str] = "hint"
 
-    def to_action(self) -> HintAction:
+    def to_core(self) -> HintAction:
         return HintAction()
 
 
@@ -79,56 +84,57 @@ class CellGameActionRequest(GameActionRequest):
 class RevealOneRequest(CellGameActionRequest):
     type: ClassVar[str] = "reveal_one"
 
-    def to_action(self) -> RevealOneAction:
+    def to_core(self) -> RevealOneAction:
         return RevealOneAction(self.cell)
 
 
 class RevealManyRequest(CellGameActionRequest):
     type: ClassVar[str] = "reveal_many"
 
-    def to_action(self) -> RevealManyAction:
+    def to_core(self) -> RevealManyAction:
         return RevealManyAction(self.cell)
 
 
 class FlagRequest(CellGameActionRequest):
     type: ClassVar[str] = "flag"
 
-    def to_action(self) -> FlagAction:
+    def to_core(self) -> FlagAction:
         return FlagAction(self.cell)
 
 
 class RemoveFlagRequest(CellGameActionRequest):
     type: ClassVar[str] = "remove_flag"
 
-    def to_action(self) -> RemoveFlagAction:
+    def to_core(self) -> RemoveFlagAction:
         return RemoveFlagAction(self.cell)
 
 
 class GameStateRequest(GameActionRequest):
     type: ClassVar[str] = "get_state"
 
-    def to_action(self) -> GameStateAction:
+    def to_core(self) -> GameStateAction:
         return GameStateAction()
+
+
+def _get_subclassess(cls):
+    return set(cls.__subclasses__()) | {
+        s for c in cls.__subclasses__() for s in _get_subclassess(c)
+    }
 
 
 def parse_game_action(data: dict) -> GameAction:
     try:
         action_type = data["type"]
 
-        def get_subclassess(cls):
-            return set(cls.__subclasses__()) | {
-                s for c in cls.__subclasses__() for s in get_subclassess(c)
-            }
-
         model_map: dict[str, type[GameActionRequest]] = {
             subclass.type: subclass
-            for subclass in get_subclassess(GameActionRequest)
+            for subclass in _get_subclassess(GameActionRequest)
             if hasattr(subclass, "type")
         }
 
-        return model_map[action_type](**data).to_action()
+        return model_map[action_type](**data).to_core()
     except KeyError:
-        raise ValueError(f"Unknown action type: {action_type}")
+        raise ValueError(f"Unknown action type: {action_type}") from None
 
 
 class NewGameResponse(BaseModel):
@@ -246,3 +252,60 @@ class HintResponse(GameActionResponse):
         return HintResponse(
             safe_cells=result.safe_cells,
         )
+
+
+class MultiplayerSessionMessageRequest(GameActionRequest):
+    type: ClassVar[str]
+
+    @staticmethod
+    def to_core() -> MultiplayerSessionMessage:
+        raise NotImplementedError()
+
+
+class ReadyRequest(MultiplayerSessionMessageRequest):
+    type: ClassVar[str] = "ready"
+
+    @staticmethod
+    def to_core() -> "ReadyMessage":
+        return ReadyMessage()
+
+
+class NotReadyRequest(MultiplayerSessionMessageRequest):
+    type: ClassVar[str] = "not_ready"
+
+    @staticmethod
+    def to_core() -> "NotReadyMessage":
+        return NotReadyMessage()
+
+
+class RoundStartResponse(BaseModel):
+    type: ClassVar[str] = "round_start"
+    start_at: int
+    end_at: int
+
+
+class RoundEndResponse(BaseModel):
+    type: ClassVar[str] = "round_end"
+
+
+class SessionEndResponse(BaseModel):
+    type: ClassVar[str] = "session_end"
+
+
+class FirstRoundStartResponse(RoundStartResponse):
+    gameplay_id: uuid.UUID
+
+
+def parse_multiplayer_session_message(data: dict) -> MultiplayerSessionMessage:
+    try:
+        message_type = data["type"]
+
+        model_map: dict[str, type[MultiplayerSessionMessageRequest]] = {
+            subclass.type: subclass
+            for subclass in _get_subclassess(MultiplayerSessionMessageRequest)
+            if hasattr(subclass, "type")
+        }
+
+        return model_map[message_type](**data).to_core()
+    except KeyError:
+        raise ValueError(f"Unknown message type: {message_type}") from None
