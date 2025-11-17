@@ -53,3 +53,13 @@ async def search_users(
     page = await service.search_users(query, pagination_params)
     page.items = [UserResponse.from_user(user) for user in page.items]
     return page
+
+
+@user_router.get("/gameplays", responses={200: {"model": Page[UserGameplayResponse]}})
+async def get_gameplays(
+    pagination_params: PaginationParams,
+    service: UserService,
+):
+    page = await service.get_gameplays(pagination_params)
+    page.items = [UserGameplayResponse.from_gameplay(gp) for gp in page.items]
+    return page

@@ -26,4 +26,4 @@ def create_response(data: Any) -> str:
 
     mapping = {**lobby_mapping, **game_mapping}
 
-    return mapping[type(data)].create(data).model_dump_json(exclude_none=True)
+    return mapping[type(data)].create(data).model_dump_json()

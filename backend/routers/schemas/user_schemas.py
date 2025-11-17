@@ -4,6 +4,7 @@ from typing import Optional
 from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 from pydantic import BaseModel
 
+from backend.core.singleplayer import SingleplayerGameplay
 from backend.core.user import FriendRequest, FriendRequestStatus, User
 
 
@@ -69,4 +70,26 @@ class FriendResponse(UserResponse):
             email=user.email,
             nickname=user.nickname,
             avatar_url=user.avatar.url if user.avatar else None,
+        )
+
+
+class UserGameplayResponse(BaseModel):
+    id: uuid.UUID
+    board_id: uuid.UUID
+    status: str
+    result: Optional[str]
+    used_hints: int
+    elapsed_time: float
+    game_mode: str
+
+    @staticmethod
+    def from_gameplay(gameplay: "SingleplayerGameplay") -> "UserGameplayResponse":
+        return UserGameplayResponse(
+            id=gameplay.id,
+            board_id=gameplay.board.id,
+            status=gameplay.status,
+            result=gameplay.result,
+            used_hints=gameplay.used_hints,
+            elapsed_time=gameplay.elapsed_time,
+            game_mode=gameplay.game_mode,
         )
