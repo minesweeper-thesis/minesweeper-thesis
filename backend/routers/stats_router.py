@@ -1,4 +1,3 @@
-import uuid
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -18,12 +17,14 @@ stats_router = APIRouter(prefix="/stats", tags=["stats"])
 @stats_router.get("/gameplays/global")
 async def get_gameplays_global_ranking(
     service: StatsService,
-    difficulty_level_id: Annotated[uuid.UUID, Query()],
+    rows: Annotated[int, Query()],
+    cols: Annotated[int, Query()],
+    mine_count: Annotated[int, Query()],
     pagination_params: PaginationParams,
 ) -> Page[schemas.GameplayRankingResponse]:
     """Get global gameplays ranking sorted by time."""
     return await service.get_gameplays_global_ranking(
-        difficulty_level_id, pagination_params
+        rows, cols, mine_count, pagination_params
     )
 
 
@@ -31,25 +32,29 @@ async def get_gameplays_global_ranking(
 async def get_gameplays_friends_ranking(
     service: StatsService,
     user: CurrentUser,
-    difficulty_level_id: Annotated[uuid.UUID, Query()],
+    rows: Annotated[int, Query()],
+    cols: Annotated[int, Query()],
+    mine_count: Annotated[int, Query()],
     pagination_params: PaginationParams,
 ) -> Page[schemas.GameplayRankingResponse]:
     """Get friends gameplays ranking sorted by time."""
     return await service.get_gameplays_friends_ranking(
-        user, difficulty_level_id, pagination_params
+        user, rows, cols, mine_count, pagination_params
     )
 
 
 @stats_router.get("/users/global")
 async def get_users_global_ranking(
     service: StatsService,
-    difficulty_level_id: Annotated[uuid.UUID, Query()],
+    rows: Annotated[int, Query()],
+    cols: Annotated[int, Query()],
+    mine_count: Annotated[int, Query()],
     compare_by: CompareBy,
     pagination_params: PaginationParams,
 ) -> Page[schemas.UserRankingResponse]:
     """Get global users ranking sorted by win rate or average time."""
     return await service.get_users_global_ranking(
-        difficulty_level_id, compare_by, pagination_params
+        rows, cols, mine_count, compare_by, pagination_params
     )
 
 
@@ -57,11 +62,13 @@ async def get_users_global_ranking(
 async def get_users_friends_ranking(
     service: StatsService,
     user: CurrentUser,
-    difficulty_level_id: Annotated[uuid.UUID, Query()],
+    rows: Annotated[int, Query()],
+    cols: Annotated[int, Query()],
+    mine_count: Annotated[int, Query()],
     compare_by: CompareBy,
     pagination_params: PaginationParams,
 ) -> Page[schemas.UserRankingResponse]:
     """Get friends users ranking sorted by win rate or average time."""
     return await service.get_users_friends_ranking(
-        user, difficulty_level_id, compare_by, pagination_params
+        user, rows, cols, mine_count, compare_by, pagination_params
     )
