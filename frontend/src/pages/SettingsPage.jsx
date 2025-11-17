@@ -1,18 +1,47 @@
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import { applyTheme } from "../contexts/ThemeProvider";
+import {useAuth} from "../contexts/AuthContext";
 
 export default function SettingsPage() {
-    // Placeholdery
-    const [username, setUsername] = useState("Player123");
-    const [email, setEmail] = useState("player@example.com");
-    const [theme, setTheme] = useState("system");
+
+    const { user, loading } = useAuth();
+    const [username, setUsername] = useState("");
+    const [email, setEmail] = useState("");
+    const [theme, setTheme] = useState(localStorage.getItem("app-theme") ?? "system");
     const [avatar, setAvatar] = useState(null);
+    const [newPassword, setNewPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
+
+    useEffect(() => {
+        if (!loading && user) {
+            setUsername(user.nickname ?? "Player123");
+            setEmail(user.email ?? "player@example.com");
+            setTheme(user?.settings?.theme ?? localStorage.getItem("app-theme") ?? "system");
+            setAvatar(user.avatar_url ?? null);
+        }
+    }, [user, loading]);
+
+    const authFetch = async (url, options = {}) => {
+        const res = await fetch(url, {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {}),
+            },
+            credentials: 'include',
+        });
+        if (!res.ok) {
+            const text = await res.text();
+            console.log(text);
+            throw new Error(text || res.statusText);
+        }
+        return res.json();
+    };
 
     const handleAvatarChange = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Optional: validate file size (2MB max)
         const maxSizeMB = 2;
         if (file.size / 1024 / 1024 > maxSizeMB) {
             alert(`File is too large. Max size is ${maxSizeMB}MB.`);
@@ -44,18 +73,67 @@ export default function SettingsPage() {
     };
 
 
-    const handleSaveProfile = (e) => {
+    const handleSaveProfile = async (e) => {
         e.preventDefault();
-        alert("Zmieniono dane użytkownika (placeholder)");
+
+        if (user && email && username) {
+            await authFetch(`api/auth/me`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    ...user,
+                    nickname: username,
+                    email: email,
+                }),
+            });
+        }
     };
 
-    const handleChangePassword = (e) => {
-        e.preventDefault();
-        alert("Zmieniono hasło (placeholder)");
-    };
-    //koniec placeholderow
 
-    const handleThemeChange = (newTheme) => {
+    const handleChangePassword = async (e) => {
+        e.preventDefault();
+        if (!user) {
+            return;
+        }
+
+        if (!newPassword || !confirmPassword) {
+            alert("Please fill in both password fields.");
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            alert("Passwords do not match!");
+            return;
+        }
+
+        try {
+            await authFetch(`api/auth/me`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    ...user,
+                    password: newPassword }),
+            });
+            setNewPassword("");
+            setConfirmPassword("");
+        } catch (err) {
+            console.error(err);
+            alert("Failed to update password: " + err.message);
+        }
+    };
+
+
+    const handleThemeChange = async (newTheme) => {
+        if (user){
+            await authFetch(`api/auth/me`, {
+                method: "PATCH",
+                body: JSON.stringify({
+                    ...user,
+                    settings : {
+                        theme: newTheme,
+                    }
+                }),
+            });
+        }
+
         setTheme(newTheme);
         applyTheme(newTheme);
     };
@@ -141,20 +219,22 @@ export default function SettingsPage() {
             >
                 <h2 className="text-lg font-semibold text-text-primary">Change Password</h2>
 
-                <div className="flex flex-col gap-1">
-                    <label className="text-sm text-text-secondary">Current Password</label>
-                    <input
-                        type="password"
-                        placeholder="Enter current password"
-                        className="px-3 py-2 bg-bg-tertiary border border-border-primary rounded-lg text-text-primary placeholder-text-secondary"
-                    />
-                </div>
+                {/*<div className="flex flex-col gap-1">*/}
+                {/*    <label className="text-sm text-text-secondary">Current Password</label>*/}
+                {/*    <input*/}
+                {/*        type="password"*/}
+                {/*        placeholder="Enter current password"*/}
+                {/*        className="px-3 py-2 bg-bg-tertiary border border-border-primary rounded-lg text-text-primary placeholder-text-secondary"*/}
+                {/*    />*/}
+                {/*</div>*/}
 
                 <div className="flex flex-col gap-1">
                     <label className="text-sm text-text-secondary">New Password</label>
                     <input
                         type="password"
                         placeholder="Enter new password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
                         className="px-3 py-2 bg-bg-tertiary border border-border-primary rounded-lg text-text-primary placeholder-text-secondary"
                     />
                 </div>
@@ -164,6 +244,8 @@ export default function SettingsPage() {
                     <input
                         type="password"
                         placeholder="Repeat new password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
                         className="px-3 py-2 bg-bg-tertiary border border-border-primary rounded-lg text-text-primary placeholder-text-secondary"
                     />
                 </div>
