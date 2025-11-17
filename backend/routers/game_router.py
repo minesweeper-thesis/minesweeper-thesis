@@ -68,6 +68,7 @@ async def play_single(
     try:
         await service.load_gameplay(gameplay_id)
         await websocket.accept()
+        await websocket.send_text(create_response(await service.get_game_state()))
 
         await receiver()
 
