@@ -53,7 +53,7 @@ export default function GamePage() {
     }, [boardData, heuristicData]);
 
     const socketUrl = gameplayId ? `api/game/single/${gameplayId}` : null;
-    const { send } = useGameWebSocket(socketUrl, gameInterpreter, boardRef);
+    const { send, socketRef } = useGameWebSocket(socketUrl, gameInterpreter, boardRef);
 
     useEffect(() => {
         startNewGame();
@@ -77,6 +77,7 @@ export default function GamePage() {
                 />
 
                 <div className="game-board flex-1 mt-4 ">
+                    {socketRef != null ? (
                     <Board
                         key={gameplayId}
                         ref={boardRef}
@@ -86,6 +87,17 @@ export default function GamePage() {
                         setMines={setMines}
                         startField={startField}
                     />
+                        ) :
+                        <div className="flex flex-col items-center justify-center h-full text-text-primary">
+                            <div className="relative w-10 h-10 mb-3 mt-20">
+                                <div className="absolute inset-0 border-4 border-border-primary rounded-full opacity-20"></div>
+                                <div className="absolute inset-0 border-4 border-accent-primary rounded-full border-t-transparent animate-spin"></div>
+                            </div>
+                            <p className="text-lg font-medium animate-pulse">
+                                Connecting<span className="dots"></span>
+                            </p>
+                        </div>
+                    }
                 </div>
             </main>
         </div>
