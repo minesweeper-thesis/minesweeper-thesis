@@ -6,10 +6,34 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import Float, func, select
 
 from backend.core.board import DifficultyLevel
+from backend.core.user import User
 from backend.db.db import DBSession
 from backend.repositories.utils import _get_difficulty_level_orm
 
 from .orm import *
+
+
+class TimeRankingItem:
+    def __init__(self, gameplay_id: uuid.UUID, user: User, time: float):
+        self.gameplay_id = gameplay_id
+        self.user = user
+        self.time = time
+
+
+class UserRankingItem:
+    def __init__(
+        self,
+        user: User,
+        win_rate: float,
+        average_time: float,
+        total_games: int,
+        won_games: int,
+    ):
+        self.user = user
+        self.win_rate = win_rate
+        self.average_time = average_time
+        self.total_games = total_games
+        self.won_games = won_games
 
 
 class StatsRepository:
@@ -25,8 +49,7 @@ class StatsRepository:
         stmt = (
             select(
                 SingleplayerGameplayORM.id.label("gameplay_id"),
-                UserORM.id.label("user_id"),
-                UserORM.nickname,
+                UserORM,
                 SingleplayerGameplayORM.time,
             )
             .join(UserORM, SingleplayerGameplayORM.user_id == UserORM.id)
@@ -36,7 +59,14 @@ class StatsRepository:
             .order_by(SingleplayerGameplayORM.time.asc())
         )
 
-        return await apaginate(self.session, stmt, pagination_params)
+        return await apaginate(
+            self.session,
+            stmt,
+            pagination_params,
+            transformer=lambda items: [
+                TimeRankingItem(item[0], item[1].to_user(), item[2]) for item in items
+            ],
+        )
 
     async def get_gameplays_friends_ranking(
         self,
@@ -48,23 +78,30 @@ class StatsRepository:
         stmt = (
             select(
                 SingleplayerGameplayORM.id.label("gameplay_id"),
-                UserORM.id.label("user_id"),
-                UserORM.nickname,
+                UserORM,
                 SingleplayerGameplayORM.time,
             )
             .join(UserORM, SingleplayerGameplayORM.user_id == UserORM.id)
             .join(BoardORM, SingleplayerGameplayORM.board_id == BoardORM.id)
-            .join(
+            .outerjoin(
                 FriendshipORM,
                 (FriendshipORM.friend_id == UserORM.id)
                 & (FriendshipORM.user_id == user_id),
             )
             .where(BoardORM.difficulty_level_id == difficulty_level_orm.id)
             .where(SingleplayerGameplayORM.used_hints == False)
+            .where((UserORM.id == user_id) | (FriendshipORM.friend_id == UserORM.id))
             .order_by(SingleplayerGameplayORM.time.asc())
         )
 
-        return await apaginate(self.session, stmt, pagination_params)
+        return await apaginate(
+            self.session,
+            stmt,
+            pagination_params,
+            transformer=lambda items: [
+                TimeRankingItem(item[0], item[1].to_user(), item[2]) for item in items
+            ],
+        )
 
     async def get_global_user_ranking(
         self,
@@ -75,8 +112,7 @@ class StatsRepository:
         difficulty_level_orm = await _get_difficulty_level_orm(self, difficulty_level)
         stmt = (
             select(
-                UserORM.id.label("user_id"),
-                UserORM.nickname,
+                UserORM,
                 (
                     func.cast(func.count(SingleplayerGameplayORM.result), Float)
                     / func.count(SingleplayerGameplayORM.id)
@@ -116,7 +152,21 @@ class StatsRepository:
                 ).asc()
             )
 
-        return await apaginate(self.session, stmt, pagination_params)
+        return await apaginate(
+            self.session,
+            stmt,
+            pagination_params,
+            transformer=lambda items: [
+                UserRankingItem(
+                    item[0].to_user(),
+                    item[1],
+                    item[2],
+                    item[3],
+                    item[4],
+                )
+                for item in items
+            ],
+        )
 
     async def get_friends_user_ranking(
         self,
@@ -128,8 +178,7 @@ class StatsRepository:
         difficulty_level_orm = await _get_difficulty_level_orm(self, difficulty_level)
         stmt = (
             select(
-                UserORM.id.label("user_id"),
-                UserORM.nickname,
+                UserORM,
                 (
                     func.cast(func.count(SingleplayerGameplayORM.result), Float)
                     / func.count(SingleplayerGameplayORM.id)
@@ -174,4 +223,18 @@ class StatsRepository:
                 ).asc()
             )
 
-        return await apaginate(self.session, stmt, pagination_params)
+        return await apaginate(
+            self.session,
+            stmt,
+            pagination_params,
+            transformer=lambda items: [
+                UserRankingItem(
+                    item[0].to_user(),
+                    item[1],
+                    item[2],
+                    item[3],
+                    item[4],
+                )
+                for item in items
+            ],
+        )
