@@ -7,6 +7,7 @@ import NotFoundPage from "./pages/NotFoundPage";
 import SettingsPage from "./pages/SettingsPage";
 import StatsPage from "./pages/StatsPage";
 import GamePageSingle from "./pages/GamePageSingle";
+import MultiplayerLobby from "./pages/MultiplayerLobby";
 
 function App() {
     return (
@@ -14,6 +15,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<AppLayout />}>
                     <Route index element={<GamePageSingle />} />
+                    <Route path="/game" element={<MultiplayerLobby />} />
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/friends" element={<FriendsPage />} />

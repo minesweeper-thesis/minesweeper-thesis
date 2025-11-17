@@ -29,6 +29,7 @@ const Navbar = ({ children }) => {
 
     const navigation = [
         { path: '/', icon: Play, label: 'Game' },
+        { path: '/game',icon: Play, label: 'Multi' },
         { path: '/friends', icon: Users, label: 'Friends' },
         { path: '/stats', icon: BarChart3, label: 'Statistics' },
         { path: '/settings', icon: Settings, label: 'Settings' },
@@ -42,7 +43,7 @@ const Navbar = ({ children }) => {
                 <div  className="flex gap-4">
                     <div className="flex items-center gap-3 text-accent-primary">
                         <Gamepad2 size={32} />
-                        <h1 className="text-2xl font-bold">Minesweeper Pro</h1>
+                        <h1 className="text-2xl font-bold">Minesweeper</h1>
                     </div>
                     {/* Navigation */}
                     <nav className="flex gap-2 justify-center w-full md:w-auto order-3 md:order-none">
