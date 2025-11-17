@@ -55,7 +55,7 @@ async def get_friends(
     user: CurrentUser,
     service: FriendsService,
     pagination_params: PaginationParams,
-) -> Page[FriendResponse]:
+):
     """Gets a list of friends for current user"""
     page = await service.get_friends(pagination_params)
     page.items = [FriendResponse.from_user(friend) for friend in page.items]
@@ -80,7 +80,7 @@ async def get_pending_friend_requests(
     user: CurrentUser,
     service: FriendsService,
     pagination_params: PaginationParams,
-) -> Page[FriendRequestResponse]:
+):
     """Lists pending friend requests for current user"""
     page = await service.get_pending_friend_requests(pagination_params)
     page.items = [FriendRequestResponse.from_friend_request(req) for req in page.items]
@@ -95,7 +95,7 @@ async def get_sent_friend_requests(
     user: CurrentUser,
     service: FriendsService,
     pagination_params: PaginationParams,
-) -> Page[FriendRequestResponse]:
+):
     """Lists sent friend requests for current user"""
     page = await service.get_sent_friend_requests(pagination_params)
     page.items = [FriendRequestResponse.from_friend_request(req) for req in page.items]
