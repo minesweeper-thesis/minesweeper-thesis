@@ -48,10 +48,10 @@ async def invite_user_to_lobby(
     lobby_id: uuid.UUID,
     service: LobbyService,
     user: CurrentUser,
-    user_id: uuid.UUID,
+    request: InviteUserToLobbyRequest,
 ):
     """Sends an invitation to join the lobby."""
-    await service.invite_to_lobby(lobby_id, user, user_id, notify)
+    await service.invite_to_lobby(lobby_id, user, request.user_id, notify)
 
 
 @lobby_router.post("/{lobby_id}/join")
@@ -59,10 +59,10 @@ async def join_lobby(
     lobby_id: uuid.UUID,
     service: LobbyService,
     user: CurrentUser,
-    invitation_id: uuid.UUID,
+    request: JoinLobbyRequest,
 ):
     """Joins a lobby using an invitation."""
-    lobby = await service.join_lobby(user, invitation_id, notify)
+    lobby = await service.join_lobby(user, request.invitation_id, notify)
     return LobbyResponse.create(lobby)
 
 

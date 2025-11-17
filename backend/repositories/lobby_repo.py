@@ -45,3 +45,10 @@ class LobbyRepository:
     def delete_invitation(self, invitation_id: uuid.UUID) -> None:
         with suppress(KeyError):
             del invitations[invitation_id]
+
+    def get_pending_invitations(self, user) -> list[Invitation]:
+        return [
+            invitation
+            for invitation in invitations.values()
+            if invitation.invitee == user
+        ]

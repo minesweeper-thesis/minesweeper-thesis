@@ -9,12 +9,24 @@ from backend.services.lobby_service import GameConfigUpdated, UserConnectionUpda
 from .user_schemas import UserResponse
 
 
+class InviteUserToLobbyRequest(BaseModel):
+    user_id: uuid.UUID
+
+
+class JoinLobbyRequest(BaseModel):
+    invitation_id: uuid.UUID
+
+
+class PendingInvitationsRequest(BaseModel):
+    type: ClassVar[Literal["pending_invitations"]] = "pending_invitations"
+
+
 class UpdateGameConfigRequest(BaseModel):
     game_config: GameConfig
 
 
 class GameConfigUpdatedResponse(BaseModel):
-    type: ClassVar[Literal["game_config_updated"]] = "game_config_updated"
+    type: Literal["game_config_updated"] = "game_config_updated"
     lobby_id: uuid.UUID
     game_config: GameConfig
 
@@ -56,7 +68,7 @@ class LobbyResponse(BaseModel):
 
 
 class InvitationResponse(BaseModel):
-    type: ClassVar[Literal["invitation"]] = "invitation"
+    type: Literal["invitation"] = "invitation"
     id: uuid.UUID
     lobby: InvitationLobbyResponse
 
@@ -69,7 +81,7 @@ class InvitationResponse(BaseModel):
 
 
 class InvitationAnswerResponse(BaseModel):
-    type: ClassVar[Literal["invitation_response"]] = "invitation_response"
+    type: Literal["invitation_response"] = "invitation_response"
     invitation: InvitationResponse
     response: Literal["accepted", "rejected"]
 
@@ -84,7 +96,7 @@ class InvitationAnswerResponse(BaseModel):
 
 
 class UserConnectionStatusResponse(BaseModel):
-    type: ClassVar[Literal["user_connection_status"]] = "user_connection_status"
+    type: Literal["user_connection_status"] = "user_connection_status"
     lobby_id: uuid.UUID
     user: UserResponse
     status: Literal["connected", "disconnected"]
@@ -97,4 +109,17 @@ class UserConnectionStatusResponse(BaseModel):
             lobby_id=data.lobby_id,
             user=UserResponse.from_user(data.user),
             status=data.status,
+        )
+
+
+class PendingInvitationsResponse(BaseModel):
+    type: Literal["pending_invitations"] = "pending_invitations"
+    invitations: list[InvitationResponse]
+
+    @staticmethod
+    def create(invitations: list[Invitation]) -> "PendingInvitationsResponse":
+        return PendingInvitationsResponse(
+            invitations=[
+                InvitationResponse.create(invitation) for invitation in invitations
+            ],
         )

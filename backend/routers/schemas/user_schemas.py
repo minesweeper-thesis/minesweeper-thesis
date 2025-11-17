@@ -1,5 +1,5 @@
 import uuid
-from typing import ClassVar, Optional
+from typing import Optional
 
 from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 from pydantic import BaseModel
@@ -42,8 +42,6 @@ class MakeFriendRequest(BaseModel):
 
 
 class FriendRequestResponse(BaseModel):
-    type: ClassVar[str] = "friend_request"
-
     id: uuid.UUID
     user: UserResponse
     friend: UserResponse
@@ -60,7 +58,7 @@ class FriendRequestResponse(BaseModel):
 
 
 class FriendRequestNotificationResponse(FriendRequestResponse):
-    type: ClassVar[str] = "friend_request"
+    type: str = "friend_request"
 
 
 class FriendResponse(UserResponse):
