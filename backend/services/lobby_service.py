@@ -38,6 +38,11 @@ class LobbyService:
         self.lobby_repo.save_lobby(lobby)
         return lobby
 
+    async def get_user_lobby(self, user: User) -> Optional[Lobby]:
+        if lobbies := self.lobby_repo.get_user_lobbies(user):
+            return lobbies[0]
+        return None
+
     async def join_lobby(
         self,
         user: User,

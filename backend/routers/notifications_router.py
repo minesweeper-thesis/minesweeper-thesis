@@ -35,6 +35,10 @@ async def send_notifications(
     try:
         await websocket.accept()
 
+        lobby = await lobby_service.get_user_lobby(user)
+        msg = CurrentLobbyResponse.create(lobby)
+        await websocket.send_text(msg.model_dump_json())
+
         await receiver()
 
     except WebSocketDisconnect:

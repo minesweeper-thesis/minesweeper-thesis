@@ -97,11 +97,20 @@ class SingleplayerService:
 
     async def handle_game_action(
         self, action: GameAction
-    ) -> tuple[ActionResult, IsGameOver]:
+    ) -> tuple[Optional[ActionResult], IsGameOver]:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
-        return action.handle(self.gameplay)
+        try:
+            return action.handle(self.gameplay)
+        except InvalidAction:
+            return None, self.gameplay.is_game_over()
+
+    async def get_game_state(self) -> GameStateResult:
+        if self.gameplay is None:
+            raise RuntimeError("Gameplay not loaded")
+
+        return self.gameplay.get_game_state()
 
     async def save_gameplay_progress(self):
         if self.gameplay is None:

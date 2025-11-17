@@ -123,3 +123,14 @@ class PendingInvitationsResponse(BaseModel):
                 InvitationResponse.create(invitation) for invitation in invitations
             ],
         )
+
+
+class CurrentLobbyResponse(BaseModel):
+    type: Literal["current_lobby"] = "current_lobby"
+    lobby: Optional[LobbyResponse]
+
+    @staticmethod
+    def create(lobby: Optional[Lobby]) -> "CurrentLobbyResponse":
+        return CurrentLobbyResponse(
+            lobby=LobbyResponse.create(lobby) if lobby else None,
+        )
