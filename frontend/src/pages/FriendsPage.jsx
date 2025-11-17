@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from "react";
 import { useFriends } from "../contexts/FriendsContext";
 import FriendCard from "../components/FriendCard";
+import {useGame} from "../contexts/GameServiceContext";
 
 export default function FriendsPage() {
     const {
@@ -24,6 +25,7 @@ export default function FriendsPage() {
         setSearchPage,
     } = useFriends();
 
+    const {sendLobbyInvitation} = useGame();
     const [activeTab, setActiveTab] = useState("friends");
     const [searchQuery, setSearchQuery] = useState("");
     const [searchResults, setSearchResults] = useState([]);
@@ -84,6 +86,7 @@ export default function FriendsPage() {
                                     variant="friend"
                                     onInvite={() => console.log("Invite not implemented yet")}
                                     onRemove={() => removeFriend(friend.id)}
+                                    onChallenge={() => sendLobbyInvitation(friend.id)}
                                 />
                             ))}
                             </div>
@@ -184,7 +187,7 @@ export default function FriendsPage() {
                                         nickname={u.nickname}
                                         type="search"
                                         onAdd={() => sendFriendRequest(u.id)}
-                                        onChallenge={() => challenge(u.id)}
+                                        onChallenge={() => sendLobbyInvitation(u.id)}
                                     />
 
                                 ))}

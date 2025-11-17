@@ -8,6 +8,7 @@
         "heroku-postbuild": "cd frontend && npm run build"
     },
     "dependencies": {
-        "@heroicons/react": "^2.2.0"
+        "@heroicons/react": "^2.2.0",
+        "uuid": "^13.0.0"
     }
 }
