@@ -48,9 +48,11 @@ class FriendRequestResponse(BaseModel):
     friend: UserResponse
     status: FriendRequestStatus
 
-    @staticmethod
-    def from_friend_request(friend_request: FriendRequest) -> "FriendRequestResponse":
-        return FriendRequestResponse(
+    @classmethod
+    def from_friend_request(
+        cls, friend_request: FriendRequest
+    ) -> "FriendRequestResponse":
+        return cls(
             id=friend_request.id,
             user=UserResponse.from_user(friend_request.user),
             friend=UserResponse.from_user(friend_request.friend),
