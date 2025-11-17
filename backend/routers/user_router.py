@@ -2,7 +2,7 @@ from typing import Annotated
 
 import filetype
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
-from fastapi_pagination import Params
+from fastapi_pagination import Page, Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
@@ -46,7 +46,7 @@ async def search_users(
     query: str,
     pagination_params: PaginationParams,
     service: UserService,
-):
+) -> Page[UserResponse]:
     page = await service.search_users(query, pagination_params)
     page.items = [UserResponse.from_user(user) for user in page.items]
     return page
