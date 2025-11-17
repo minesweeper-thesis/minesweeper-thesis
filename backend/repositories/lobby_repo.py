@@ -52,3 +52,6 @@ class LobbyRepository:
             for invitation in invitations.values()
             if invitation.invitee == user
         ]
+
+    def get_user_lobbies(self, user) -> list[Lobby]:
+        return [lobby for lobby in lobbies.values() if user in lobby.users]

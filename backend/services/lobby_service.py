@@ -44,6 +44,10 @@ class LobbyService:
         invitation_id: uuid.UUID,
         notify: Notify,
     ):
+        user_lobbies = self.lobby_repo.get_user_lobbies(user)
+        if user_lobbies:
+            raise ValueError("User is already in a lobby")
+
         invitation = self.lobby_repo.get_invitation(invitation_id)
         lobby = invitation.lobby
 

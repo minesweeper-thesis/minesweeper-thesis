@@ -17,10 +17,12 @@ class UserService:
     def __init__(
         self,
         user_repo: UserRepository,
+        singleplayer_repo: GameRepository,
         user: CurrentUser,
         avatar_storage: AvatarStorage,
     ):
         self.user_repo = user_repo
+        self.singleplayer_repo = singleplayer_repo
         self.user = user
         self.avatar_storage = avatar_storage
 
@@ -36,3 +38,8 @@ class UserService:
 
     async def search_users(self, query: str, pagination_params: Params):
         return await self.user_repo.search_users(query, pagination_params)
+
+    async def get_gameplays(self, pagination_params: Params):
+        return await self.singleplayer_repo.get_gameplays(
+            self.user.id, pagination_params
+        )
