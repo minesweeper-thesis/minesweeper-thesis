@@ -51,6 +51,7 @@ export default function GamePage() {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify(REQUEST_BODY),
+                credentials: "include"
             });
 
             if (!response.ok) {

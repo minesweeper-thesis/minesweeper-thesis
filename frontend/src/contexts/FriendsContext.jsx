@@ -82,17 +82,20 @@ export const FriendsProvider = ({ children }) => {
     }, []);
 
     const sendFriendRequest = async (friendId) => {
-        await authFetch(`api/friend-requests?friend_id=${friendId}`, { method: "POST" });
+        await authFetch(`api/friend-requests`, {
+            method: "POST",
+            body: JSON.stringify({ friend_id: friendId }),
+        });
         reload();
     };
 
     const acceptFriendRequest = async (requestId) => {
-        await authFetch(`api/friend-requests/${requestId}/accept`, { method: "PUT" });
+        await authFetch(`api/friend-requests/${requestId}/accept`, { method: "POST" });
         reload();
     };
 
     const rejectFriendRequest = async (requestId) => {
-        await authFetch(`api/friend-requests/${requestId}/reject`, { method: "PUT" });
+        await authFetch(`api/friend-requests/${requestId}/reject`, { method: "POST" });
         reload();
     };
 

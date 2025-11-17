@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import {
     Play,
     Users,
@@ -11,12 +11,21 @@ import {
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLogout } from '../hooks/useLogout';
+import {applyTheme} from "../contexts/ThemeProvider";
 
 const Navbar = ({ children }) => {
     const { user, loading } = useAuth();
     const logout = useLogout();
     const location = useLocation();
     const { pathname } = location;
+
+    useEffect(() => {
+        if (!loading && user) {
+            if (user?.settings?.theme) {
+                applyTheme(user.settings.theme)
+            }
+        }
+    }, [user, loading]);
 
     const navigation = [
         { path: '/', icon: Play, label: 'Game' },

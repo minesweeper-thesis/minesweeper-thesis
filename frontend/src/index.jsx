@@ -5,13 +5,16 @@ import App from "./App";
 import {AuthProvider} from "./contexts/AuthContext";
 import {FriendsProvider} from "./contexts/FriendsContext";
 import { initTheme } from './contexts/ThemeProvider.js';
+import {NotificationProvider} from "./contexts/NotificationContext";
 
 initTheme();
 ReactDOM.createRoot(document.getElementById('root')).render(
 
     <AuthProvider>
-        <FriendsProvider>
-            <App />
-        </FriendsProvider>
+        <NotificationProvider>
+            <FriendsProvider>
+                <App />
+            </FriendsProvider>
+        </NotificationProvider>
     </AuthProvider>
 );

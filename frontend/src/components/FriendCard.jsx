@@ -1,13 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { EllipsisVerticalIcon } from "@heroicons/react/24/solid";
 
-/**
- * Props:
- *  - avatar (string | null)
- *  - nickname (string)
- *  - type: "friend" | "incoming" | "sent" | "search"
- *  - onChallenge, onAccept, onReject, onCancel, onRemove, onAdd (functions)
- */
+
 export default function FriendCard({
                                        avatar = "/avatar.svg",
                                        nickname = "Unknown",
@@ -88,14 +82,14 @@ export default function FriendCard({
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 ml-2">
+            <div className="flex items-center gap-1 ml-1">
                 {onChallenge && (
                     <button
                         onClick={onChallenge}
                         className="flex-shrink-0 px-3 py-1.5 text-sm rounded-md bg-accent-primary text-bg-primary font-medium hover:opacity-90"
                         aria-label={`Challenge ${nickname}`}
                     >
-                        Challenge
+                        Invite
                     </button>
                 )}
 
