@@ -74,10 +74,10 @@ class FriendshipORM(Base):
         CheckConstraint("user_id != friend_id", name="check_not_self_friend"),
     )
 
-    def to_friendship(self) -> "Friendship":
+    def to_friendship(self, is_user_online, is_friend_online) -> "Friendship":
         return Friendship(
-            user=self.user.to_user(is_online=False),
-            friend=self.friend.to_user(is_online=False),
+            user=self.user.to_user(is_online=is_user_online),
+            friend=self.friend.to_user(is_online=is_friend_online),
         )
 
     @staticmethod
@@ -112,11 +112,11 @@ class FriendRequestORM(Base):
         CheckConstraint("user_id != friend_id", name="check_not_self_request"),
     )
 
-    def to_friend_request(self, is_online) -> "FriendRequest":
+    def to_friend_request(self, is_user_online, is_friend_online) -> "FriendRequest":
         return FriendRequest(
             id=self.id,
-            user=self.user.to_user(is_online),
-            friend=self.friend.to_user(is_online),
+            user=self.user.to_user(is_user_online),
+            friend=self.friend.to_user(is_friend_online),
             status=self.status,
         )
 

@@ -1,31 +1,37 @@
 import uuid
+from typing import Annotated
 
+from fastapi import Depends
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
 
 from backend.core.user import User
 from backend.db.db import DBSession
+from backend.lib import online_users
 from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
 from .orm import *
 
+OnlineUsersStore = Annotated[
+    online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
+]
+
 
 class UserRepository:
-    online_users: set[uuid.UUID] = set()
-
-    def __init__(self, session: DBSession):
+    def __init__(self, session: DBSession, online_users_store: OnlineUsersStore):
         self.session = session
+        self.online_users_store = online_users_store
 
     async def set_user_online(self, user_id: uuid.UUID):
-        self.online_users.add(user_id)
+        await self.online_users_store.set_user_online(user_id)
 
     async def set_user_offline(self, user_id: uuid.UUID):
-        self.online_users.discard(user_id)
+        await self.online_users_store.set_user_offline(user_id)
 
     async def is_user_online(self, user_id: uuid.UUID) -> bool:
-        return user_id in self.online_users
+        return await self.online_users_store.is_user_online(user_id)
 
     async def get_user(self, user_id: uuid.UUID) -> User:
         try:

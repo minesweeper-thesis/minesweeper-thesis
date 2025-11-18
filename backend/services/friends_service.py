@@ -58,7 +58,8 @@ class FriendsService:
 
         with suppress(repo_exceptions.FriendshipNotFound):
             existing_friendship = await self.friends_repo.get_friendship(
-                self.user.id, friend_id
+                self.user.id,
+                friend_id,
             )
             if existing_friendship:
                 raise UsersAlreadyFriends()

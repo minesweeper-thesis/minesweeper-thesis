@@ -1,6 +1,7 @@
 import uuid
-from typing import Optional
+from typing import Annotated, Optional
 
+from fastapi import Depends
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
@@ -9,15 +10,21 @@ from sqlalchemy.orm import selectinload
 
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.db.db import DBSession
+from backend.lib import online_users
 from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
 from .orm import *
 
+OnlineUsersStore = Annotated[
+    online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
+]
+
 
 class FriendsRepository:
-    def __init__(self, session: DBSession):
+    def __init__(self, session: DBSession, online_users_store: OnlineUsersStore):
         self.session = session
+        self.online_users_store = online_users_store
 
     async def get_friends(self, user_id: uuid.UUID, pagination_params: Params):
         stmt = (
@@ -59,7 +66,18 @@ class FriendsRepository:
                 .where(*args)
             )
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_friend_request(is_online=False)
+            friend_request_orm = result.scalar_one()
+
+            is_user_online = await self.online_users_store.is_user_online(
+                friend_request_orm.user_id
+            )
+            is_friend_online = await self.online_users_store.is_user_online(
+                friend_request_orm.friend_id
+            )
+
+            return friend_request_orm.to_friend_request(
+                is_user_online, is_friend_online
+            )
 
         except NoResultFound:
             raise FriendRequestNotFound() from None
@@ -87,13 +105,26 @@ class FriendsRepository:
             )
             .where(*args)
         )
+
+        async def transform_items(items):
+            result = []
+            for friend_request in items:
+                is_user_online = await self.online_users_store.is_user_online(
+                    friend_request.user_id
+                )
+                is_friend_online = await self.online_users_store.is_user_online(
+                    friend_request.friend_id
+                )
+                result.append(
+                    friend_request.to_friend_request(is_user_online, is_friend_online)
+                )
+            return result
+
         return await apaginate(
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: [
-                friend_request.to_friend_request() for friend_request in items
-            ],
+            transformer=transform_items,
         )
 
     async def add_friendship(self, friendship: Friendship):
@@ -121,14 +152,30 @@ class FriendsRepository:
         except NoResultFound:
             raise FriendRequestNotFound() from None
 
-    async def get_friendship(self, user_id: uuid.UUID, friend_id: uuid.UUID):
+    async def get_friendship(
+        self,
+        user_id: uuid.UUID,
+        friend_id: uuid.UUID,
+    ):
         try:
-            stmt = select(FriendshipORM).where(
-                FriendshipORM.user_id == user_id,
-                FriendshipORM.friend_id == friend_id,
+            stmt = (
+                select(FriendshipORM)
+                .options(
+                    selectinload(FriendshipORM.user),
+                    selectinload(FriendshipORM.friend),
+                )
+                .where(
+                    FriendshipORM.user_id == user_id,
+                    FriendshipORM.friend_id == friend_id,
+                )
             )
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_friendship()
+            friendship_orm = result.scalar_one()
+
+            is_user_online = await self.online_users_store.is_user_online(user_id)
+            is_friend_online = await self.online_users_store.is_user_online(friend_id)
+
+            return friendship_orm.to_friendship(is_user_online, is_friend_online)
 
         except NoResultFound:
             raise FriendshipNotFound() from None
