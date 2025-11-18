@@ -8,7 +8,6 @@ from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.user import User
 from backend.repositories.exceptions import *
-from backend.routers.schemas.lobby_schemas import UpdateGameConfigRequest
 from backend.services.exceptions import *
 
 
@@ -21,6 +20,21 @@ class GameConfigUpdated:
 @dataclass
 class UserConnectionUpdated(UserConnectionStatus):
     lobby_id: uuid.UUID
+
+
+@dataclass
+class NewDifficultyLevel:
+    rows: int
+    columns: int
+    mine_count: int
+
+
+@dataclass
+class NewGameConfig:
+    difficulty_level: NewDifficultyLevel
+    game_mode: GameMode
+    generator_type: GeneratorType
+    generator_settings: Optional[GeneratorSettings] = None
 
 
 LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
@@ -94,7 +108,7 @@ class LobbyService:
         self,
         lobby_id: uuid.UUID,
         user: User,
-        game_settings: UpdateGameConfigRequest,
+        game_settings: NewGameConfig,
         notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)

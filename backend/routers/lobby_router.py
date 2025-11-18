@@ -7,6 +7,7 @@ from backend import services
 from backend.lib.auth import CurrentUser
 from backend.lib.connections_manager import ConnectionsManager
 from backend.routers.schemas import create_response
+from backend.services.lobby_service import NewGameConfig
 
 from .schemas.lobby_schemas import *
 
@@ -40,7 +41,9 @@ async def update_lobby_config(
     config: UpdateGameConfigRequest,
 ):
     """Updates lobby configuration."""
-    await service.update_lobby(lobby_id, user, config, notify)
+    await service.update_lobby(
+        lobby_id, user, NewGameConfig(**config.model_dump()), notify
+    )
 
 
 @lobby_router.post("/{lobby_id}/invitations")
