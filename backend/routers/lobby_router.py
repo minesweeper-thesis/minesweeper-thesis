@@ -40,7 +40,7 @@ async def update_lobby_config(
     config: UpdateGameConfigRequest,
 ):
     """Updates lobby configuration."""
-    await service.update_lobby(lobby_id, user, config.game_config, notify)
+    await service.update_lobby(lobby_id, user, config, notify)
 
 
 @lobby_router.post("/{lobby_id}/invitations")

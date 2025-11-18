@@ -1,5 +1,5 @@
 import uuid
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal, Optional, Protocol
 
@@ -76,6 +76,7 @@ class NewGameSettings:
 
 
 class GameAction(ABC):
+    @abstractmethod
     def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]: ...
 
 

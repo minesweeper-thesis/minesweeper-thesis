@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound
 
 from backend.core.user import User
 from backend.db.db import DBSession
-from backend.repositories.utils import get_users_transformer
+from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
 from .orm import *

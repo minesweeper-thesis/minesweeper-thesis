@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.db.db import DBSession
-from backend.repositories.utils import get_users_transformer
+from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
 from .orm import *

@@ -30,6 +30,7 @@ class DifficultyLevelORM(Base):
 
     def to_difficulty_level(self) -> DifficultyLevel:
         return DifficultyLevel(
+            id=self.id,
             rows=self.rows,
             columns=self.columns,
             mine_count=self.mine_count,
@@ -58,10 +59,10 @@ class BoardORM(Base):
         )
 
     @staticmethod
-    def from_board(board: Board, difficulty_level_id: uuid.UUID) -> "BoardORM":
+    def from_board(board: Board) -> "BoardORM":
         return BoardORM(
             id=board.id,
-            difficulty_level_id=difficulty_level_id,
+            difficulty_level_id=board.difficulty_level.id,
             minefields=board.minefields,
             start_field=board.start_field,
         )

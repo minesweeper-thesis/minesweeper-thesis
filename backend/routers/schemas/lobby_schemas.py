@@ -21,8 +21,17 @@ class PendingInvitationsRequest(BaseModel):
     type: ClassVar[Literal["pending_invitations"]] = "pending_invitations"
 
 
+class DifficultyLevelRequest(BaseModel):
+    rows: int
+    columns: int
+    mine_count: int
+
+
 class UpdateGameConfigRequest(BaseModel):
-    game_config: GameConfig
+    difficulty_level: DifficultyLevelRequest
+    game_mode: GameMode
+    generator_type: GeneratorType
+    generator_settings: Optional[GeneratorSettings] = None
 
 
 class GameConfigUpdatedResponse(BaseModel):
@@ -63,7 +72,7 @@ class LobbyResponse(BaseModel):
             id=lobby.id,
             host=UserResponse.from_user(lobby.host),
             users=[UserResponse.from_user(user) for user in lobby.users],
-            game_config=lobby.game_settings,
+            game_config=lobby.game_config,
         )
 
 

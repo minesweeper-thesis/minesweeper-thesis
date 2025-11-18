@@ -75,7 +75,10 @@ class FriendshipORM(Base):
     )
 
     def to_friendship(self) -> "Friendship":
-        return Friendship(user=self.user, friend=self.friend)
+        return Friendship(
+            user=self.user.to_user(is_online=False),
+            friend=self.friend.to_user(is_online=False),
+        )
 
     @staticmethod
     def from_friendship(friendship: "Friendship") -> "FriendshipORM":

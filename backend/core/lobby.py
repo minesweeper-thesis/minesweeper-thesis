@@ -15,25 +15,17 @@ class GameConfig:
     generator_settings: Optional[GeneratorSettings] = None
 
 
-DEFAULT_GAME_CONFIG = GameConfig(
-    difficulty_level=DifficultyLevel(10, 10, 15),
-    game_mode="normal",
-    generator_type="random",
-    generator_settings=None,
-)
-
-
 class Lobby:
     id: uuid.UUID
     host: User
     users: list[User]
-    game_settings: GameConfig
+    game_config: GameConfig
 
-    def __init__(self, id: uuid.UUID, host: User):
+    def __init__(self, id: uuid.UUID, host: User, game_config: GameConfig):
         self.id = id
         self.host = host
         self.users = [host]
-        self.game_settings = DEFAULT_GAME_CONFIG
+        self.game_config = game_config
 
     def add_user(self, user: User) -> None:
         self.users.append(user)

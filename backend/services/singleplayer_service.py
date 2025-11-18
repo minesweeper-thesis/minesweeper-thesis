@@ -24,7 +24,7 @@ class SingleplayerService:
     ):
         self.game_repo = game_repo
         self.board_repo = board_repo
-        self.gameplay = None
+        self.gameplay: Optional[SingleplayerGameplay] = None
         self.gameplay_id = None
         self.game_over = False
 

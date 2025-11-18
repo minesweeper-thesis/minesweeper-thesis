@@ -30,7 +30,7 @@ class NewGameRequest(BaseModel):
     mode: GameMode = "normal"
 
     @model_validator(mode="after")
-    def validate(self) -> Self:
+    def validate_game_settings(self) -> Self:
         board_id = self.board_id
         generator = self.generator
         difficulty_level = self.difficulty_level

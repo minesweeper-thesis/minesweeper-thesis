@@ -12,7 +12,7 @@ from .schemas.user_schemas import *
 PaginationParams = Annotated[Params, Depends()]
 UserService = Annotated[services.UserService, Depends()]
 
-user_exceptions = {}
+user_exceptions: dict[type[Exception], HTTPException] = {}
 
 user_router = APIRouter(tags=["user"])
 
