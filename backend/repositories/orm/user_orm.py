@@ -46,13 +46,14 @@ class UserORM(SQLAlchemyBaseUserTable[uuid.UUID], Base):
         back_populates="friend",
     )
 
-    def to_user(self) -> User:
+    def to_user(self, is_online) -> User:
         return User(
             id=self.id,
             email=self.email,
             nickname=self.nickname,
             settings=self.settings,
             avatar=Avatar(url=self.avatar_url) if self.avatar_url else None,
+            is_online=is_online,
         )
 
 
@@ -108,11 +109,11 @@ class FriendRequestORM(Base):
         CheckConstraint("user_id != friend_id", name="check_not_self_request"),
     )
 
-    def to_friend_request(self) -> "FriendRequest":
+    def to_friend_request(self, is_online) -> "FriendRequest":
         return FriendRequest(
             id=self.id,
-            user=self.user.to_user(),
-            friend=self.friend.to_user(),
+            user=self.user.to_user(is_online),
+            friend=self.friend.to_user(is_online),
             status=self.status,
         )
 

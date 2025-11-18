@@ -1,10 +1,15 @@
+import functools
+from typing import Sequence
+
 from sqlalchemy import select
 
 from backend.core.board import DifficultyLevel
+from backend.core.user import User
 from backend.repositories.orm.board_orm import DifficultyLevelORM
+from backend.repositories.orm.user_orm import UserORM
 
 
-async def _get_difficulty_level_orm(
+async def get_difficulty_level_orm(
     self, difficulty_level: DifficultyLevel
 ) -> DifficultyLevelORM:
     rows = difficulty_level.rows
@@ -28,3 +33,14 @@ async def _get_difficulty_level_orm(
         await self.session.refresh(difficulty_level)
 
     return difficulty_level
+
+
+async def _transformer(self, items: Sequence[UserORM]) -> list[User]:
+    result = []
+    for user in items:
+        is_online = await self.is_user_online(user.id)
+        result.append(user.to_user(is_online))
+    return result
+
+
+get_users_transformer = lambda self: functools.partial(_transformer, self)

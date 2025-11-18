@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.db.db import DBSession
+from backend.repositories.utils import get_users_transformer
 
 from .exceptions import *
 from .orm import *
@@ -28,7 +29,7 @@ class FriendsRepository:
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: [user.to_user() for user in items],
+            transformer=get_users_transformer(self),
         )
 
     async def get_friend_request(

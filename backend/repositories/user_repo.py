@@ -6,20 +6,32 @@ from sqlalchemy.exc import NoResultFound
 
 from backend.core.user import User
 from backend.db.db import DBSession
+from backend.repositories.utils import get_users_transformer
 
 from .exceptions import *
 from .orm import *
 
 
 class UserRepository:
+    online_users: set[uuid.UUID] = set()
+
     def __init__(self, session: DBSession):
         self.session = session
+
+    async def set_user_online(self, user_id: uuid.UUID):
+        self.online_users.add(user_id)
+
+    async def set_user_offline(self, user_id: uuid.UUID):
+        self.online_users.discard(user_id)
+
+    async def is_user_online(self, user_id: uuid.UUID) -> bool:
+        return user_id in self.online_users
 
     async def get_user(self, user_id: uuid.UUID) -> User:
         try:
             stmt = select(UserORM).where(UserORM.id == user_id)
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_user()
+            return result.scalar_one().to_user(await self.is_user_online(user_id))
 
         except NoResultFound:
             raise UserNotFound() from None
@@ -56,9 +68,10 @@ class UserRepository:
                 UserORM.email,
             )
         )
+
         return await apaginate(
             self.session,
             stmt,
             params,
-            transformer=lambda items: [user.to_user() for user in items],
+            transformer=get_users_transformer(self),
         )

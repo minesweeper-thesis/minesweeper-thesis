@@ -9,7 +9,7 @@ from sqlalchemy.sql.expression import func
 from backend.core.board import Board, DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
-from backend.repositories.utils import _get_difficulty_level_orm
+from backend.repositories.utils import get_difficulty_level_orm
 
 from .exceptions import *
 from .orm import *
@@ -20,7 +20,7 @@ class BoardRepository:
         self.session = session
 
     async def add_board(self, board: Board) -> None:
-        difficulty_level_orm = await _get_difficulty_level_orm(
+        difficulty_level_orm = await get_difficulty_level_orm(
             self, board.difficulty_level
         )
         board_orm = BoardORM.from_board(board, difficulty_level_orm.id)
@@ -45,7 +45,7 @@ class BoardRepository:
         self, difficulty_level: DifficultyLevel, user: Optional[User] = None
     ) -> Board:
         try:
-            difficulty_level_orm = await _get_difficulty_level_orm(
+            difficulty_level_orm = await get_difficulty_level_orm(
                 self, difficulty_level
             )
 

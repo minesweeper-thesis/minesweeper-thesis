@@ -8,8 +8,7 @@ from sqlalchemy import Float, func, select
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
-from backend.repositories.orm.game_orm import GameResultEnum, GameStatusEnum
-from backend.repositories.utils import _get_difficulty_level_orm
+from backend.repositories.utils import get_difficulty_level_orm
 
 from .orm import *
 
@@ -46,7 +45,7 @@ class StatsRepository:
         difficulty_level: DifficultyLevel,
         pagination_params: Params,
     ):
-        difficulty_level_orm = await _get_difficulty_level_orm(self, difficulty_level)
+        difficulty_level_orm = await get_difficulty_level_orm(self, difficulty_level)
         stmt = (
             select(
                 SingleplayerGameplayORM.id.label("gameplay_id"),
@@ -75,7 +74,7 @@ class StatsRepository:
         difficulty_level: DifficultyLevel,
         pagination_params: Params,
     ):
-        difficulty_level_orm = await _get_difficulty_level_orm(self, difficulty_level)
+        difficulty_level_orm = await get_difficulty_level_orm(self, difficulty_level)
         stmt = (
             select(
                 SingleplayerGameplayORM.id.label("gameplay_id"),
@@ -110,7 +109,7 @@ class StatsRepository:
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
-        difficulty_level_orm = await _get_difficulty_level_orm(self, difficulty_level)
+        difficulty_level_orm = await get_difficulty_level_orm(self, difficulty_level)
         stmt = (
             select(
                 UserORM,
@@ -130,9 +129,9 @@ class StatsRepository:
                     0.0,
                 ).label("average_time"),
                 func.count(SingleplayerGameplayORM.id).label("total_games"),
-                func.count().filter(
-                    SingleplayerGameplayORM.result == GameResultEnum.win
-                ).label("won_games"),
+                func.count()
+                .filter(SingleplayerGameplayORM.result == GameResultEnum.win)
+                .label("won_games"),
             )
             .join(
                 SingleplayerGameplayORM, SingleplayerGameplayORM.user_id == UserORM.id
@@ -188,7 +187,7 @@ class StatsRepository:
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
-        difficulty_level_orm = await _get_difficulty_level_orm(self, difficulty_level)
+        difficulty_level_orm = await get_difficulty_level_orm(self, difficulty_level)
         stmt = (
             select(
                 UserORM,
@@ -208,9 +207,9 @@ class StatsRepository:
                     0.0,
                 ).label("average_time"),
                 func.count(SingleplayerGameplayORM.id).label("total_games"),
-                func.count().filter(
-                    SingleplayerGameplayORM.result == GameResultEnum.win
-                ).label("won_games"),
+                func.count()
+                .filter(SingleplayerGameplayORM.result == GameResultEnum.win)
+                .label("won_games"),
             )
             .join(
                 SingleplayerGameplayORM, SingleplayerGameplayORM.user_id == UserORM.id
