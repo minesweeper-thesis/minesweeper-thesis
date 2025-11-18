@@ -59,7 +59,7 @@ class FriendsRepository:
                 .where(*args)
             )
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_friend_request()
+            return result.scalar_one().to_friend_request(is_online=False)
 
         except NoResultFound:
             raise FriendRequestNotFound() from None

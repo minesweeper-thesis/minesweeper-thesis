@@ -279,17 +279,17 @@ class NotReadyRequest(MultiplayerSessionMessageRequest):
 
 
 class RoundStartResponse(BaseModel):
-    type: ClassVar[str] = "round_start"
+    type: str = "round_start"
     start_at: int
     end_at: int
 
 
 class RoundEndResponse(BaseModel):
-    type: ClassVar[str] = "round_end"
+    type: str = "round_end"
 
 
 class SessionEndResponse(BaseModel):
-    type: ClassVar[str] = "session_end"
+    type: str = "session_end"
 
 
 class FirstRoundStartResponse(RoundStartResponse):
