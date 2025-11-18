@@ -8,6 +8,7 @@ from sqlalchemy import Float, func, select
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
+from backend.repositories.orm.game_orm import GameResultEnum, GameStatusEnum
 from backend.repositories.utils import _get_difficulty_level_orm
 
 from .orm import *
@@ -114,17 +115,24 @@ class StatsRepository:
             select(
                 UserORM,
                 (
-                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    func.cast(
+                        func.count().filter(
+                            SingleplayerGameplayORM.result == GameResultEnum.win
+                        ),
+                        Float,
+                    )
                     / func.count(SingleplayerGameplayORM.id)
                 ).label("win_rate"),
                 func.coalesce(
                     func.avg(SingleplayerGameplayORM.time).filter(
-                        SingleplayerGameplayORM.status == True
+                        SingleplayerGameplayORM.status == GameStatusEnum.finished
                     ),
                     0.0,
                 ).label("average_time"),
                 func.count(SingleplayerGameplayORM.id).label("total_games"),
-                func.count(SingleplayerGameplayORM.result).label("won_games"),
+                func.count().filter(
+                    SingleplayerGameplayORM.result == GameResultEnum.win
+                ).label("won_games"),
             )
             .join(
                 SingleplayerGameplayORM, SingleplayerGameplayORM.user_id == UserORM.id
@@ -138,7 +146,12 @@ class StatsRepository:
         if sort_by == "win_rate":
             stmt = stmt.order_by(
                 (
-                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    func.cast(
+                        func.count().filter(
+                            SingleplayerGameplayORM.result == GameResultEnum.win
+                        ),
+                        Float,
+                    )
                     / func.count(SingleplayerGameplayORM.id)
                 ).desc()
             )
@@ -146,7 +159,7 @@ class StatsRepository:
             stmt = stmt.order_by(
                 func.coalesce(
                     func.avg(SingleplayerGameplayORM.time).filter(
-                        SingleplayerGameplayORM.status == True
+                        SingleplayerGameplayORM.status == GameStatusEnum.finished
                     ),
                     0.0,
                 ).asc()
@@ -180,17 +193,24 @@ class StatsRepository:
             select(
                 UserORM,
                 (
-                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    func.cast(
+                        func.count().filter(
+                            SingleplayerGameplayORM.result == GameResultEnum.win
+                        ),
+                        Float,
+                    )
                     / func.count(SingleplayerGameplayORM.id)
                 ).label("win_rate"),
                 func.coalesce(
                     func.avg(SingleplayerGameplayORM.time).filter(
-                        SingleplayerGameplayORM.status == True
+                        SingleplayerGameplayORM.status == GameStatusEnum.finished
                     ),
                     0.0,
                 ).label("average_time"),
                 func.count(SingleplayerGameplayORM.id).label("total_games"),
-                func.count(SingleplayerGameplayORM.result).label("won_games"),
+                func.count().filter(
+                    SingleplayerGameplayORM.result == GameResultEnum.win
+                ).label("won_games"),
             )
             .join(
                 SingleplayerGameplayORM, SingleplayerGameplayORM.user_id == UserORM.id
@@ -209,7 +229,12 @@ class StatsRepository:
         if sort_by == "win_rate":
             stmt = stmt.order_by(
                 (
-                    func.cast(func.count(SingleplayerGameplayORM.result), Float)
+                    func.cast(
+                        func.count().filter(
+                            SingleplayerGameplayORM.result == GameResultEnum.win
+                        ),
+                        Float,
+                    )
                     / func.count(SingleplayerGameplayORM.id)
                 ).desc()
             )
@@ -217,7 +242,7 @@ class StatsRepository:
             stmt = stmt.order_by(
                 func.coalesce(
                     func.avg(SingleplayerGameplayORM.time).filter(
-                        SingleplayerGameplayORM.status == True
+                        SingleplayerGameplayORM.status == GameStatusEnum.finished
                     ),
                     0.0,
                 ).asc()
