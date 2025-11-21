@@ -1,9 +1,6 @@
-import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal, Optional, Protocol
-
-from backend.core.board import DifficultyLevel, GenerationSettings
 
 type GameStatus = Literal["not_started", "in_progress", "finished"]
 type GameResult = Literal["win", "loss"]
@@ -12,19 +9,23 @@ type Cell = tuple[int, int]
 type RevealedCell = tuple[int, int, int]
 
 
+class ActionResult(ABC):
+    pass
+
+
 @dataclass
-class RevealResult:
+class RevealResult(ActionResult):
     revealed_cells: list[RevealedCell]
     game_status: GameStatus
 
 
 @dataclass
-class FlagResult:
+class FlagResult(ActionResult):
     game_status: Literal["in_progress"] = "in_progress"
 
 
 @dataclass
-class HintResult:
+class HintResult(ActionResult):
     safe_cells: list[Cell]
     game_status: Literal["in_progress"] = "in_progress"
 
@@ -36,7 +37,7 @@ class LossCause:
 
 
 @dataclass
-class GameStateResult:
+class GameStateResult(ActionResult):
     status: GameStatus
     result: Optional[Literal["win", "loss"]]
     revealed_cells: list[RevealedCell]
@@ -46,14 +47,13 @@ class GameStateResult:
 
 
 @dataclass
-class GameOverResult:
+class GameOverResult(ActionResult):
     result: Literal["win", "loss"]
     full_board: list[list[int]]
     elapsed_time: float
     loss_cause: Optional[LossCause] = None
 
 
-type ActionResult = RevealResult | FlagResult | HintResult | GameOverResult | GameStateResult
 type IsGameOver = bool
 
 
@@ -65,14 +65,6 @@ class Gameplay(Protocol):
     def use_hint(self) -> ActionResult: ...
     def is_game_over(self) -> bool: ...
     def get_game_state(self) -> GameStateResult: ...
-
-
-@dataclass
-class NewGameSettings:
-    board_id: Optional[uuid.UUID]
-    generator: Optional[GenerationSettings]
-    difficulty_level: Optional[DifficultyLevel]
-    mode: GameMode
 
 
 class GameAction(ABC):

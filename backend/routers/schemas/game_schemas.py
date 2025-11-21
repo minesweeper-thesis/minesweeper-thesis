@@ -1,7 +1,7 @@
 import uuid
-from typing import ClassVar, Optional, Self
+from typing import Annotated, Literal, Optional, Self
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Discriminator, Field, Tag, TypeAdapter, model_validator
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
@@ -10,6 +10,7 @@ from backend.core.multiplayer import (
     NotReadyMessage,
     ReadyMessage,
 )
+from backend.services.singleplayer_service import NewGameSettings
 
 from .board_schemas import *
 
@@ -63,15 +64,14 @@ class NewGameRequest(BaseModel):
         )
 
 
-class GameActionRequest(BaseModel):
-    type: ClassVar[str]
+class GameActionRequest(ABC, BaseModel):
 
-    def to_core(self) -> GameAction:
-        raise NotImplementedError()
+    @abstractmethod
+    def to_core(self) -> GameAction: ...
 
 
 class HintRequest(GameActionRequest):
-    type: ClassVar[str] = "hint"
+    type: Literal["hint"] = "hint"
 
     def to_core(self) -> HintAction:
         return HintAction()
@@ -82,59 +82,56 @@ class CellGameActionRequest(GameActionRequest):
 
 
 class RevealOneRequest(CellGameActionRequest):
-    type: ClassVar[str] = "reveal_one"
+    type: Literal["reveal_one"] = "reveal_one"
 
     def to_core(self) -> RevealOneAction:
         return RevealOneAction(self.cell)
 
 
 class RevealManyRequest(CellGameActionRequest):
-    type: ClassVar[str] = "reveal_many"
+    type: Literal["reveal_many"] = "reveal_many"
 
     def to_core(self) -> RevealManyAction:
         return RevealManyAction(self.cell)
 
 
 class FlagRequest(CellGameActionRequest):
-    type: ClassVar[str] = "flag"
+    type: Literal["flag"] = "flag"
 
     def to_core(self) -> FlagAction:
         return FlagAction(self.cell)
 
 
 class RemoveFlagRequest(CellGameActionRequest):
-    type: ClassVar[str] = "remove_flag"
+    type: Literal["remove_flag"] = "remove_flag"
 
     def to_core(self) -> RemoveFlagAction:
         return RemoveFlagAction(self.cell)
 
 
 class GameStateRequest(GameActionRequest):
-    type: ClassVar[str] = "get_state"
+    type: Literal["get_state"] = "get_state"
 
     def to_core(self) -> GameStateAction:
         return GameStateAction()
 
 
-def _get_subclassess(cls):
-    return set(cls.__subclasses__()) | {
-        s for c in cls.__subclasses__() for s in _get_subclassess(c)
-    }
+GameActionUnion = Annotated[
+    Annotated[HintRequest, Tag("hint")]
+    | Annotated[RevealOneRequest, Tag("reveal_one")]
+    | Annotated[RevealManyRequest, Tag("reveal_many")]
+    | Annotated[FlagRequest, Tag("flag")]
+    | Annotated[RemoveFlagRequest, Tag("remove_flag")]
+    | Annotated[GameStateRequest, Tag("get_state")],
+    Discriminator("type"),
+]
 
 
 def parse_game_action(data: dict) -> GameAction:
-    try:
-        action_type = data["type"]
 
-        model_map: dict[str, type[GameActionRequest]] = {
-            subclass.type: subclass
-            for subclass in _get_subclassess(GameActionRequest)
-            if hasattr(subclass, "type")
-        }
-
-        return model_map[action_type](**data).to_core()
-    except KeyError:
-        raise ValueError(f"Unknown action type: {action_type}") from None
+    adapter: TypeAdapter[GameActionUnion] = TypeAdapter(GameActionUnion)
+    request = adapter.validate_python(data)
+    return request.to_core()
 
 
 class NewGameResponse(BaseModel):
@@ -146,8 +143,15 @@ class NewGameResponse(BaseModel):
 class GameActionResponse(ABC, BaseModel):
     type: str
 
+    @classmethod
+    @abstractmethod
+    def _from_core(cls, result) -> Self:
+        """Create response from domain object."""
+        ...
+
     @staticmethod
-    def create(result: ActionResult) -> "GameActionResponse":
+    def from_core(result: ActionResult) -> "GameActionResponse":
+        """Factory method to create appropriate response based on result type."""
         mapping: dict[type[ActionResult], type[GameActionResponse]] = {
             RevealResult: RevealResponse,
             FlagResult: FlagResponse,
@@ -155,36 +159,35 @@ class GameActionResponse(ABC, BaseModel):
             GameOverResult: GameOverResponse,
             GameStateResult: GameStateResponse,
         }
-        return mapping[type(result)]._from_action_result(result)  # type: ignore
+        response_class = mapping.get(type(result))
+        if response_class is None:
+            raise ValueError(f"Unknown result type: {type(result)}")
+        return response_class._from_core(result)
 
 
 class RevealResponse(GameActionResponse):
-    type: str = "reveal"
+    type: Literal["reveal"] = "reveal"
     revealed_cells: list[RevealedCell]
     game_status: GameStatus
 
-    @staticmethod
-    def _from_action_result(
-        result: RevealResult,
-    ) -> "RevealResponse":
-        return RevealResponse(
+    @classmethod
+    def _from_core(cls, result: RevealResult) -> Self:
+        return cls(
             revealed_cells=result.revealed_cells,
             game_status=result.game_status,
         )
 
 
 class GameOverResponse(GameActionResponse):
-    type: str = "game_over"
+    type: Literal["game_over"] = "game_over"
     game_status: GameResult
     full_board: list[list[int]]
     elapsed_time: float
     loss_cause: Optional[LossCause] = None
 
-    @staticmethod
-    def _from_action_result(
-        result: GameOverResult,
-    ) -> "GameOverResponse":
-        return GameOverResponse(
+    @classmethod
+    def _from_core(cls, result: GameOverResult) -> Self:
+        return cls(
             game_status=result.result,
             full_board=result.full_board,
             elapsed_time=result.elapsed_time,
@@ -193,7 +196,7 @@ class GameOverResponse(GameActionResponse):
 
 
 class GameStateResponse(GameActionResponse):
-    type: str = "game_state"
+    type: Literal["game_state"] = "game_state"
     status: GameStatus
     result: Optional[GameResult]
     revealed_cells: list[RevealedCell]
@@ -201,11 +204,9 @@ class GameStateResponse(GameActionResponse):
     loss_cause: Optional[LossCause] = None
     start_field: Cell
 
-    @staticmethod
-    def _from_action_result(
-        result: GameStateResult,
-    ) -> "GameStateResponse":
-        return GameStateResponse(
+    @classmethod
+    def _from_core(cls, result: GameStateResult) -> Self:
+        return cls(
             status=result.status,
             result=result.result,
             revealed_cells=result.revealed_cells,
@@ -216,66 +217,70 @@ class GameStateResponse(GameActionResponse):
 
 
 class FlagResponse(GameActionResponse):
-    type: str = "flag"
+    type: Literal["flag"] = "flag"
     game_status: GameStatus
 
-    @staticmethod
-    def _from_action_result(
-        result: FlagResult,
-    ) -> "FlagResponse":
-        return FlagResponse(
+    @classmethod
+    def _from_core(cls, result: FlagResult) -> Self:
+        return cls(
             game_status=result.game_status,
         )
 
 
 class RemoveFlagResponse(GameActionResponse):
-    type: str = "remove_flag"
+    type: Literal["remove_flag"] = "remove_flag"
     game_status: GameStatus
 
-    @staticmethod
-    def _from_action_result(
-        result: FlagResult,
-    ) -> "FlagResponse":
-        return FlagResponse(
+    @classmethod
+    def _from_core(cls, result: FlagResult) -> Self:
+        return cls(
             game_status=result.game_status,
         )
 
 
 class HintResponse(GameActionResponse):
-    type: str = "hint"
+    type: Literal["hint"] = "hint"
     safe_cells: list[Cell]
 
-    @staticmethod
-    def _from_action_result(
-        result: HintResult,
-    ) -> "HintResponse":
-        return HintResponse(
+    @classmethod
+    def _from_core(cls, result: HintResult) -> Self:
+        return cls(
             safe_cells=result.safe_cells,
         )
 
 
-class MultiplayerSessionMessageRequest(GameActionRequest):
-    type: ClassVar[str]
-
-    @staticmethod
-    def to_core() -> MultiplayerSessionMessage:
-        raise NotImplementedError()
+class MultiplayerSessionMessageRequest(ABC, BaseModel):
+    @abstractmethod
+    def to_core(self) -> MultiplayerSessionMessage: ...
 
 
 class ReadyRequest(MultiplayerSessionMessageRequest):
-    type: ClassVar[str] = "ready"
+    type: Literal["ready"] = "ready"
 
-    @staticmethod
-    def to_core() -> "ReadyMessage":
+    def to_core(self) -> "ReadyMessage":
         return ReadyMessage()
 
 
 class NotReadyRequest(MultiplayerSessionMessageRequest):
-    type: ClassVar[str] = "not_ready"
+    type: Literal["not_ready"] = "not_ready"
 
-    @staticmethod
-    def to_core() -> "NotReadyMessage":
+    def to_core(self) -> "NotReadyMessage":
         return NotReadyMessage()
+
+
+MultiplayerSessionMessageUnion = Annotated[
+    Annotated[ReadyRequest, Tag("ready")]
+    | Annotated[NotReadyRequest, Tag("not_ready")],
+    Discriminator("type"),
+]
+
+
+def parse_multiplayer_session_message(data: dict) -> MultiplayerSessionMessage:
+    adapter: TypeAdapter[MultiplayerSessionMessageUnion] = TypeAdapter(
+        MultiplayerSessionMessageUnion
+    )
+    request = adapter.validate_python(data)
+    return request.to_core()
 
 
 class RoundStartResponse(BaseModel):
@@ -294,18 +299,3 @@ class SessionEndResponse(BaseModel):
 
 class FirstRoundStartResponse(RoundStartResponse):
     gameplay_id: uuid.UUID
-
-
-def parse_multiplayer_session_message(data: dict) -> MultiplayerSessionMessage:
-    try:
-        message_type = data["type"]
-
-        model_map: dict[str, type[MultiplayerSessionMessageRequest]] = {
-            subclass.type: subclass
-            for subclass in _get_subclassess(MultiplayerSessionMessageRequest)
-            if hasattr(subclass, "type")
-        }
-
-        return model_map[message_type](**data).to_core()
-    except KeyError:
-        raise ValueError(f"Unknown message type: {message_type}") from None

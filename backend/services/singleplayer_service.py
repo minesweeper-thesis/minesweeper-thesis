@@ -5,7 +5,7 @@ from fastapi import Depends
 from fastapi_pagination import Params
 
 from backend import repositories
-from backend.core.board import BoardGenerator
+from backend.core.board import BoardGenerator, DifficultyLevel, GenerationSettings
 from backend.core.game import *
 from backend.core.singleplayer import SingleplayerGameplay
 from backend.lib.auth import CurrentUser, OptionalCurrentUser
@@ -14,6 +14,14 @@ from backend.services.exceptions import *
 
 SingleplayerRepository = Annotated[repositories.SingleplayerRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
+
+
+@dataclass
+class NewGameSettings:
+    board_id: Optional[uuid.UUID]
+    generator: Optional[GenerationSettings]
+    difficulty_level: Optional[DifficultyLevel]
+    mode: GameMode
 
 
 class SingleplayerService:

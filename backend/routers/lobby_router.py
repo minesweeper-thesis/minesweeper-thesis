@@ -30,7 +30,7 @@ async def create_lobby(
 ) -> InvitationLobbyResponse:
     """Creates a new lobby."""
     lobby = await service.create_lobby(user)
-    return InvitationLobbyResponse.create(lobby)
+    return InvitationLobbyResponse.from_core(lobby)
 
 
 @lobby_router.put("/{lobby_id}")
@@ -66,7 +66,7 @@ async def join_lobby(
 ):
     """Joins a lobby using an invitation."""
     lobby = await service.join_lobby(user, request.invitation_id, notify)
-    return LobbyResponse.create(lobby)
+    return LobbyResponse.from_core(lobby)
 
 
 @lobby_router.post("/{lobby_id}/leave")
