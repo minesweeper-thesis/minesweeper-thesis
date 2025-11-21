@@ -22,6 +22,7 @@ class User:
         nickname: str,
         email: str,
         settings: dict,
+        is_online: bool,
         avatar: Optional[Avatar] = None,
     ):
         self.id = id
@@ -29,6 +30,7 @@ class User:
         self.email = email
         self.settings = settings
         self.avatar = avatar
+        self.is_online = is_online
 
     def __eq__(self, value: object) -> bool:
         if not isinstance(value, User):

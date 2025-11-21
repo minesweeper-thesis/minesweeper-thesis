@@ -5,7 +5,7 @@ from fastapi import Depends
 from fastapi_pagination import Params
 
 from backend import repositories
-from backend.core.board import BoardGenerator
+from backend.core.board import BoardGenerator, DifficultyLevel, GenerationSettings
 from backend.core.game import *
 from backend.core.singleplayer import SingleplayerGameplay
 from backend.lib.auth import CurrentUser, OptionalCurrentUser
@@ -16,6 +16,14 @@ SingleplayerRepository = Annotated[repositories.SingleplayerRepository, Depends(
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 
 
+@dataclass
+class NewGameSettings:
+    board_id: Optional[uuid.UUID]
+    generator: Optional[GenerationSettings]
+    difficulty_level: Optional[DifficultyLevel]
+    mode: GameMode
+
+
 class SingleplayerService:
     def __init__(
         self,
@@ -24,7 +32,7 @@ class SingleplayerService:
     ):
         self.game_repo = game_repo
         self.board_repo = board_repo
-        self.gameplay = None
+        self.gameplay: Optional[SingleplayerGameplay] = None
         self.gameplay_id = None
         self.game_over = False
 
@@ -95,22 +103,27 @@ class SingleplayerService:
     async def get_gameplays(self, user: CurrentUser, pagination_params: Params):
         return await self.game_repo.get_gameplays(user.id, pagination_params)
 
-    async def handle_game_action(
-        self, action: GameAction
-    ) -> tuple[Optional[ActionResult], IsGameOver]:
+    async def handle_game_action(self, action: GameAction) -> Optional[ActionResult]:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
         try:
             return action.handle(self.gameplay)
         except InvalidAction:
-            return None, self.gameplay.is_game_over()
+            return None
 
     async def get_game_state(self) -> GameStateResult:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
         return self.gameplay.get_game_state()
+
+    async def is_game_over(self) -> bool:
+        if self.gameplay is None:
+            raise RuntimeError("Gameplay not loaded")
+
+        self.game_over = self.gameplay.is_game_over()
+        return self.game_over
 
     async def save_gameplay_progress(self):
         if self.gameplay is None:

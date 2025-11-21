@@ -7,6 +7,7 @@ from backend import services
 from backend.lib.auth import CurrentUser
 from backend.lib.connections_manager import ConnectionsManager
 from backend.routers.schemas import create_response
+from backend.services.lobby_service import NewGameConfig
 
 from .schemas.lobby_schemas import *
 
@@ -29,7 +30,7 @@ async def create_lobby(
 ) -> LobbyResponse:
     """Creates a new lobby."""
     lobby = await service.create_lobby(user)
-    return LobbyResponse.create(lobby)
+    return LobbyResponse.from_core(lobby)
 
 
 @lobby_router.put("/{lobby_id}")
@@ -40,7 +41,9 @@ async def update_lobby_config(
     config: UpdateGameConfigRequest,
 ):
     """Updates lobby configuration."""
-    await service.update_lobby(lobby_id, user, config.game_config, notify)
+    await service.update_lobby(
+        lobby_id, user, NewGameConfig(**config.model_dump()), notify
+    )
 
 
 @lobby_router.post("/{lobby_id}/invitations")
@@ -63,7 +66,7 @@ async def join_lobby(
 ):
     """Joins a lobby using an invitation."""
     lobby = await service.join_lobby(user, request.invitation_id, notify)
-    return LobbyResponse.create(lobby)
+    return LobbyResponse.from_core(lobby)
 
 
 @lobby_router.post("/{lobby_id}/leave")

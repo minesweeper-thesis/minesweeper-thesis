@@ -8,7 +8,7 @@ from backend.services.lobby_service import GameConfigUpdated, UserConnectionUpda
 
 
 def create_response(data: Any) -> str:
-    lobby_mapping = {
+    lobby_mapping: dict[Any, type[Response]] = {
         Lobby: InvitationLobbyResponse,
         Invitation: InvitationResponse,
         InvitationAnswer: InvitationAnswerResponse,
@@ -16,14 +16,10 @@ def create_response(data: Any) -> str:
         GameConfigUpdated: GameConfigUpdatedResponse,
     }
 
-    game_mapping = {
-        RevealResult: GameActionResponse,
-        FlagResult: GameActionResponse,
-        HintResult: GameActionResponse,
-        GameOverResult: GameActionResponse,
-        GameStateResult: GameActionResponse,
-    }
+    if type(data) in lobby_mapping:
+        return lobby_mapping[type(data)].from_core(data).model_dump_json()
 
-    mapping = {**lobby_mapping, **game_mapping}
+    if isinstance(data, ActionResult):
+        return GameActionResponse.from_core(data).model_dump_json()
 
-    return mapping[type(data)].create(data).model_dump_json()
+    raise ValueError(f"Unknown data type: {type(data)}")

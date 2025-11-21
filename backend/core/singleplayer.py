@@ -181,14 +181,24 @@ class SingleplayerGameplay:
     def _reset_revealed(self):
         self.revealed = []
 
-    def _set_revealed(self, revealed: list[tuple[int, int]]):
+    def _set_revealed(self, revealed: list[Cell]):
         self.revealed = sorted((x, y, self.grid.grid[x][y]) for (x, y) in revealed)
+
+    def get_flagged(self) -> list[Cell]:
+        return [
+            (i, j)
+            for i in range(self.grid.rows)
+            for j in range(self.grid.columns)
+            if self.grid.flagged[i][j]
+        ]
 
     def get_game_state(self) -> GameStateResult:
         return GameStateResult(
+            difficulty_level=self.board.difficulty_level,
             status=self.status,
             result=self.result,
             revealed_cells=self.revealed,
+            flagged=self.get_flagged(),
             elapsed_time=self.elapsed_time,
             loss_cause=self.loss_cause,
             start_field=self.start_field,

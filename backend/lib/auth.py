@@ -56,7 +56,7 @@ fastapi_users = FastAPIUsers[UserORM, uuid.UUID](get_user_manager, [auth_backend
 def get_current_user(
     user_orm: UserORM = Depends(fastapi_users.current_user(active=True)),
 ) -> User:
-    return user_orm.to_user()
+    return user_orm.to_user(is_online=True)
 
 
 def get_optional_current_user(
@@ -66,7 +66,7 @@ def get_optional_current_user(
 ) -> Optional[User]:
     if user_orm is None:
         return None
-    return user_orm.to_user()
+    return user_orm.to_user(is_online=True)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
@@ -91,7 +91,7 @@ async def get_user_from_websocket(
         if not user or not user.is_active:
             raise WebSocketException(code=WS_USER_NOT_FOUND, reason="User not found")
 
-        return user.to_user()
+        return user.to_user(is_online=True)
 
     except WebSocketException:
         raise

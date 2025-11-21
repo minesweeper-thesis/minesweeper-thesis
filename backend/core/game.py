@@ -1,9 +1,8 @@
-import uuid
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal, Optional, Protocol
 
-from backend.core.board import DifficultyLevel, GenerationSettings
+from backend.core.board import DifficultyLevel
 
 type GameStatus = Literal["not_started", "in_progress", "finished"]
 type GameResult = Literal["win", "loss"]
@@ -12,19 +11,23 @@ type Cell = tuple[int, int]
 type RevealedCell = tuple[int, int, int]
 
 
+class ActionResult(ABC):
+    pass
+
+
 @dataclass
-class RevealResult:
+class RevealResult(ActionResult):
     revealed_cells: list[RevealedCell]
     game_status: GameStatus
 
 
 @dataclass
-class FlagResult:
+class FlagResult(ActionResult):
     game_status: Literal["in_progress"] = "in_progress"
 
 
 @dataclass
-class HintResult:
+class HintResult(ActionResult):
     safe_cells: list[Cell]
     game_status: Literal["in_progress"] = "in_progress"
 
@@ -36,24 +39,25 @@ class LossCause:
 
 
 @dataclass
-class GameStateResult:
+class GameStateResult(ActionResult):
+    difficulty_level: DifficultyLevel
     status: GameStatus
     result: Optional[Literal["win", "loss"]]
     revealed_cells: list[RevealedCell]
+    flagged: list[Cell]
     elapsed_time: float
     start_field: Cell
     loss_cause: Optional[LossCause] = None
 
 
 @dataclass
-class GameOverResult:
+class GameOverResult(ActionResult):
     result: Literal["win", "loss"]
     full_board: list[list[int]]
     elapsed_time: float
     loss_cause: Optional[LossCause] = None
 
 
-type ActionResult = RevealResult | FlagResult | HintResult | GameOverResult | GameStateResult
 type IsGameOver = bool
 
 
@@ -67,26 +71,19 @@ class Gameplay(Protocol):
     def get_game_state(self) -> GameStateResult: ...
 
 
-@dataclass
-class NewGameSettings:
-    board_id: Optional[uuid.UUID]
-    generator: Optional[GenerationSettings]
-    difficulty_level: Optional[DifficultyLevel]
-    mode: GameMode
-
-
 class GameAction(ABC):
-    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]: ...
+    @abstractmethod
+    def handle(self, gameplay: Gameplay) -> "ActionResult": ...
 
 
 class GameStateAction(GameAction):
-    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]:
-        return gameplay.get_game_state(), gameplay.is_game_over()
+    def handle(self, gameplay: Gameplay) -> "ActionResult":
+        return gameplay.get_game_state()
 
 
 class HintAction(GameAction):
-    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]:
-        return gameplay.use_hint(), gameplay.is_game_over()
+    def handle(self, gameplay: Gameplay) -> "ActionResult":
+        return gameplay.use_hint()
 
 
 class RevealOneAction(GameAction):
@@ -95,9 +92,9 @@ class RevealOneAction(GameAction):
     def __init__(self, cell: tuple[int, int]):
         self.cell = cell
 
-    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]:
+    def handle(self, gameplay: Gameplay) -> "ActionResult":
         x, y = self.cell
-        return gameplay.reveal_one(x, y), gameplay.is_game_over()
+        return gameplay.reveal_one(x, y)
 
 
 class RevealManyAction(GameAction):
@@ -106,9 +103,9 @@ class RevealManyAction(GameAction):
     def __init__(self, cell: tuple[int, int]):
         self.cell = cell
 
-    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]:
+    def handle(self, gameplay: Gameplay) -> "ActionResult":
         x, y = self.cell
-        return gameplay.reveal_many(x, y), gameplay.is_game_over()
+        return gameplay.reveal_many(x, y)
 
 
 class FlagAction(GameAction):
@@ -117,9 +114,9 @@ class FlagAction(GameAction):
     def __init__(self, cell: tuple[int, int]):
         self.cell = cell
 
-    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]:
+    def handle(self, gameplay: Gameplay) -> "ActionResult":
         x, y = self.cell
-        return gameplay.flag(x, y), gameplay.is_game_over()
+        return gameplay.flag(x, y)
 
 
 class RemoveFlagAction(GameAction):
@@ -128,9 +125,9 @@ class RemoveFlagAction(GameAction):
     def __init__(self, cell: tuple[int, int]):
         self.cell = cell
 
-    def handle(self, gameplay: Gameplay) -> tuple["ActionResult", IsGameOver]:
+    def handle(self, gameplay: Gameplay) -> "ActionResult":
         x, y = self.cell
-        return gameplay.remove_flag(x, y), gameplay.is_game_over()
+        return gameplay.remove_flag(x, y)
 
 
 class InvalidAction(Exception):

@@ -1,5 +1,6 @@
 import uuid
-from typing import ClassVar, Literal
+from abc import ABC, abstractmethod
+from typing import ClassVar, Literal, Self
 
 from pydantic import BaseModel
 
@@ -21,116 +22,127 @@ class PendingInvitationsRequest(BaseModel):
     type: ClassVar[Literal["pending_invitations"]] = "pending_invitations"
 
 
+class DifficultyLevelRequest(BaseModel):
+    rows: int
+    columns: int
+    mine_count: int
+
+
 class UpdateGameConfigRequest(BaseModel):
-    game_config: GameConfig
+    difficulty_level: DifficultyLevelRequest
+    game_mode: GameMode
+    generator_type: GeneratorType
+    generator_settings: Optional[GeneratorSettings] = None
 
 
-class GameConfigUpdatedResponse(BaseModel):
+class Response(ABC, BaseModel):
+    @classmethod
+    @abstractmethod
+    def from_core(cls, data) -> Self:
+        """Create response from domain object."""
+        ...
+
+
+class GameConfigUpdatedResponse(Response):
     type: Literal["game_config_updated"] = "game_config_updated"
     lobby_id: uuid.UUID
     game_config: GameConfig
 
-    @staticmethod
-    def create(data: GameConfigUpdated) -> "GameConfigUpdatedResponse":
-        return GameConfigUpdatedResponse(
-            lobby_id=data.lobby_id, game_config=data.game_config
-        )
+    @classmethod
+    def from_core(cls, data: GameConfigUpdated) -> Self:
+        return cls(lobby_id=data.lobby_id, game_config=data.game_config)
 
 
-class InvitationLobbyResponse(BaseModel):
+class InvitationLobbyResponse(Response):
     id: uuid.UUID
     host: UserResponse
     game_config: GameConfig
 
-    @staticmethod
-    def create(lobby) -> "InvitationLobbyResponse":
-        return InvitationLobbyResponse(
+    @classmethod
+    def from_core(cls, lobby) -> Self:
+        return cls(
             id=lobby.id,
             host=UserResponse.from_user(lobby.host),
             game_config=lobby.game_settings,
         )
 
 
-class LobbyResponse(BaseModel):
+class LobbyResponse(Response):
     id: uuid.UUID
     host: UserResponse
     users: list[UserResponse]
     game_config: GameConfig
 
-    @staticmethod
-    def create(lobby: Lobby) -> "LobbyResponse":
-        return LobbyResponse(
+    @classmethod
+    def from_core(cls, lobby: Lobby) -> Self:
+        return cls(
             id=lobby.id,
             host=UserResponse.from_user(lobby.host),
             users=[UserResponse.from_user(user) for user in lobby.users],
-            game_config=lobby.game_settings,
+            game_config=lobby.game_config,
         )
 
 
-class InvitationResponse(BaseModel):
+class InvitationResponse(Response):
     type: Literal["invitation"] = "invitation"
     id: uuid.UUID
     lobby: InvitationLobbyResponse
 
-    @staticmethod
-    def create(invitation: Invitation) -> "InvitationResponse":
-        return InvitationResponse(
+    @classmethod
+    def from_core(cls, invitation: Invitation) -> Self:
+        return cls(
             id=invitation.id,
-            lobby=InvitationLobbyResponse.create(invitation.lobby),
+            lobby=InvitationLobbyResponse.from_core(invitation.lobby),
         )
 
 
-class InvitationAnswerResponse(BaseModel):
+class InvitationAnswerResponse(Response):
     type: Literal["invitation_response"] = "invitation_response"
     invitation: InvitationResponse
     response: Literal["accepted", "rejected"]
 
-    @staticmethod
-    def create(
-        invitation_response: InvitationAnswer,
-    ) -> "InvitationAnswerResponse":
-        return InvitationAnswerResponse(
-            invitation=InvitationResponse.create(invitation_response.invitation),
+    @classmethod
+    def from_core(cls, invitation_response: InvitationAnswer) -> Self:
+        return cls(
+            invitation=InvitationResponse.from_core(invitation_response.invitation),
             response=invitation_response.answer,
         )
 
 
-class UserConnectionStatusResponse(BaseModel):
+class UserConnectionStatusResponse(Response):
     type: Literal["user_connection_status"] = "user_connection_status"
     lobby_id: uuid.UUID
     user: UserResponse
     status: Literal["connected", "disconnected"]
 
-    @staticmethod
-    def create(
-        data: UserConnectionUpdated,
-    ) -> "UserConnectionStatusResponse":
-        return UserConnectionStatusResponse(
+    @classmethod
+    def from_core(cls, data: UserConnectionUpdated) -> Self:
+        return cls(
             lobby_id=data.lobby_id,
             user=UserResponse.from_user(data.user),
             status=data.status,
         )
 
 
-class PendingInvitationsResponse(BaseModel):
+class PendingInvitationsResponse(Response):
     type: Literal["pending_invitations"] = "pending_invitations"
     invitations: list[InvitationResponse]
 
-    @staticmethod
-    def create(invitations: list[Invitation]) -> "PendingInvitationsResponse":
-        return PendingInvitationsResponse(
+    @classmethod
+    def from_core(cls, invitations: list[Invitation]) -> Self:
+        return cls(
             invitations=[
-                InvitationResponse.create(invitation) for invitation in invitations
+                InvitationResponse.from_core(invitation) for invitation in invitations
             ],
         )
 
 
-class CurrentLobbyResponse(BaseModel):
+class CurrentLobbyResponse(Response):
     type: Literal["current_lobby"] = "current_lobby"
     lobby: Optional[LobbyResponse]
 
-    @staticmethod
-    def create(lobby: Optional[Lobby]) -> "CurrentLobbyResponse":
-        return CurrentLobbyResponse(
-            lobby=LobbyResponse.create(lobby) if lobby else None,
+    @classmethod
+    def from_core(cls, lobby: Optional[Lobby]) -> Self:
+        return cls(
+            lobby=LobbyResponse.from_core(lobby) if lobby else None,
         )

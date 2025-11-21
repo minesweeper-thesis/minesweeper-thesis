@@ -22,19 +22,41 @@ class UserConnectionUpdated(UserConnectionStatus):
     lobby_id: uuid.UUID
 
 
+@dataclass
+class NewGameConfig:
+    difficulty_level: DifficultyLevel
+    game_mode: GameMode
+    generator_type: GeneratorType
+    generator_settings: Optional[GeneratorSettings] = None
+
+
 LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
 UserRepository = Annotated[repositories.UserRepository, Depends()]
+BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 
 type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
 class LobbyService:
-    def __init__(self, lobby_repo: LobbyRepository, user_repo: UserRepository):
+    def __init__(
+        self,
+        lobby_repo: LobbyRepository,
+        user_repo: UserRepository,
+        board_repo: BoardRepository,
+    ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo
+        self.board_repo = board_repo
 
     async def create_lobby(self, user: User) -> Lobby:
-        lobby = Lobby(id=uuid.uuid4(), host=user)
+        default_game_config = GameConfig(
+            difficulty_level=DifficultyLevel(10, 10, 15),
+            game_mode="normal",
+            generator_type="random",
+            generator_settings=None,
+        )
+
+        lobby = Lobby(id=uuid.uuid4(), host=user, game_config=default_game_config)
         self.lobby_repo.save_lobby(lobby)
         return lobby
 
@@ -77,7 +99,7 @@ class LobbyService:
         self,
         lobby_id: uuid.UUID,
         user: User,
-        game_settings: GameConfig,
+        game_settings: NewGameConfig,
         notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
@@ -87,10 +109,15 @@ class LobbyService:
         if lobby.host != user:
             raise PermissionError("User not authorized to update lobby")
 
-        lobby.game_settings = game_settings
+        lobby.game_config = GameConfig(
+            difficulty_level=game_settings.difficulty_level,
+            game_mode=game_settings.game_mode,
+            generator_type=game_settings.generator_type,
+            generator_settings=game_settings.generator_settings,
+        )
 
         self.lobby_repo.save_lobby(lobby)
-        data = GameConfigUpdated(lobby.id, game_settings)
+        data = GameConfigUpdated(lobby.id, lobby.game_config)
         for lobby_user in lobby.users:
             await notify(lobby_user.id, data)
 

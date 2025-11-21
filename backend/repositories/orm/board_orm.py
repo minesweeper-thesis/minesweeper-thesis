@@ -40,19 +40,14 @@ class BoardORM(Base):
     __tablename__ = "boards"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    difficulty_level_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(DifficultyLevelORM.id), index=True
-    )
     minefields: Mapped[Minefields] = mapped_column(JSON)
     start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
 
-    difficulty_level: Mapped[DifficultyLevelORM] = relationship()
-    singleplayer_gameplays: Mapped[list["SingleplayerGameplayORM"]] = relationship(
-        back_populates="board"
+    difficulty_level_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(DifficultyLevelORM.id), index=True
     )
-    multiplayer_gameplays: Mapped[list["MultiplayerGameplayORM"]] = relationship(
-        back_populates="board"
-    )
+
+    difficulty_level: Mapped[DifficultyLevelORM] = relationship(back_populates="boards")
 
     def to_board(self) -> Board:
         difficulty_level = self.difficulty_level.to_difficulty_level()
