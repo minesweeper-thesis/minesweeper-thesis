@@ -56,11 +56,11 @@ async def play_single(
             data = await websocket.receive_json()
             game_action = parse_game_action(data)
 
-            action_result, is_game_over = await service.handle_game_action(game_action)
+            action_result = await service.handle_game_action(game_action)
             if action_result is not None:
                 await websocket.send_text(create_response(action_result))
 
-            if is_game_over:
+            if await service.is_game_over():
                 await service.save_gameplay_progress()
                 await websocket.close()
                 return

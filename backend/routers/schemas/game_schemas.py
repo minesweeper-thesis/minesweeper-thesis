@@ -1,3 +1,4 @@
+import enum
 import uuid
 from typing import Annotated, Literal, Optional, Self
 
@@ -195,21 +196,52 @@ class GameOverResponse(GameActionResponse):
         )
 
 
+class CellSpecial(enum.Enum):
+    START_FIELD = -5
+    FLAG = -4
+    NOT_REVEALED = -3
+    LOSING_MINE = -2
+
+
+type CellState = CellSpecial | int
+
+
 class GameStateResponse(GameActionResponse):
     type: Literal["game_state"] = "game_state"
     status: GameStatus
     result: Optional[GameResult]
-    revealed_cells: list[RevealedCell]
+    board: list[list[CellState]]
     elapsed_time: float
     loss_cause: Optional[LossCause] = None
     start_field: Cell
 
     @classmethod
     def _from_core(cls, result: GameStateResult) -> Self:
+        rows = result.difficulty_level.rows
+        cols = result.difficulty_level.columns
+
+        board: list[list[CellState]] = [
+            [CellSpecial.NOT_REVEALED for _ in range(cols)] for _ in range(rows)
+        ]
+
+        x, y = result.start_field
+        board[x][y] = CellSpecial.START_FIELD
+
+        for x, y, val in result.revealed_cells:
+            board[x][y] = val
+
+        for x, y in result.flagged:
+            board[x][y] = CellSpecial.FLAG
+
+        if result.loss_cause is not None:
+            if result.loss_cause.type == "mine_clicked":
+                mx, my = result.loss_cause.cell
+                board[mx][my] = CellSpecial.LOSING_MINE
+
         return cls(
             status=result.status,
             result=result.result,
-            revealed_cells=result.revealed_cells,
+            board=board,
             elapsed_time=result.elapsed_time,
             loss_cause=result.loss_cause,
             start_field=result.start_field,

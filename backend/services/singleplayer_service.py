@@ -103,22 +103,27 @@ class SingleplayerService:
     async def get_gameplays(self, user: CurrentUser, pagination_params: Params):
         return await self.game_repo.get_gameplays(user.id, pagination_params)
 
-    async def handle_game_action(
-        self, action: GameAction
-    ) -> tuple[Optional[ActionResult], IsGameOver]:
+    async def handle_game_action(self, action: GameAction) -> Optional[ActionResult]:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
         try:
             return action.handle(self.gameplay)
         except InvalidAction:
-            return None, self.gameplay.is_game_over()
+            return None
 
     async def get_game_state(self) -> GameStateResult:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
         return self.gameplay.get_game_state()
+
+    async def is_game_over(self) -> bool:
+        if self.gameplay is None:
+            raise RuntimeError("Gameplay not loaded")
+
+        self.game_over = self.gameplay.is_game_over()
+        return self.game_over
 
     async def save_gameplay_progress(self):
         if self.gameplay is None:
