@@ -19,33 +19,36 @@ class BoardRepository:
         self.session = session
 
     async def add_board(self, board: Board) -> None:
-        board_orm = BoardORM.from_board(board)
+        difficulty_level_orm = await self.get_difficulty_level_orm(
+            board.difficulty_level
+        )
+        board_orm = BoardORM.from_board(board, difficulty_level_orm.id)
 
         self.session.add(board_orm)
         await self.session.commit()
 
-    async def get_difficulty_level(
-        self, rows: int, columns: int, mine_count: int
-    ) -> DifficultyLevel:
+    async def get_difficulty_level_orm(
+        self, difficulty_level: DifficultyLevel
+    ) -> DifficultyLevelORM:
         stmt = select(DifficultyLevelORM).where(
-            DifficultyLevelORM.rows == rows,
-            DifficultyLevelORM.columns == columns,
-            DifficultyLevelORM.mine_count == mine_count,
+            DifficultyLevelORM.rows == difficulty_level.rows,
+            DifficultyLevelORM.columns == difficulty_level.columns,
+            DifficultyLevelORM.mine_count == difficulty_level.mine_count,
         )
         result = await self.session.execute(stmt)
-        difficulty_level = result.scalar_one_or_none()
+        difficulty_level_orm = result.scalar_one_or_none()
 
-        if difficulty_level is None:
-            difficulty_level = DifficultyLevelORM(
-                rows=rows, columns=columns, mine_count=mine_count
+        if difficulty_level_orm is None:
+            difficulty_level_orm = DifficultyLevelORM(
+                rows=difficulty_level.rows,
+                columns=difficulty_level.columns,
+                mine_count=difficulty_level.mine_count,
             )
-            self.session.add(difficulty_level)
+            self.session.add(difficulty_level_orm)
             await self.session.commit()
-            await self.session.refresh(difficulty_level)
+            await self.session.refresh(difficulty_level_orm)
 
-        return DifficultyLevel(
-            id=difficulty_level.id, rows=rows, columns=columns, mine_count=mine_count
-        )
+        return difficulty_level_orm
 
     async def get_board_by_id(self, board_id: uuid.UUID) -> Board:
         try:
@@ -63,11 +66,13 @@ class BoardRepository:
     async def get_unsolved_board(
         self, difficulty_level: DifficultyLevel, user: Optional[User] = None
     ) -> Board:
+        difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
+
         try:
             stmt = (
                 select(BoardORM)
                 .join(BoardORM.difficulty_level)
-                .where(BoardORM.difficulty_level_id == difficulty_level.id)
+                .where(BoardORM.difficulty_level_id == difficulty_level_orm.id)
                 .options(selectinload(BoardORM.difficulty_level))
                 .order_by(func.random())
                 .limit(1)

@@ -23,15 +23,8 @@ class UserConnectionUpdated(UserConnectionStatus):
 
 
 @dataclass
-class NewDifficultyLevel:
-    rows: int
-    columns: int
-    mine_count: int
-
-
-@dataclass
 class NewGameConfig:
-    difficulty_level: NewDifficultyLevel
+    difficulty_level: DifficultyLevel
     game_mode: GameMode
     generator_type: GeneratorType
     generator_settings: Optional[GeneratorSettings] = None
@@ -56,10 +49,8 @@ class LobbyService:
         self.board_repo = board_repo
 
     async def create_lobby(self, user: User) -> Lobby:
-        easy = await self.board_repo.get_difficulty_level(10, 10, 15)
-
         default_game_config = GameConfig(
-            difficulty_level=easy,
+            difficulty_level=DifficultyLevel(10, 10, 15),
             game_mode="normal",
             generator_type="random",
             generator_settings=None,
@@ -118,14 +109,8 @@ class LobbyService:
         if lobby.host != user:
             raise PermissionError("User not authorized to update lobby")
 
-        difficulty_level = await self.board_repo.get_difficulty_level(
-            game_settings.difficulty_level.rows,
-            game_settings.difficulty_level.columns,
-            game_settings.difficulty_level.mine_count,
-        )
-
         lobby.game_config = GameConfig(
-            difficulty_level=difficulty_level,
+            difficulty_level=game_settings.difficulty_level,
             game_mode=game_settings.game_mode,
             generator_type=game_settings.generator_type,
             generator_settings=game_settings.generator_settings,

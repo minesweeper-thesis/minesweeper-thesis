@@ -30,7 +30,6 @@ class DifficultyLevelORM(Base):
 
     def to_difficulty_level(self) -> DifficultyLevel:
         return DifficultyLevel(
-            id=self.id,
             rows=self.rows,
             columns=self.columns,
             mine_count=self.mine_count,
@@ -41,13 +40,14 @@ class BoardORM(Base):
     __tablename__ = "boards"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    difficulty_level_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(DifficultyLevelORM.id), index=True
-    )
     minefields: Mapped[Minefields] = mapped_column(JSON)
     start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
 
-    difficulty_level: Mapped[DifficultyLevelORM] = relationship()
+    difficulty_level_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey(DifficultyLevelORM.id), index=True
+    )
+
+    difficulty_level: Mapped[DifficultyLevelORM] = relationship(back_populates="boards")
 
     def to_board(self) -> Board:
         difficulty_level = self.difficulty_level.to_difficulty_level()
@@ -59,10 +59,10 @@ class BoardORM(Base):
         )
 
     @staticmethod
-    def from_board(board: Board) -> "BoardORM":
+    def from_board(board: Board, difficulty_level_id: uuid.UUID) -> "BoardORM":
         return BoardORM(
             id=board.id,
-            difficulty_level_id=board.difficulty_level.id,
+            difficulty_level_id=difficulty_level_id,
             minefields=board.minefields,
             start_field=board.start_field,
         )

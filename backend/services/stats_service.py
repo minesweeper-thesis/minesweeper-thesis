@@ -4,6 +4,7 @@ from fastapi import Depends
 from fastapi_pagination import Params
 
 from backend import repositories
+from backend.core.board import DifficultyLevel
 from backend.core.user import User
 
 StatsRepository = Annotated[repositories.StatsRepository, Depends()]
@@ -17,14 +18,9 @@ class StatsService:
 
     async def get_gameplays_global_ranking(
         self,
-        rows: int,
-        cols: int,
-        mine_count: int,
+        difficulty_level: DifficultyLevel,
         pagination_params: Params,
     ):
-        difficulty_level = await self.board_repo.get_difficulty_level(
-            rows, cols, mine_count
-        )
         return await self.repo.get_gameplays_global_ranking(
             difficulty_level, pagination_params
         )
@@ -32,29 +28,19 @@ class StatsService:
     async def get_gameplays_friends_ranking(
         self,
         user: User,
-        rows: int,
-        cols: int,
-        mine_count: int,
+        difficulty_level: DifficultyLevel,
         pagination_params: Params,
     ):
-        difficulty_level = await self.board_repo.get_difficulty_level(
-            rows, cols, mine_count
-        )
         return await self.repo.get_gameplays_friends_ranking(
             user.id, difficulty_level, pagination_params
         )
 
     async def get_users_global_ranking(
         self,
-        rows: int,
-        cols: int,
-        mine_count: int,
+        difficulty_level: DifficultyLevel,
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
-        difficulty_level = await self.board_repo.get_difficulty_level(
-            rows, cols, mine_count
-        )
         return await self.repo.get_global_user_ranking(
             difficulty_level, sort_by, pagination_params
         )
@@ -62,15 +48,10 @@ class StatsService:
     async def get_users_friends_ranking(
         self,
         user: User,
-        rows: int,
-        cols: int,
-        mine_count: int,
+        difficulty_level: DifficultyLevel,
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
-        difficulty_level = await self.board_repo.get_difficulty_level(
-            rows, cols, mine_count
-        )
         return await self.repo.get_friends_user_ranking(
             user.id, difficulty_level, sort_by, pagination_params
         )

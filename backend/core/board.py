@@ -15,7 +15,6 @@ type Minefields = list[tuple[int, int]]
 
 @dataclass
 class DifficultyLevel:
-    id: uuid.UUID
     rows: int
     columns: int
     mine_count: int

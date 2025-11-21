@@ -101,6 +101,8 @@ class MultiplayerSessionORM(Base):
     )
     mode: Mapped[GameModeEnum] = mapped_column(Enum(GameModeEnum), default="normal")
 
+    difficulty_level: Mapped[DifficultyLevelORM] = relationship()
+
     max_round_time: Mapped[float] = mapped_column()
     rounds_number: Mapped[int] = mapped_column()
 
@@ -164,7 +166,7 @@ class MultiplayerGameplayORM(Base):
     __table_args__ = (
         ForeignKeyConstraint(
             [session_id, round_number],
-            ["MultiplayerRoundORM.session_id", "MultiplayerRoundORM.round_number"],
+            [MultiplayerRoundORM.session_id, MultiplayerRoundORM.round_number],
         ),
     )
 
