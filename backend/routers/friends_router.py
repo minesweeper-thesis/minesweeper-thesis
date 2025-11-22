@@ -39,7 +39,7 @@ friend_requests_router = APIRouter(prefix="/friend-requests", tags=["friend-requ
 
 async def notify(receiver_id: uuid.UUID, data: FriendRequest):
     if ConnectionsManager.is_user_online(receiver_id):
-        websocket = ConnectionsManager.get_user_websocket(receiver_id)
+        websocket = ConnectionsManager.get(receiver_id)
         await websocket.send_text(
             FriendRequestNotificationResponse.from_friend_request(
                 data

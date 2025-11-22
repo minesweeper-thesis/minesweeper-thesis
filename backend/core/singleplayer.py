@@ -194,6 +194,7 @@ class SingleplayerGameplay:
 
     def get_game_state(self) -> GameStateResult:
         return GameStateResult(
+            board_id=self.board.id,
             difficulty_level=self.board.difficulty_level,
             status=self.status,
             result=self.result,

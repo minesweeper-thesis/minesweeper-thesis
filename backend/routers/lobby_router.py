@@ -19,7 +19,7 @@ invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
 
 async def notify(receiver_id: uuid.UUID, data):
     if ConnectionsManager.is_user_online(receiver_id):
-        websocket = ConnectionsManager.get_user_websocket(receiver_id)
+        websocket = ConnectionsManager.get(receiver_id)
         await websocket.send_text(create_response(data))
 
 

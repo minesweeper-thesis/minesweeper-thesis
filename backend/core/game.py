@@ -1,3 +1,4 @@
+import uuid
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Literal, Optional, Protocol
@@ -40,6 +41,7 @@ class LossCause:
 
 @dataclass
 class GameStateResult(ActionResult):
+    board_id: uuid.UUID
     difficulty_level: DifficultyLevel
     status: GameStatus
     result: Optional[Literal["win", "loss"]]

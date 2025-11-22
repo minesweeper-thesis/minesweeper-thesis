@@ -20,7 +20,7 @@ async def send_notifications(
     lobby_service: LobbyService,
 ):
     """WebSocket endpoint for receiving game invitations."""
-    ConnectionsManager.add_user(user.id, websocket)
+    ConnectionsManager.add(user.id, websocket)
 
     async def receiver():
         while True:
@@ -42,4 +42,4 @@ async def send_notifications(
         await receiver()
 
     except WebSocketDisconnect:
-        ConnectionsManager.remove_user(user.id)
+        ConnectionsManager.remove(user.id)

@@ -35,14 +35,10 @@ async def start_singleplayer_game(
     user: OptionalCurrentUser,
     service: SingleplayerService,
 ) -> NewGameResponse:
-    gameplay, board = await service.create_singleplayer_gameplay(
+    gameplay_id = await service.create_singleplayer_gameplay(
         user, new_game_input.to_game_settings()
     )
-    return NewGameResponse(
-        gameplay_id=gameplay.id,
-        board_id=board.id,
-        start_field=board.start_field,
-    )
+    return NewGameResponse(gameplay_id=gameplay_id)
 
 
 @game_router.websocket("/single/{gameplay_id}")
@@ -65,15 +61,22 @@ async def play_single(
                 await websocket.close()
                 return
 
+    async def on_board_ready():
+        game_state = await service.get_game_state()
+        await websocket.send_text(create_response(game_state))
+
+    service.board_ready_callback = on_board_ready
     try:
         await service.load_gameplay(gameplay_id)
         await websocket.accept()
-        await websocket.send_text(create_response(await service.get_game_state()))
+        await service.send_board()
 
         await receiver()
 
     except WebSocketDisconnect:
         await service.save_gameplay_progress()
+    finally:
+        await service.game_cleanup()
 
 
 @game_router.post("/{lobby_id}/ready")
@@ -105,7 +108,7 @@ async def play_multi(
         await websocket.send_text(RoundEndResponse().model_dump_json(exclude_none=True))
 
     async def send_data(data):
-        await websocket.send_text(create_response(data))  # todo: create_response
+        await websocket.send_text(create_response(data))
 
     async def receiver():
         while True:
