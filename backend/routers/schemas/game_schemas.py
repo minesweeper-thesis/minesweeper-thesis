@@ -137,8 +137,6 @@ def parse_game_action(data: dict) -> GameAction:
 
 class NewGameResponse(BaseModel):
     gameplay_id: uuid.UUID
-    board_id: uuid.UUID
-    start_field: tuple[int, int]
 
 
 class GameActionResponse(ABC, BaseModel):
@@ -208,9 +206,11 @@ type CellState = CellSpecial | int
 
 class GameStateResponse(GameActionResponse):
     type: Literal["game_state"] = "game_state"
+    board_id: uuid.UUID
     status: GameStatus
     result: Optional[GameResult]
-    board: list[list[CellState]]
+    board: Optional[list[list[CellState]]]
+    difficulty_level: DifficultyLevel
     elapsed_time: float
     loss_cause: Optional[LossCause] = None
     start_field: Cell
@@ -239,9 +239,11 @@ class GameStateResponse(GameActionResponse):
                 board[mx][my] = CellSpecial.LOSING_MINE
 
         return cls(
+            board_id=result.board_id,
             status=result.status,
             result=result.result,
-            board=board,
+            board=board if result.status != "not_started" else None,
+            difficulty_level=result.difficulty_level,
             elapsed_time=result.elapsed_time,
             loss_cause=result.loss_cause,
             start_field=result.start_field,
