@@ -27,10 +27,10 @@ async def notify(receiver_id: uuid.UUID, data):
 async def create_lobby(
     user: CurrentUser,
     service: LobbyService,
-) -> InvitationLobbyResponse:
+) -> LobbyResponse:
     """Creates a new lobby."""
     lobby = await service.create_lobby(user)
-    return InvitationLobbyResponse.from_core(lobby)
+    return LobbyResponse.from_core(lobby)
 
 
 @lobby_router.put("/{lobby_id}")
