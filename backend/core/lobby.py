@@ -9,6 +9,8 @@ from backend.core.user import User
 
 @dataclass
 class GameConfig:
+    rounds: int
+    max_round_time: int
     difficulty_level: DifficultyLevel
     game_mode: GameMode
     generator_type: GeneratorType
@@ -26,6 +28,7 @@ class Lobby:
         self.host = host
         self.users = [host]
         self.game_config = game_config
+        self._ready_users: set[uuid.UUID] = set()
 
     def add_user(self, user: User) -> None:
         self.users.append(user)
@@ -49,6 +52,18 @@ class Lobby:
         if not isinstance(value, Lobby):
             return False
         return self.id == value.id
+
+    def set_user_ready(self, user: User) -> None:
+        self._ready_users.add(user.id)
+
+    def is_user_ready(self, user: User) -> bool:
+        return user.id in self._ready_users
+
+    def set_user_not_ready(self, user: User) -> None:
+        self._ready_users.discard(user.id)
+
+    def all_users_ready(self) -> bool:
+        return all(user.id in self._ready_users for user in self.users)
 
 
 class Invitation:

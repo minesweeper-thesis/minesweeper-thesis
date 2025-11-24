@@ -17,3 +17,6 @@ class WebsocketsRegistry:
     @classmethod
     def remove(cls, id: uuid.UUID):
         cls._websockets.pop(id, None)
+
+
+multi_websockets = WebsocketsRegistry()
