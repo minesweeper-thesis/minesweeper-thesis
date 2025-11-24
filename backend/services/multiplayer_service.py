@@ -112,8 +112,6 @@ class MultiplayerService:
 
         if session.is_session_over():
             data: Any = SessionOverMessage(session_id=self.session_id)
-            if self.on_session_end_callback:
-                await self.on_session_end_callback()
         else:
             data = RoundEndMessage(
                 session_id=self.session_id,
@@ -122,6 +120,9 @@ class MultiplayerService:
 
         for user_id in session.player_ids:
             await self.notify(user_id, data)
+
+        if session.is_session_over() and self.on_session_end_callback:
+            await self.on_session_end_callback()
 
     def _schedule_end_round(self, end_at: int):
         end_str = datetime.fromtimestamp(end_at).strftime("%Y-%m-%d %H:%M:%S")
