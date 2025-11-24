@@ -9,19 +9,13 @@ const Board = forwardRef(function Board(
     { boardData, sendCommand, setGameState, setMines, startField, socket = null },
     ref
 ) {
-    const [board, setBoard] = useState(
-        Array.from({ length: boardData.rows }, () =>
-            Array(boardData.cols).fill(State.NOT_REVEALED)
-        )
-    );
+    const [board, setBoard] = useState( null );
 
 
 
     useEffect(() => {
         setBoard(
-            Array.from({ length: boardData.rows }, () =>
-                Array(boardData.cols).fill(State.NOT_REVEALED)
-            )
+            null
         );
         setMines(boardData.mineCount);
     }, [boardData.rows, boardData.cols, boardData.mineCount, setMines]);
@@ -53,7 +47,7 @@ const Board = forwardRef(function Board(
 
             for (let i = 0; i < revealed_board.length; i++) {
                 for (let j = 0; j < revealed_board[i].length; j++) {
-                    if (i === red_mine[0] && j === red_mine[1]) {
+                    if (red_mine && i === red_mine[0] && j === red_mine[1]) {
                         newBoard[i][j] = State.LOSING_MINE;
                     } else if (revealed_board[i][j] === State.MINE && newBoard[i][j] !== State.FLAG) {
                         newBoard[i][j] = State.MINE;
@@ -242,7 +236,7 @@ const Board = forwardRef(function Board(
                         <div className="absolute inset-0 border-4 border-accent-primary rounded-full border-t-transparent animate-spin"></div>
                     </div>
                     <p className="text-lg font-medium animate-pulse">
-                        Connecting<span className="dots"></span>
+                        Generating Board<span className="dots"></span>
                     </p>
                 </div>
             )}

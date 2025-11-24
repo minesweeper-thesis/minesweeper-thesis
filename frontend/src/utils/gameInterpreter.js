@@ -85,11 +85,11 @@ export default function gameInterpreter(msg) {
 
     // 4. GAME_OVER
     if (msg.type === "game_over") {
-        const isWin = msg.result === "win";
+        const isWin = msg.game_status === "win";
 
         if (isWin) {
             cmds.push({
-                type: "REVEAL_FULL_BOARD",
+                type: "SET_BOARD",
                 board: msg.full_board
             });
             cmds.push({ type: "SET_GAME_STATE", value: GameState.WON });

@@ -8,6 +8,8 @@ import SettingsPage from "./pages/SettingsPage";
 import StatsPage from "./pages/StatsPage";
 import GamePageSingle from "./pages/GamePageSingle";
 import MultiplayerLobby from "./pages/MultiplayerLobby";
+import ProtectedRoute from "./utils/ProtectedRoute";
+
 
 function App() {
     return (
@@ -15,13 +17,28 @@ function App() {
             <Routes>
                 <Route path="/" element={<AppLayout />}>
                     <Route index element={<GamePageSingle />} />
-                    <Route path="/game" element={<MultiplayerLobby />} />
+                    <Route path="/game" element={
+                        <ProtectedRoute>
+                            <MultiplayerLobby />
+                        </ProtectedRoute>
+                    } />
+
                     <Route path="/login" element={<LoginPage />} />
                     <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/friends" element={<FriendsPage />} />
-                    <Route path="/stats" element={<StatsPage />} />
-                    <Route path="/settings" element={<SettingsPage />} />
 
+                    <Route path="/friends" element={
+                        <ProtectedRoute>
+                            <FriendsPage />
+                        </ProtectedRoute>
+                    } />
+
+                    <Route path="/stats" element={<StatsPage />} />
+
+                    <Route path="/settings" element={
+                        <ProtectedRoute>
+                            <SettingsPage />
+                        </ProtectedRoute>
+                    } />
 
                     <Route path="*" element={<NotFoundPage />} />
                 </Route>

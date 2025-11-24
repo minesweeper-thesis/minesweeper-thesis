@@ -1,9 +1,10 @@
-import { useEffect, useRef, useCallback } from "react";
+import {GameState} from "../utility";
+import {useCallback, useEffect, useRef} from "react";
 
-export default function useGameWebSocket(url, interpreter, boardRef) {
+export default function useGameWebSocket(url, interpreter, boardRef, gameState) {
     const socketRef = useRef(null);
     const reconnectTimeoutRef = useRef(null);
-    const manuallyClosedRef = useRef(false);
+    const closedByEffectRef = useRef(false);
     const retryAttemptRef = useRef(0);
     const MAX_RETRIES = 10;
 
@@ -14,38 +15,39 @@ export default function useGameWebSocket(url, interpreter, boardRef) {
     }, []);
 
     const connect = useCallback(() => {
-        if (!url || manuallyClosedRef.current || socketRef.current) return;
+        if (!url) return;
 
+        if (socketRef.current) {
+            socketRef.current.close(1000, "Switching connection");
+        }
+
+        closedByEffectRef.current = false;
         const ws = new WebSocket(url);
         socketRef.current = ws;
 
         ws.onopen = () => {
             retryAttemptRef.current = 0;
-            // send({ type: "game_state"});
-            console.log("[WebSocket] ConnectedL: ", url);
         };
 
         ws.onmessage = (event) => {
             try {
                 const data = JSON.parse(event.data);
-                console.log("[WebSocket] Received message", data);
+                console.log(data);
                 const commands = interpreter(data) || [];
                 if (Array.isArray(commands) && boardRef?.current?.dispatchCommand) {
                     boardRef.current.dispatchCommand(commands);
                 }
-            } catch (e) {
-                console.error("[WebSocket] Error parsing message", e);
+            } catch (err) {
+                console.error("[WebSocket] parse error", err);
             }
         };
 
-        ws.onerror = (err) => {
-            console.error("[WebSocket] Error", err);
-            // ws.close();
-        };
-
         ws.onclose = () => {
-            socketRef.current = null;
-            if (manuallyClosedRef.current) return;
+
+            if (gameState === GameState.WON || gameState === GameState.LOST) return;
+
+            if (closedByEffectRef.current) return;
+            if (url !== ws.url) return;
 
             if (retryAttemptRef.current < MAX_RETRIES) {
                 const delay = Math.min(1000 * 2 ** retryAttemptRef.current, 10000);
@@ -55,18 +57,21 @@ export default function useGameWebSocket(url, interpreter, boardRef) {
                 }, delay);
             }
         };
-    }, [url, interpreter, boardRef]);
+    }, [url, interpreter, boardRef, gameState]);
 
     useEffect(() => {
-        manuallyClosedRef.current = false;
-        connect();
+        if (url) connect();
 
         return () => {
-            manuallyClosedRef.current = true;
+            closedByEffectRef.current = true;
             clearTimeout(reconnectTimeoutRef.current);
-            socketRef.current?.close();
+
+            if (socketRef.current) {
+                socketRef.current.onclose = null;
+                socketRef.current.close(1000, "Unmount / URL change");
+            }
         };
-    }, [connect]);
+    }, [url]);
 
     return { send, socketRef };
 }

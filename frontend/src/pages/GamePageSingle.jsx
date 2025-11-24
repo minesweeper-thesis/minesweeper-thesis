@@ -34,9 +34,6 @@ export default function GamePageSingle() {
         return res.json();
     }
 
-    const onReset = useCallback(async (e, storedId = null) => {
-        startNewGame(storedId);
-    }, []);
 
     const startNewGame = useCallback(async (storedId = null) => {
         setGameState(GameState.NOT_STARTED);
@@ -55,10 +52,15 @@ export default function GamePageSingle() {
     useEffect(() => {
         const stored = localStorage.getItem("gameplayId");
         startNewGame(stored);
-    }, [boardData, startNewGame]);
+    }, []);
+
+    const onReset = useCallback(async (e) => {
+        localStorage.removeItem("gameplayId");
+        startNewGame(null);
+    }, []);
 
     const socketUrl = gameplayId ? `api/game/single/${gameplayId}` : null;
-    const { send, socketRef } = useGameWebSocket(socketUrl, gameInterpreter, boardRef);
+    const { send, socketRef } = useGameWebSocket(socketUrl, gameInterpreter, boardRef, gameState );
 
     return (
         <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
