@@ -16,14 +16,16 @@ export default function GamePageSingle() {
     const [startField, setStartField] = useState(null);
     const boardRef = useRef(null);
 
-    const REQUEST_BODY = {
-        generator: { type: "random", settings: { ...heuristicData } },
-        difficulty_level: { rows: boardData.rows, columns: boardData.cols, mine_count: boardData.mineCount },
-        mode: boardData.mode,
-    };
+
 
     async function initGameRequest(storedId) {
         if (storedId) return { gameplay_id: storedId };
+
+        let REQUEST_BODY = {
+            generator: { type: "ml", settings: { ...heuristicData } },
+            difficulty_level: { rows: boardData.rows, columns: boardData.cols, mine_count: boardData.mineCount },
+            mode: boardData.mode,
+        };
 
         const res = await fetch("/api/game/single", {
             method: "POST",
@@ -54,6 +56,14 @@ export default function GamePageSingle() {
         startNewGame(stored);
     }, []);
 
+    useEffect(() => {
+        startNewGame(null);
+    }, [boardData]);
+
+    const onStart = useCallback(async () => {
+        await startNewGame(null);
+    }, [startNewGame]);
+
     const onReset = useCallback(async (e) => {
         localStorage.removeItem("gameplayId");
         startNewGame(null);
@@ -65,7 +75,7 @@ export default function GamePageSingle() {
     return (
         <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
             <aside className="w-64 p-4">
-                <DifficultyMenu setBoardData={setBoardData} />
+                <DifficultyMenu setBoardData={setBoardData} onStart={onStart} />
             </aside>
 
             <main className="p-4 overflow-auto game-area relative w-full max-w-4xl">
