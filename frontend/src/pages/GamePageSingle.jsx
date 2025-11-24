@@ -26,6 +26,7 @@ export default function GamePageSingle() {
             difficulty_level: { rows: boardData.rows, columns: boardData.cols, mine_count: boardData.mineCount },
             mode: boardData.mode,
         };
+        console.log(REQUEST_BODY);
 
         const res = await fetch("/api/game/single", {
             method: "POST",
