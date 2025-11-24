@@ -62,13 +62,13 @@ export default function GamePageSingle() {
     }, [boardData]);
 
     const onStart = useCallback(async () => {
-        await startNewGame(null);
+        // await startNewGame(null);
     }, [startNewGame]);
 
     const onReset = useCallback(async (e) => {
         localStorage.removeItem("gameplayId");
         startNewGame(null);
-    }, []);
+    }, [startNewGame]);
 
     const socketUrl = gameplayId ? `api/game/single/${gameplayId}` : null;
     const { send, socketRef } = useGameWebSocket(socketUrl, gameInterpreter, boardRef, gameState );
