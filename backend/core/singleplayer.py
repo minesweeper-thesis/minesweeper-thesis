@@ -43,6 +43,7 @@ class SingleplayerGameplay:
 
         for i, j in revealed_cells:
             self.grid.revealed[i][j] = True
+            self.revealed.append((i, j, self.grid.grid[i][j]))
 
     def _get_safe_cells(self) -> list[tuple[int, int]]:
         safe_cells = HintGenerator.get_safe_fields_no_cache(self.grid)
