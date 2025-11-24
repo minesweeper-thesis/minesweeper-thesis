@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import {useAuth} from "./AuthContext";
 
 const FriendsContext = createContext(null);
 
 export const FriendsProvider = ({ children }) => {
+    const { user } = useAuth();
     const [friends, setFriends] = useState([]);
     const [friendRequests, setFriendRequests] = useState([]);
     const [sentRequests, setSentRequests] = useState([]);
@@ -36,6 +38,9 @@ export const FriendsProvider = ({ children }) => {
 
     const loadFriends = useCallback(
         async (page = 1) => {
+            if(!user){
+                return;
+            }
             setLoading(true);
             try {
                 const data = await authFetch(`api/friends?page=${page}`);
@@ -53,6 +58,9 @@ export const FriendsProvider = ({ children }) => {
 
     const loadRequests = useCallback(
         async (page = 1) => {
+            if(!user){
+                return;
+            }
             setLoading(true);
             try {
                 const [pending, sent] = await Promise.all([

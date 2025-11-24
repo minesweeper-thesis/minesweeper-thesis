@@ -1,4 +1,5 @@
 import React, {createContext, useContext, useEffect, useRef, useState} from "react";
+import {useAuth} from "./AuthContext";
 
 export const GameServiceContext = createContext({
     socket: null,
@@ -6,6 +7,7 @@ export const GameServiceContext = createContext({
 });
 
 export function GameServiceProvider({ children }) {
+    const { user } = useAuth();
     const [socket, setSocket] = useState(null);
     const [lastMessage, setLastMessage] = useState(null);
     const [lobby, setLobby] = useState(null);
@@ -80,6 +82,9 @@ export function GameServiceProvider({ children }) {
     }
 
     useEffect(() => {
+        if (!user){
+            return
+        }
         connectWebSocket();
 
         return () => {
@@ -87,7 +92,7 @@ export function GameServiceProvider({ children }) {
             if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
             if (socketRef.current) socketRef.current.close();
         };
-    }, []);
+    }, [user]);
 
     const addLobbyMessage = (text) => {
         setChatMessages(prev => [

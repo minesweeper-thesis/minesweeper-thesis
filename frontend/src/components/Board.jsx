@@ -9,19 +9,13 @@ const Board = forwardRef(function Board(
     { boardData, sendCommand, setGameState, setMines, startField, socket = null },
     ref
 ) {
-    const [board, setBoard] = useState(
-        Array.from({ length: boardData.rows }, () =>
-            Array(boardData.cols).fill(State.NOT_REVEALED)
-        )
-    );
+    const [board, setBoard] = useState( null );
 
 
 
     useEffect(() => {
         setBoard(
-            Array.from({ length: boardData.rows }, () =>
-                Array(boardData.cols).fill(State.NOT_REVEALED)
-            )
+            null
         );
         setMines(boardData.mineCount);
     }, [boardData.rows, boardData.cols, boardData.mineCount, setMines]);
@@ -53,7 +47,7 @@ const Board = forwardRef(function Board(
 
             for (let i = 0; i < revealed_board.length; i++) {
                 for (let j = 0; j < revealed_board[i].length; j++) {
-                    if (i === red_mine[0] && j === red_mine[1]) {
+                    if (red_mine && i === red_mine[0] && j === red_mine[1]) {
                         newBoard[i][j] = State.LOSING_MINE;
                     } else if (revealed_board[i][j] === State.MINE && newBoard[i][j] !== State.FLAG) {
                         newBoard[i][j] = State.MINE;
@@ -77,6 +71,16 @@ const Board = forwardRef(function Board(
                 }
             }
 
+            if (startField) {
+                for (let i = 0; i < newBoard.length; i++) {
+                    for (let j = 0; j < newBoard[i].length; j++) {
+                        if (newBoard[i][j] === State.START_FIELD &&
+                            (i !== startField[0] || j !== startField[1])) {
+                            newBoard[i][j] = State.NOT_REVEALED;
+                        }
+                    }
+                }
+            }
             return newBoard;
         });
     };
@@ -133,6 +137,10 @@ const Board = forwardRef(function Board(
 
             case "SET_GAME_STATE":
                 setGameState(cmd.value);
+                break;
+
+            case "SET_BOARD":
+                setBoard(cmd.board);
                 break;
 
             case "RESET_BOARD":
@@ -222,7 +230,15 @@ const Board = forwardRef(function Board(
                     </div>
                 ))
             ) : (
-                <div>Connecting...</div>
+                <div className="flex flex-col items-center justify-center h-full text-text-primary">
+                    <div className="relative w-10 h-10 mb-3 mt-20">
+                        <div className="absolute inset-0 border-4 border-border-primary rounded-full opacity-20"></div>
+                        <div className="absolute inset-0 border-4 border-accent-primary rounded-full border-t-transparent animate-spin"></div>
+                    </div>
+                    <p className="text-lg font-medium animate-pulse">
+                        Generating Board<span className="dots"></span>
+                    </p>
+                </div>
             )}
         </div>
     );

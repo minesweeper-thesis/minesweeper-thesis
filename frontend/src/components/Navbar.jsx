@@ -28,11 +28,11 @@ const Navbar = ({ children }) => {
     }, [user, loading]);
 
     const navigation = [
-        { path: '/', icon: Play, label: 'Game' },
-        { path: '/game',icon: Play, label: 'Multi' },
-        { path: '/friends', icon: Users, label: 'Friends' },
-        { path: '/stats', icon: BarChart3, label: 'Statistics' },
-        { path: '/settings', icon: Settings, label: 'Settings' },
+        { path: '/', icon: Play, label: 'Game', requiresAuth: false },
+        { path: '/game', icon: Play, label: 'Multi', requiresAuth: true },
+        { path: '/friends', icon: Users, label: 'Friends', requiresAuth: true },
+        { path: '/stats', icon: BarChart3, label: 'Statistics', requiresAuth: false },
+        { path: '/settings', icon: Settings, label: 'Settings', requiresAuth: true },
     ];
 
     return (
@@ -47,23 +47,26 @@ const Navbar = ({ children }) => {
                     </div>
                     {/* Navigation */}
                     <nav className="flex gap-2 justify-center w-full md:w-auto order-3 md:order-none">
-                        {navigation.map(({ path, icon: Icon, label }) => (
-                            <NavLink
-                                key={path}
-                                to={path}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition
+                        {navigation
+                            .filter(item => !item.requiresAuth || user)
+                            .map(({ path, icon: Icon, label }) => (
+                                <NavLink
+                                    key={path}
+                                    to={path}
+                                    className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition
                     ${
-                                    pathname === path
-                                        ? 'bg-accent-primary text-bg-secondary'
-                                        : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
-                                }
-                  `}
-                            >
-                                <Icon size={20} />
-                                <span className="hidden md:inline">{label}</span>
-                            </NavLink>
-                        ))}
+                                        pathname === path
+                                            ? 'bg-accent-primary text-bg-secondary'
+                                            : 'text-text-secondary hover:bg-bg-tertiary hover:text-text-primary'
+                                    }
+                `}
+                                >
+                                    <Icon size={20} />
+                                    <span className="hidden md:inline">{label}</span>
+                                </NavLink>
+                            ))}
                     </nav>
+
                 </div>
 
                 {/* User Menu */}
