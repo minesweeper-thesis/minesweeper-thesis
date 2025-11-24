@@ -1,7 +1,7 @@
-import asyncio
 import time
 import uuid
 from abc import abstractmethod
+from datetime import datetime
 from typing import Any, Awaitable, Callable, Optional
 
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ from backend.core.game import *
 from backend.core.lobby import GameConfig
 from backend.core.singleplayer import SingleplayerGameplay
 
-ROUND_START_DELAY = 5  # seconds
+ROUND_START_DELAY = 10  # seconds
 
 
 class OpponentState(BaseModel):
@@ -73,6 +73,10 @@ class MultiplayerGameplay(Gameplay):
     def mode(self) -> GameMode:
         return self._gameplay.game_mode
 
+    @property
+    def loss_cause(self) -> Optional[LossCause]:
+        return self._gameplay.loss_cause
+
     def _notify_opponents(self):
         my_state = OpponentState(
             revealed_cnt=len(self._gameplay.revealed),
@@ -81,19 +85,31 @@ class MultiplayerGameplay(Gameplay):
         self.notify_opponents(my_state)
 
     def reveal_one(self, x: int, y: int):
+        if self.status != "in_progress":
+            raise RuntimeError("Game is not in progress")
+
         result = self._gameplay.reveal_one(x, y)
         self._notify_opponents()
         return result
 
     def reveal_many(self, x: int, y: int):
+        if self.status != "in_progress":
+            raise RuntimeError("Game is not in progress")
+
         result = self._gameplay.reveal_many(x, y)
         self._notify_opponents()
         return result
 
     def flag(self, x: int, y: int) -> FlagResult:
+        if self.status != "in_progress":
+            raise RuntimeError("Game is not in progress")
+
         return self._gameplay.flag(x, y)
 
     def remove_flag(self, x: int, y: int) -> FlagResult:
+        if self.status != "in_progress":
+            raise RuntimeError("Game is not in progress")
+
         return self._gameplay.remove_flag(x, y)
 
     def start_game_if_not_started(self):
@@ -107,6 +123,12 @@ class MultiplayerGameplay(Gameplay):
 
     def is_game_over(self) -> bool:
         return self.status == "finished"
+
+    def finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
+        if self.status != "in_progress":
+            raise RuntimeError("Game is not in progress")
+
+        self._gameplay.finish_game(result, loss_cause)
 
 
 type IsRoundOver = bool
@@ -125,20 +147,49 @@ class MultiplayerRound:
         self.board = board
         self.gameplays = {gameplay.user_id: gameplay for gameplay in gameplays}
 
+        self.start_at = 0
+        self.end_at = 0
+
     def handle_game_action(
         self, action: GameAction, user_id: uuid.UUID
     ) -> ActionResult:
+        if not self.start_at or not self.end_at:
+            raise RuntimeError("Round has not started yet")
+
+        start_str = datetime.fromtimestamp(self.start_at).strftime("%Y-%m-%d %H:%M:%S")
+        end_str = datetime.fromtimestamp(self.end_at).strftime("%Y-%m-%d %H:%M:%S")
+        print(
+            f"Handling action for round {self.round_number} (started at {start_str}, ends at {end_str})"
+        )
+
+        if not self.start_at <= time.time() < self.end_at:
+            raise RuntimeError("Round is not active")
+
         gameplay = self.gameplays[user_id]
-        action_result, _ = action.handle(gameplay)
+        action_result = action.handle(gameplay)
 
         return action_result
 
     def is_round_over(self) -> bool:
-        return all(gp.is_game_over() for gp in self.gameplays.values())
+        return all(gameplay.is_game_over() for gameplay in self.gameplays.values())
 
-    def start(self):
+    def start(self, start_at, end_at):
+        start_str = datetime.fromtimestamp(start_at).strftime("%Y-%m-%d %H:%M:%S")
+        end_str = datetime.fromtimestamp(end_at).strftime("%Y-%m-%d %H:%M:%S")
+
+        print(f"Starting round {self.round_number} at {start_str}, ends at {end_str}")
+        self.start_at = start_at
+        self.end_at = end_at
         for gameplay in self.gameplays.values():
             gameplay.start_game_if_not_started()
+
+    def end(self):
+        end_str = datetime.fromtimestamp(self.end_at).strftime("%Y-%m-%d %H:%M:%S")
+        print(f"Ending round {self.round_number} at {end_str}")
+
+        for gameplay in self.gameplays.values():
+            if not gameplay.is_game_over():
+                gameplay.finish_game("loss", loss_cause=LossCause("time_out"))
 
 
 class MultiplayerSessionMessage(ABC):
@@ -171,7 +222,7 @@ class MultiplayerSession:
         id: uuid.UUID,
         difficulty_level: DifficultyLevel,
         mode: GameMode,
-        max_round_time: float,
+        max_round_time: int,
         player_ids: list[uuid.UUID],
         rounds: list[MultiplayerRound],
     ):
@@ -181,38 +232,33 @@ class MultiplayerSession:
         self.max_round_time = max_round_time
         self.player_ids = player_ids
         self.rounds = rounds
-        self.current_round_index = 0
+        self.current_round_index = -1
 
         self.ready_players: set[uuid.UUID] = set()
-        self._start_round_task: Optional[asyncio.Task] = None
 
-    async def set_ready(self, user_id: uuid.UUID):
+    def set_ready(self, user_id: uuid.UUID):
         self.ready_players.add(user_id)
 
-        if set(self.player_ids) == self.ready_players:
+    def all_users_ready(self) -> bool:
+        return set(self.player_ids) == self.ready_players
 
-            round_start = int(time.time()) + ROUND_START_DELAY
-            round_end = round_start + int(self.max_round_time)
-
-            await self._start_round(round_start)
-
-            await self.send_data(
-                RoundReady(
-                    start_at=round_start,
-                    end_at=round_end,
-                )
-            )
-
-    async def _start_round(self, start_time: int):
-        if self._start_round_task is not None:
-            self._start_round_task.cancel()
+    def end_current_round(self):
+        if self.current_round_index == -1:
+            raise RuntimeError("No round is currently active")
 
         current_round = self.rounds[self.current_round_index]
+        current_round.end()
 
-        current_time = int(time.time())
-        delay = max(0, start_time - current_time)
-        await asyncio.sleep(delay)
-        current_round.start()
+    def start_next_round(self, start_at: int, end_at: int):
+        if self.current_round_index != -1:
+            previous_round = self.rounds[self.current_round_index]
+            if not previous_round.is_round_over():
+                raise RuntimeError("Previous round is not over yet")
+
+        self.current_round_index += 1
+        current_round = self.rounds[self.current_round_index]
+        current_round.start(start_at, end_at)
+        self.ready_players.clear()
 
     def set_not_ready(self, user_id: uuid.UUID):
         self.ready_players.discard(user_id)
@@ -257,9 +303,7 @@ async def create_multiplayer_round(
 async def create_multiplayer_session(
     id: uuid.UUID,
     game_config: GameConfig,
-    max_round_time: float,
     player_ids: list[uuid.UUID],
-    rounds_number: int,
 ) -> MultiplayerSession:
     dlevel, gtype, gsettings = (
         game_config.difficulty_level,
@@ -275,14 +319,14 @@ async def create_multiplayer_session(
             player_ids=player_ids,
             mode=game_config.game_mode,
         )
-        for i in range(rounds_number)
+        for i in range(game_config.rounds)
     ]
 
     return MultiplayerSession(
         id=id,
         difficulty_level=dlevel,
         mode=game_config.game_mode,
-        max_round_time=max_round_time,
+        max_round_time=game_config.max_round_time,
         player_ids=player_ids,
         rounds=rounds,
     )

@@ -10,7 +10,7 @@ class PendingGameplay:
 
 
 class PendingGameplaysStore:
-    def __init__(self):
+    def __init__(self) -> None:
         self._pending: dict[uuid.UUID, PendingGameplay] = {}
 
     def add(self, gameplay_id: uuid.UUID) -> None:

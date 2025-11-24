@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends
 from backend import services
 from backend.lib.auth import CurrentUser
 from backend.lib.connections_manager import ConnectionsManager
-from backend.routers.schemas import create_response
-from backend.services.lobby_service import NewGameConfig
+from backend.lib.websockets_registry import multi_websockets
+from backend.routers.schemas.serialize import create_response
 
 from .schemas.lobby_schemas import *
 
@@ -20,6 +20,12 @@ invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
 async def notify(receiver_id: uuid.UUID, data):
     if ConnectionsManager.is_user_online(receiver_id):
         websocket = ConnectionsManager.get(receiver_id)
+        await websocket.send_text(create_response(data))
+
+
+async def game_notify(receiver_id: uuid.UUID, data):
+    if receiver_id in multi_websockets._websockets:
+        websocket = multi_websockets.get(receiver_id)
         await websocket.send_text(create_response(data))
 
 
@@ -41,9 +47,7 @@ async def update_lobby_config(
     config: UpdateGameConfigRequest,
 ):
     """Updates lobby configuration."""
-    await service.update_lobby(
-        lobby_id, user, NewGameConfig(**config.model_dump()), notify
-    )
+    await service.update_lobby(lobby_id, user, config.to_dto(), notify)
 
 
 @lobby_router.post("/{lobby_id}/invitations")
@@ -87,3 +91,27 @@ async def reject_game_invitation(
 ):
     """Rejects a game invitation."""
     await service.reject_game_invitation(invitation_id, user, notify)
+
+
+@lobby_router.post("/{lobby_id}/ready")
+async def set_user_ready(
+    lobby_id: uuid.UUID,
+    service: LobbyService,
+    user: CurrentUser,
+):
+    async def close_connection():
+        if user.id in multi_websockets._websockets:
+            await multi_websockets.get(user.id).close()
+
+    service.on_session_end_callback = close_connection
+    await service.set_user_ready(lobby_id, user, notify, game_notify)
+
+
+@lobby_router.post("/{lobby_id}/cancel-ready")
+async def set_user_not_ready(
+    lobby_id: uuid.UUID,
+    user: CurrentUser,
+    # service: LobbyService,
+):
+    """Sets the user as ready in the lobby."""
+    # await service.set_user_not_ready(lobby_id, user, notify)

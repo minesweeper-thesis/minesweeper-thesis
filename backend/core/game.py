@@ -35,8 +35,8 @@ class HintResult(ActionResult):
 
 @dataclass
 class LossCause:
-    type: Literal["mine_clicked", "unsafe_move"]
-    cell: tuple[int, int]
+    type: Literal["mine_clicked", "unsafe_move", "time_out"]
+    cell: Optional[tuple[int, int]] = None
 
 
 @dataclass

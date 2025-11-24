@@ -1,11 +1,15 @@
 import uuid
-from abc import ABC, abstractmethod
 from typing import ClassVar, Literal, Self
 
 from pydantic import BaseModel
 
 from backend.core.lobby import *
-from backend.services.lobby_service import GameConfigUpdated, UserConnectionUpdated
+from backend.routers.schemas import Response
+from backend.services.lobby_service import (
+    GameConfigUpdated,
+    NewGameConfig,
+    UserConnectionUpdated,
+)
 
 from .user_schemas import UserResponse
 
@@ -29,18 +33,26 @@ class DifficultyLevelRequest(BaseModel):
 
 
 class UpdateGameConfigRequest(BaseModel):
+    rounds: int
+    max_round_time: int
     difficulty_level: DifficultyLevelRequest
     game_mode: GameMode
     generator_type: GeneratorType
     generator_settings: Optional[GeneratorSettings] = None
 
-
-class Response(ABC, BaseModel):
-    @classmethod
-    @abstractmethod
-    def from_core(cls, data) -> Self:
-        """Create response from domain object."""
-        ...
+    def to_dto(self) -> NewGameConfig:
+        return NewGameConfig(
+            rounds=self.rounds,
+            max_round_time=self.max_round_time,
+            difficulty_level=DifficultyLevel(
+                rows=self.difficulty_level.rows,
+                columns=self.difficulty_level.columns,
+                mine_count=self.difficulty_level.mine_count,
+            ),
+            game_mode=self.game_mode,
+            generator_type=self.generator_type,
+            generator_settings=self.generator_settings,
+        )
 
 
 class GameConfigUpdatedResponse(Response):
@@ -146,3 +158,19 @@ class CurrentLobbyResponse(Response):
         return cls(
             lobby=LobbyResponse.from_core(lobby) if lobby else None,
         )
+
+
+__all__ = [
+    "InviteUserToLobbyRequest",
+    "JoinLobbyRequest",
+    "UpdateGameConfigRequest",
+    "LobbyResponse",
+    "InvitationResponse",
+    "InvitationAnswerResponse",
+    "GameConfigUpdatedResponse",
+    "InvitationLobbyResponse",
+    "UserConnectionStatusResponse",
+    "PendingInvitationsResponse",
+    "CurrentLobbyResponse",
+    "GameConfigUpdatedResponse",
+]

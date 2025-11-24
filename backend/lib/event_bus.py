@@ -12,7 +12,7 @@ class EventBus(Protocol):
 
 
 class InMemoryEventBus(EventBus):
-    def __init__(self):
+    def __init__(self) -> None:
         self._subscribers: dict[str, list[EventCallback]] = {}
 
     async def publish(self, channel: str, message: dict) -> None:
