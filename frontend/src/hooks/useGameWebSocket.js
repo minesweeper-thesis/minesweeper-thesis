@@ -1,68 +1,72 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 
-
-export default function useGameWebSocket(socketUrl, interpreter, boardRef) {
+export default function useGameWebSocket(url, interpreter, boardRef) {
     const socketRef = useRef(null);
-    const pendingRef = useRef([]);
+    const reconnectTimeoutRef = useRef(null);
+    const manuallyClosedRef = useRef(false);
+    const retryAttemptRef = useRef(0);
+    const MAX_RETRIES = 10;
 
-    useEffect(() => {
-        if (!socketUrl) return;
+    const send = useCallback((msg) => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+            socketRef.current.send(JSON.stringify(msg));
+        }
+    }, []);
 
-        const ws = new WebSocket(socketUrl);
+    const connect = useCallback(() => {
+        if (!url || manuallyClosedRef.current || socketRef.current) return;
+
+        const ws = new WebSocket(url);
         socketRef.current = ws;
 
         ws.onopen = () => {
-            console.log("[useGameWebSocket] connected:", socketUrl);
-            flushPending();
+            retryAttemptRef.current = 0;
+            // send({ type: "game_state"});
+            console.log("[WebSocket] ConnectedL: ", url);
         };
 
-        ws.onerror = (e) => {
-            console.error("[useGameWebSocket] error", e);
-        };
-
-        ws.onclose = (e) => {
-            console.log("[useGameWebSocket] closed", e);
-        };
-
-        ws.onmessage = (ev) => {
+        ws.onmessage = (event) => {
             try {
-                const data = JSON.parse(ev.data);
+                const data = JSON.parse(event.data);
+                console.log("[WebSocket] Received message", data);
                 const commands = interpreter(data) || [];
-                if (!Array.isArray(commands)) return;
-
-                if (boardRef && boardRef.current && typeof boardRef.current.dispatchCommand === "function") {
+                if (Array.isArray(commands) && boardRef?.current?.dispatchCommand) {
                     boardRef.current.dispatchCommand(commands);
-                } else {
-                    pendingRef.current.push(...commands);
                 }
-            } catch (err) {
-                console.error("[useGameWebSocket] onmessage parse error", err);
+            } catch (e) {
+                console.error("[WebSocket] Error parsing message", e);
             }
         };
 
-        function flushPending() {
-            if (pendingRef.current.length === 0) return;
-            if (boardRef && boardRef.current && typeof boardRef.current.dispatchCommand === "function") {
-                boardRef.current.dispatchCommand(pendingRef.current);
-                pendingRef.current = [];
-            }
-        }
+        ws.onerror = (err) => {
+            console.error("[WebSocket] Error", err);
+            // ws.close();
+        };
 
-        const flushInterval = setInterval(flushPending, 200);
+        ws.onclose = () => {
+            socketRef.current = null;
+            if (manuallyClosedRef.current) return;
+
+            if (retryAttemptRef.current < MAX_RETRIES) {
+                const delay = Math.min(1000 * 2 ** retryAttemptRef.current, 10000);
+                reconnectTimeoutRef.current = setTimeout(() => {
+                    retryAttemptRef.current += 1;
+                    connect();
+                }, delay);
+            }
+        };
+    }, [url, interpreter, boardRef]);
+
+    useEffect(() => {
+        manuallyClosedRef.current = false;
+        connect();
 
         return () => {
-            clearInterval(flushInterval);
-            try { ws.close(); } catch (e) {}
-            socketRef.current = null;
-            pendingRef.current = [];
+            manuallyClosedRef.current = true;
+            clearTimeout(reconnectTimeoutRef.current);
+            socketRef.current?.close();
         };
-    }, [socketUrl, interpreter, boardRef]);
-
-    const send = (obj) => {
-        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) return false;
-        socketRef.current.send(JSON.stringify(obj));
-        return true;
-    };
+    }, [connect]);
 
     return { send, socketRef };
 }

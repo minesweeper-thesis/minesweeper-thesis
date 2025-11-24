@@ -4,100 +4,88 @@ import useGameWebSocket from "../hooks/useGameWebSocket";
 import gameInterpreter from "../utils/gameInterpreter";
 import Controls from "../components/Controls";
 import DifficultyMenu from "../components/DifficultyMenu";
-import AdvancedOptions from "../components/AdvancedOptions";
 import VictoryScreen from "../components/VictoryScreen";
 import { GameState } from "../utility";
 
-export default function GamePage() {
+export default function GamePageSingle() {
     const [boardData, setBoardData] = useState({ rows: 10, cols: 10, mineCount: 15, mode: "normal" });
     const [heuristicData, setHeuristicData] = useState({ classifier: "lightgbm", heuristic: "no", heuristic_args: [] });
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
     const [mines, setMines] = useState(0);
     const [gameplayId, setGameplayId] = useState(null);
-    const boardRef = useRef(null);
     const [startField, setStartField] = useState(null);
+    const boardRef = useRef(null);
 
     const REQUEST_BODY = {
-        generator: { type: "ml", settings: { ...heuristicData } },
+        generator: { type: "random", settings: { ...heuristicData } },
         difficulty_level: { rows: boardData.rows, columns: boardData.cols, mine_count: boardData.mineCount },
         mode: boardData.mode,
     };
 
-    async function initGameRequest() {
-        try {
-            const response = await fetch("api/game/single", {
-                method: "POST",
-                headers: { "accept": "application/json", "Content-Type": "application/json" },
-                body: JSON.stringify(REQUEST_BODY),
-            });
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            const data = await response.json();
-            return data;
-        } catch (err) {
-            console.error("Błąd inicjalizacji gry:", err);
-            throw err;
-        }
+    async function initGameRequest(storedId) {
+        if (storedId) return { gameplay_id: storedId };
+
+        const res = await fetch("/api/game/single", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", accept: "application/json" },
+            body: JSON.stringify(REQUEST_BODY),
+        });
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        return res.json();
     }
 
-    const startNewGame = useCallback(async () => {
+    const onReset = useCallback(async (e, storedId = null) => {
+        startNewGame(storedId);
+    }, []);
+
+    const startNewGame = useCallback(async (storedId = null) => {
         setGameState(GameState.NOT_STARTED);
         try {
-            const res = await initGameRequest();
-            setGameplayId(res.gameplay_id);
-            setMines(res.mine_count ?? boardData.mineCount);
-            setStartField(res.start_field);
-
+            const data = await initGameRequest(storedId);
+            setGameplayId(data.gameplay_id);
+            console.log("saving data:", data);
+            localStorage.setItem("gameplayId", data.gameplay_id);
+            setMines(data.mine_count ?? boardData.mineCount);
+            setStartField(data.start_field ?? null);
         } catch (err) {
-            console.error("Game initialization error:", err);
+            console.error("Game init error:", err);
         }
     }, [boardData, heuristicData]);
 
+    useEffect(() => {
+        const stored = localStorage.getItem("gameplayId");
+        startNewGame(stored);
+    }, [boardData, startNewGame]);
+
     const socketUrl = gameplayId ? `api/game/single/${gameplayId}` : null;
     const { send, socketRef } = useGameWebSocket(socketUrl, gameInterpreter, boardRef);
-
-    useEffect(() => {
-        startNewGame();
-    }, [boardData]);
 
     return (
         <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
             <aside className="w-64 p-4">
                 <DifficultyMenu setBoardData={setBoardData} />
-                <AdvancedOptions onSelect={(data) => setHeuristicData(data)} />
             </aside>
 
             <main className="p-4 overflow-auto game-area relative w-full max-w-4xl">
                 {gameState === GameState.WON && <VictoryScreen onPlayAgain={startNewGame} />}
 
                 <Controls
-                    onReset={startNewGame}
+                    onReset={onReset}
                     mines={mines}
                     gameState={gameState}
                     onHint={() => send({ type: "hint" })}
                 />
 
-                <div className="game-board flex-1 mt-4 ">
-                    {socketRef != null ? (
-                    <Board
-                        key={gameplayId}
-                        ref={boardRef}
-                        boardData={boardData}
-                        sendCommand={(obj) => send(obj)}
-                        setGameState={setGameState}
-                        setMines={setMines}
-                        startField={startField}
-                    />
-                        ) :
-                        <div className="flex flex-col items-center justify-center h-full text-text-primary">
-                            <div className="relative w-10 h-10 mb-3 mt-20">
-                                <div className="absolute inset-0 border-4 border-border-primary rounded-full opacity-20"></div>
-                                <div className="absolute inset-0 border-4 border-accent-primary rounded-full border-t-transparent animate-spin"></div>
-                            </div>
-                            <p className="text-lg font-medium animate-pulse">
-                                Connecting<span className="dots"></span>
-                            </p>
-                        </div>
-                    }
+                <div className="game-board flex-1 mt-4">
+                        <Board
+                            key={gameplayId}
+                            ref={boardRef}
+                            boardData={boardData}
+                            sendCommand={send}
+                            setGameState={setGameState}
+                            setMines={setMines}
+                            startField={startField}
+                        />
                 </div>
             </main>
         </div>
