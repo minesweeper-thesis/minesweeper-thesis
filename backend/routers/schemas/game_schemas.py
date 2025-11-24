@@ -11,6 +11,13 @@ from backend.core.multiplayer import (
     NotReadyMessage,
     ReadyMessage,
 )
+from backend.routers.schemas import Response
+from backend.services.lobby_service import (
+    GameReadyMessage,
+    RoundEndMessage,
+    RoundStartMessage,
+    SessionOverMessage,
+)
 from backend.services.singleplayer_service import NewGameSettings
 
 from .board_schemas import *
@@ -234,7 +241,10 @@ class GameStateResponse(GameActionResponse):
             board[x][y] = CellSpecial.FLAG
 
         if result.loss_cause is not None:
-            if result.loss_cause.type == "mine_clicked":
+            if (
+                result.loss_cause.type == "mine_clicked"
+                and result.loss_cause.cell is not None
+            ):
                 mx, my = result.loss_cause.cell
                 board[mx][my] = CellSpecial.LOSING_MINE
 
@@ -302,34 +312,77 @@ class NotReadyRequest(MultiplayerSessionMessageRequest):
         return NotReadyMessage()
 
 
-MultiplayerSessionMessageUnion = Annotated[
-    Annotated[ReadyRequest, Tag("ready")]
-    | Annotated[NotReadyRequest, Tag("not_ready")],
-    Discriminator("type"),
-]
-
-
-def parse_multiplayer_session_message(data: dict) -> MultiplayerSessionMessage:
-    adapter: TypeAdapter[MultiplayerSessionMessageUnion] = TypeAdapter(
-        MultiplayerSessionMessageUnion
-    )
-    request = adapter.validate_python(data)
-    return request.to_core()
-
-
-class RoundStartResponse(BaseModel):
+class RoundStartResponse(Response):
     type: str = "round_start"
+    session_id: uuid.UUID
+    round: int
     start_at: int
     end_at: int
+    start_field: Cell
+
+    @classmethod
+    def from_core(cls, message: "RoundStartMessage") -> Self:
+        return cls(
+            start_at=message.start_at,
+            end_at=message.end_at,
+            session_id=message.session_id,
+            round=message.round,
+            start_field=message.start_field,
+        )
 
 
-class RoundEndResponse(BaseModel):
+class RoundEndResponse(Response):
     type: str = "round_end"
+    session_id: uuid.UUID
+    round: int
+
+    @classmethod
+    def from_core(cls, message: "RoundEndMessage") -> Self:
+        return cls(
+            session_id=message.session_id,
+            round=message.round,
+        )
 
 
-class SessionEndResponse(BaseModel):
-    type: str = "session_end"
+class SessionOverResponse(Response):
+    type: str = "session_over"
+    session_id: uuid.UUID
+
+    @classmethod
+    def from_core(cls, message: "SessionOverMessage") -> Self:
+        return cls(
+            session_id=message.session_id,
+        )
 
 
 class FirstRoundStartResponse(RoundStartResponse):
     gameplay_id: uuid.UUID
+
+
+class GameReadyMessageResponse(Response):
+    type: str = "ready"
+    session_id: uuid.UUID
+    round: int
+    start_at: int
+
+    @classmethod
+    def from_core(cls, message: "GameReadyMessage") -> Self:
+        return cls(
+            session_id=message.session_id,
+            round=message.round,
+            start_at=message.start_at,
+        )
+
+
+__all__ = [
+    "NewGameRequest",
+    "GameActionRequest",
+    "parse_game_action",
+    "NewGameResponse",
+    "GameActionResponse",
+    "RoundStartResponse",
+    "RoundEndResponse",
+    "SessionOverResponse",
+    "FirstRoundStartResponse",
+    "GameReadyMessageResponse",
+]

@@ -8,10 +8,10 @@ from fastapi_pagination import Params
 from backend import repositories
 from backend.core.board import BoardGenerator, DifficultyLevel, GenerationSettings
 from backend.core.game import *
-from backend.core.pending_gameplays import pending_store
 from backend.core.singleplayer import SingleplayerGameplay
 from backend.lib.auth import CurrentUser, OptionalCurrentUser
 from backend.lib.event_bus import event_bus
+from backend.lib.pending_gameplays import pending_store
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
 
