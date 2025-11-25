@@ -1,6 +1,6 @@
 import uuid
 
-from backend.core.multiplayer import MultiplayerSession
+from backend.core.multiplayer.session import MultiplayerSession
 from backend.db.db import DBSession
 
 from .exceptions import *

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Discriminator, Field, Tag, TypeAdapter, model_va
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
-from backend.core.multiplayer import (
+from backend.core.multiplayer.session import (
     MultiplayerSessionMessage,
     NotReadyMessage,
     ReadyMessage,

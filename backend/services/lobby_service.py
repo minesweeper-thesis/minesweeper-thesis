@@ -10,7 +10,8 @@ from backend import repositories
 from backend.core import lobby
 from backend.core.game import *
 from backend.core.lobby import *
-from backend.core.multiplayer import ROUND_START_DELAY, create_multiplayer_session
+from backend.core.multiplayer import ROUND_START_DELAY
+from backend.core.multiplayer.session import create_multiplayer_session
 from backend.core.user import User
 from backend.lib.pending_sessions import pending_sessions_store
 from backend.repositories.exceptions import *
