@@ -27,6 +27,10 @@ class NewGameSettings:
     mode: GameMode
 
 
+class GenerationTimeout(Exception):
+    pass
+
+
 class SingleplayerService:
     def __init__(
         self,
@@ -65,26 +69,17 @@ class SingleplayerService:
         gameplay = await self.game_repo.get_gameplay_by_id(gameplay_id)
         self.gameplay = gameplay
 
-    async def wait_for_board_ready(self, timeout: float | None = None) -> bool:
-        """
-        Wait for board to be ready (generated in background).
-
-        Returns:
-            True if board is ready, False if timeout occurred
-        """
+    async def _wait_for_board_ready(self, timeout: float | None = None) -> bool:
         pending = pending_store.get(self.gameplay_id)
 
         if pending is None:
-            # Board already exists in DB
             return True
 
         if pending.status == "ready":
-            # Board just finished generating
             pending_store.remove(self.gameplay_id)
             await self._set_gameplay(self.gameplay_id)
             return True
 
-        # Wait for board generation to complete
         channel = f"board_ready:{self.gameplay_id}"
         message = await event_bus.wait_for_message(channel, timeout=timeout)
 
@@ -164,8 +159,7 @@ class SingleplayerService:
 
             pending_store.mark_ready(gameplay_id)
             await event_bus.publish(
-                f"board_ready:{gameplay_id}",
-                {"gameplay_id": str(gameplay_id)},
+                f"board_ready:{gameplay_id}", {"gameplay_id": str(gameplay_id)}
             )
 
         asyncio.run(_save_to_db())
@@ -232,3 +226,10 @@ class SingleplayerService:
     async def game_cleanup(self):
         if self.gameplay_id is not None:
             pending_store.remove(self.gameplay_id)
+
+    async def get_initial_state(self):
+        board_ready = await self._wait_for_board_ready(timeout=120.0)
+        if not board_ready:
+            raise GenerationTimeout()
+
+        return await self.get_game_state()

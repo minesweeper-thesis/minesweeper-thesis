@@ -10,6 +10,7 @@ from backend.lib.websockets_registry import multi_websockets
 from backend.routers.schemas.serialize import create_response
 from backend.services import exceptions as service_exceptions
 from backend.services.lobby_service import SessionOverMessage
+from backend.services.singleplayer_service import GenerationTimeout
 
 from .schemas.game_schemas import *
 
@@ -70,20 +71,19 @@ async def play_single(
                 await websocket.close()
                 return
 
-    async def on_board_ready():
-        game_state = await service.get_game_state()
-        await websocket.send_text(create_response(game_state))
-
-    service.board_ready_callback = on_board_ready
     try:
         await service.load_gameplay(gameplay_id)
         await websocket.accept()
-        await service.send_board()
+
+        game_state = await service.get_initial_state()
+        await websocket.send_text(create_response(game_state))
 
         await receiver()
 
     except WebSocketDisconnect:
         await service.save_gameplay_progress()
+    except GenerationTimeout:
+        await websocket.close(code=1001, reason="Board generation timeout")
     finally:
         await service.game_cleanup()
 
