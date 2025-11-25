@@ -213,14 +213,7 @@ class SingleplayerService:
         if self.gameplay.status == "in_progress":
             self.gameplay.update_elapsed_time()
 
-        await self.game_repo.update_gameplay(
-            self.gameplay.id,
-            status=self.gameplay.status,
-            result=self.gameplay.result,
-            time=self.gameplay.elapsed_time,
-            used_prompts=self.gameplay.used_hints,
-            revealed_cells=self.gameplay.get_revealed_cells(),
-        )
+        await self.game_repo.update_gameplay(self.gameplay)
 
     async def game_cleanup(self):
         if self.gameplay_id is not None:

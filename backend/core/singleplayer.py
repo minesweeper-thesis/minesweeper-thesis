@@ -14,7 +14,8 @@ class SingleplayerGameplay:
         self,
         id: uuid.UUID,
         board: Board,
-        revealed_cells: list[tuple[int, int]] = [],
+        revealed_cells: list[Cell] = [],
+        flagged_cells: list[Cell] = [],
         status: GameStatus = "not_started",
         result: Optional[GameResult] = None,
         used_hints: bool = False,
@@ -38,12 +39,15 @@ class SingleplayerGameplay:
         self.used_hints = used_hints
         self.elapsed_time = elapsed_time
         self.game_mode: GameMode = mode
-        self.revealed: list[tuple[int, int, int]] = []
+        self._revealed: list[tuple[int, int, int]] = []
         self.loss_cause: Optional[LossCause] = None
 
         for i, j in revealed_cells:
             self.grid.revealed[i][j] = True
-            self.revealed.append((i, j, self.grid.grid[i][j]))
+            self._revealed.append((i, j, self.grid.grid[i][j]))
+
+        for i, j in flagged_cells:
+            self.grid.flagged[i][j] = True
 
     def _get_safe_cells(self) -> list[tuple[int, int]]:
         safe_cells = HintGenerator.get_safe_fields_no_cache(self.grid)
@@ -62,16 +66,14 @@ class SingleplayerGameplay:
     def start_game_if_not_started(self):
         if self.status == "not_started":
             self.status = "in_progress"
-            self._time_start = time.monotonic()
+
+        self._time_start = time.monotonic()
 
     def update_elapsed_time(self):
         if self._time_start is None:
             raise RuntimeError("Game not started")
 
-        if self.elapsed_time is None:
-            self.elapsed_time = time.monotonic() - self._time_start
-        else:
-            self.elapsed_time += time.monotonic() - self._time_start
+        self.elapsed_time += time.monotonic() - self._time_start
 
     def finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
         if self.status == "finished":
@@ -131,7 +133,7 @@ class SingleplayerGameplay:
                 loss_cause=self.loss_cause,
             )
 
-        return RevealResult(revealed_cells=self.revealed, game_status=self.status)
+        return RevealResult(revealed_cells=self._revealed, game_status=self.status)
 
     def reveal_many(self, x: int, y: int):
         self.start_game_if_not_started()
@@ -166,7 +168,7 @@ class SingleplayerGameplay:
                 loss_cause=self.loss_cause,
             )
 
-        return RevealResult(revealed_cells=self.revealed, game_status=self.status)
+        return RevealResult(revealed_cells=self._revealed, game_status=self.status)
 
     def _update_result(self, revealed: list[tuple[int, int]]):
         for x, y in revealed:
@@ -180,12 +182,12 @@ class SingleplayerGameplay:
             return
 
     def _reset_revealed(self):
-        self.revealed = []
+        self._revealed = []
 
     def _set_revealed(self, revealed: list[Cell]):
-        self.revealed = sorted((x, y, self.grid.grid[x][y]) for (x, y) in revealed)
+        self._revealed = sorted((x, y, self.grid.grid[x][y]) for (x, y) in revealed)
 
-    def get_flagged(self) -> list[Cell]:
+    def get_flagged_cells(self) -> list[Cell]:
         return [
             (i, j)
             for i in range(self.grid.rows)
@@ -199,8 +201,8 @@ class SingleplayerGameplay:
             difficulty_level=self.board.difficulty_level,
             status=self.status,
             result=self.result,
-            revealed_cells=self.revealed,
-            flagged=self.get_flagged(),
+            revealed_cells=self._revealed,
+            flagged_cells=self.get_flagged_cells(),
             elapsed_time=self.elapsed_time,
             loss_cause=self.loss_cause,
             start_field=self.start_field,

@@ -14,6 +14,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
+from backend.core.game import Cell
 from backend.core.singleplayer import SingleplayerGameplay
 from backend.repositories.orm import Base
 
@@ -51,7 +52,8 @@ class SingleplayerGameplayORM(Base):
         Enum(GameStatusEnum), default="not_started"
     )
     result: Mapped[Optional[GameResultEnum]] = mapped_column(Enum(GameResultEnum))
-    revealed_cells: Mapped[list[tuple[int, int]]] = mapped_column(JSON, default=[])
+    revealed_cells: Mapped[list[Cell]] = mapped_column(JSON, default=[])
+    flagged_cells: Mapped[list[Cell]] = mapped_column(JSON, default=[])
 
     mode: Mapped[GameModeEnum] = mapped_column(Enum(GameModeEnum), default="normal")
 
@@ -65,6 +67,7 @@ class SingleplayerGameplayORM(Base):
             id=self.id,
             board=self.board.to_board(),
             revealed_cells=self.revealed_cells,
+            flagged_cells=self.flagged_cells,
             status=self.status.value,
             result=self.result.value if self.result else None,
             used_hints=self.used_hints,
@@ -87,7 +90,8 @@ class SingleplayerGameplayORM(Base):
             status=gameplay.status,
             result=gameplay.result,
             mode=gameplay.game_mode,
-            revealed_cells=[(i, j) for i, j, _ in gameplay.revealed],
+            revealed_cells=gameplay.get_revealed_cells(),
+            flagged_cells=gameplay.get_flagged_cells(),
         )
 
 

@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import { Settings, Zap, Target, Flame } from 'lucide-react';
 import ModeSwitch from "./ModeSwitch";
 
-const DifficultyMenu = ({ setBoardData }) => {
+const DifficultyMenu = ({ setBoardData, onStart }) => {
     const [selected, setSelected] = useState('easy');
     const [customRows, setCustomRows] = useState(9);
     const [customCols, setCustomCols] = useState(9);
@@ -32,6 +32,7 @@ const DifficultyMenu = ({ setBoardData }) => {
             mode: selectedMode ? "hardcore" : "normal",
         }
         setBoardData(newData);
+        onStart();
     }
 
 

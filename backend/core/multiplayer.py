@@ -30,7 +30,8 @@ class MultiplayerGameplay(Gameplay):
         board: Board,
         mode: GameMode,
         notify_opponents: Notifier,
-        revealed_cells: list[tuple[int, int]] = [],
+        revealed_cells: list[Cell] = [],
+        flagged_cells: list[Cell] = [],
         status: GameStatus = "not_started",
         result: Optional[GameResult] = None,
         elapsed_time: float = 0,
@@ -42,6 +43,7 @@ class MultiplayerGameplay(Gameplay):
             id=uuid.uuid4(),
             board=board,
             revealed_cells=revealed_cells,
+            flagged_cells=flagged_cells,
             status=status,
             result=result,
             used_hints=False,
@@ -79,7 +81,7 @@ class MultiplayerGameplay(Gameplay):
 
     def _notify_opponents(self):
         my_state = OpponentState(
-            revealed_cnt=len(self._gameplay.revealed),
+            revealed_cnt=len(self._gameplay.get_revealed_cells()),
             result=self._gameplay.result,
         )
         self.notify_opponents(my_state)
