@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from fastapi_pagination import Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
@@ -10,6 +11,8 @@ from backend.lib.websockets_registry import multi_websockets
 from backend.routers.schemas.serialize import create_response
 
 from .schemas.lobby_schemas import *
+
+PaginationParams = Annotated[Params, Depends()]
 
 LobbyService = Annotated[services.LobbyService, Depends()]
 
@@ -69,8 +72,8 @@ async def join_lobby(
     request: JoinLobbyRequest,
 ):
     """Joins a lobby using an invitation."""
-    lobby = await service.join_lobby(user, request.invitation_id, notify)
-    return LobbyResponse.from_core(lobby)
+    lobby, messages = await service.join_lobby(user, request.invitation_id, notify)
+    return LobbyResponse.from_core(lobby, messages)
 
 
 @lobby_router.post("/{lobby_id}/leave")
@@ -115,3 +118,26 @@ async def set_user_not_ready(
 ):
     """Sets the user as ready in the lobby."""
     # await service.set_user_not_ready(lobby_id, user, notify)
+
+
+@lobby_router.post("/{lobby_id}/chat-messages")
+async def send_chat_message(
+    lobby_id: uuid.UUID,
+    user: CurrentUser,
+    service: LobbyService,
+    request: ChatMessageRequest,
+):
+    """Sends a chat message in the lobby."""
+    await service.send_chat_message(lobby_id, user, request.content, notify)
+
+
+@lobby_router.get("/{lobby_id}/chat-messages")
+async def get_chat_messages(
+    lobby_id: uuid.UUID,
+    user: CurrentUser,
+    service: LobbyService,
+    params: PaginationParams,
+):
+    """Retrieves chat messages from the lobby."""
+    messages = await service.get_chat_messages(lobby_id, user, params)
+    return [ChatMessageResponse.from_core(message) for message in messages]

@@ -4,8 +4,10 @@ import uuid
 from typing import Annotated, Any, Awaitable, Callable
 
 from fastapi import BackgroundTasks, Depends
+from fastapi_pagination import Params
 
 from backend import repositories
+from backend.core import lobby
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multiplayer import ROUND_START_DELAY, create_multiplayer_session
@@ -136,7 +138,9 @@ class LobbyService:
         for lobby_user in lobby.users:
             await notify(lobby_user.id, data)
 
-        return lobby
+        messages = self.lobby_repo.get_messages(lobby.id, Params(page=1, size=10))
+
+        return lobby, messages
 
     async def update_lobby(
         self,
@@ -355,3 +359,44 @@ class LobbyService:
             data = GameReadyMessage(session_id=session_id, round=0, start_at=start_at)
             for lobby_user in lobby.users:
                 await notify(lobby_user.id, data)
+
+    async def send_chat_message(
+        self,
+        lobby_id: uuid.UUID,
+        user: User,
+        content: str,
+        notify: Notify,
+    ):
+        lobby = self.lobby_repo.get_lobby(lobby_id)
+        if not lobby:
+            raise ValueError("Lobby not found")
+
+        if user not in lobby.users:
+            raise PermissionError("User not in the lobby")
+
+        message = ChatMessage(
+            lobby_id=lobby_id,
+            sender=user,
+            content=content,
+            timestamp=int(time.time()),
+        )
+
+        self.lobby_repo.add_message(message)
+
+        for lobby_user in lobby.users:
+            await notify(lobby_user.id, message)
+
+    async def get_chat_messages(
+        self,
+        lobby_id: uuid.UUID,
+        user: User,
+        pagination_params: Params,
+    ) -> list[lobby.ChatMessage]:
+        lobby = self.lobby_repo.get_lobby(lobby_id)
+        if not lobby:
+            raise ValueError("Lobby not found")
+
+        if user not in lobby.users:
+            raise PermissionError("User not in the lobby")
+
+        return self.lobby_repo.get_messages(lobby_id, pagination_params)
