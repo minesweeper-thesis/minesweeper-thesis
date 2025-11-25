@@ -1,6 +1,6 @@
 import asyncio
 import uuid
-from typing import Annotated, Awaitable, Callable, Optional
+from typing import Annotated, Optional
 
 from fastapi import BackgroundTasks, Depends
 from fastapi_pagination import Params
@@ -27,9 +27,6 @@ class NewGameSettings:
     mode: GameMode
 
 
-type Callback = Callable[[], Awaitable[None]]
-
-
 class SingleplayerService:
     def __init__(
         self,
@@ -42,7 +39,6 @@ class SingleplayerService:
         self.background_tasks = background_tasks
         self.gameplay: Optional[SingleplayerGameplay] = None
         self.gameplay_id: uuid.UUID = None  # type: ignore
-        self.board_ready_callback: Optional[Callback] = None
 
     async def load_gameplay(self, gameplay_id: uuid.UUID):
         pending = pending_store.get(gameplay_id)
@@ -69,23 +65,35 @@ class SingleplayerService:
         gameplay = await self.game_repo.get_gameplay_by_id(gameplay_id)
         self.gameplay = gameplay
 
-    async def on_board_ready(self):
-        await self._set_gameplay(self.gameplay_id)
-        assert self.gameplay is not None
-        if self.board_ready_callback:
-            await self.board_ready_callback()
+    async def wait_for_board_ready(self, timeout: float | None = None) -> bool:
+        """
+        Wait for board to be ready (generated in background).
 
-    async def send_board(self):
+        Returns:
+            True if board is ready, False if timeout occurred
+        """
         pending = pending_store.get(self.gameplay_id)
-        if pending and pending.status == "ready":
+
+        if pending is None:
+            # Board already exists in DB
+            return True
+
+        if pending.status == "ready":
+            # Board just finished generating
             pending_store.remove(self.gameplay_id)
-            await self.on_board_ready()
-        elif pending:
-            await event_bus.subscribe(
-                f"board_ready:{self.gameplay_id}", self.on_board_ready
-            )
-        elif self.gameplay is not None:
-            await self.on_board_ready()
+            await self._set_gameplay(self.gameplay_id)
+            return True
+
+        # Wait for board generation to complete
+        channel = f"board_ready:{self.gameplay_id}"
+        message = await event_bus.wait_for_message(channel, timeout=timeout)
+
+        if message is None:
+            return False
+
+        pending_store.remove(self.gameplay_id)
+        await self._set_gameplay(self.gameplay_id)
+        return True
 
     async def create_singleplayer_gameplay(
         self,
@@ -138,7 +146,13 @@ class SingleplayerService:
         board = asyncio.run(generator.generate_board())
 
         async def _save_to_db():
-            await self.board_repo.add_board(board)
+            nonlocal board
+            try:
+                board = await self.board_repo.get_board(
+                    board.difficulty_level, board.minefields
+                )
+            except BoardNotFound:
+                await self.board_repo.add_board(board)
 
             gameplay = SingleplayerGameplay(
                 id=gameplay_id,
@@ -217,5 +231,4 @@ class SingleplayerService:
 
     async def game_cleanup(self):
         if self.gameplay_id is not None:
-            await event_bus.unsubscribe(f"board_ready:{self.gameplay_id}")
             pending_store.remove(self.gameplay_id)
