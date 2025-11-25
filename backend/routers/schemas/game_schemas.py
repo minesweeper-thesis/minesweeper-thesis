@@ -237,7 +237,7 @@ class GameStateResponse(GameActionResponse):
         for x, y, val in result.revealed_cells:
             board[x][y] = val
 
-        for x, y in result.flagged:
+        for x, y in result.flagged_cells:
             board[x][y] = CellSpecial.FLAG
 
         if result.loss_cause is not None:

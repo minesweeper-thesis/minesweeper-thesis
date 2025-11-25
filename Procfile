@@ -1,1 +1,1 @@
-web: sh -c 'export DATABASE_URL=$(echo "$DATABASE_URL" | sed "s/^postgres:\\/\\//postgresql+psycopg:\\/\\//") && fastapi run backend/main.py --workers 1 --host 0.0.0.0 --port $PORT'
+web: sh -c 'export DATABASE_URL=$(echo "$DATABASE_URL" | sed "s/^postgres:\\/\\//postgresql+psycopg:\\/\\//") && alembic -c backend/alembic.ini upgrade head && fastapi run backend/main.py --workers 1 --host 0.0.0.0 --port $PORT'
