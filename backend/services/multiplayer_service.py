@@ -188,7 +188,10 @@ class MultiplayerService:
             )
 
             data = GameReadyMessage(
-                session_id=session_id, round=next_round, start_at=start_at
+                session_id=session_id,
+                round=next_round,
+                start_at=start_at,
+                difficulty_level=session.difficulty_level,
             )
             for player_id in session.player_ids:
                 await self.notify(player_id, data)
