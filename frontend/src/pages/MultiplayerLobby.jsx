@@ -1,27 +1,29 @@
-import React, { useState, useEffect } from "react";
-import { Crown } from "lucide-react";
-import { useAuth } from "../contexts/AuthContext";
+import React, {useEffect, useRef, useState} from "react";
 import { useGame } from "../contexts/GameServiceContext";
+import { Crown } from "lucide-react";
 import InvitePopup from "../components/InvitePopup";
+import {useSession} from "../contexts/SessionContext";
+import {useNavigate} from "react-router-dom";
 
 export default function MultiplayerLobby() {
-    const { lobby, chatMessages, leaveLobby, createLobby } = useGame();
-    const { user } = useAuth();
-
+    const { lobby, chatMessages, leaveLobby, createLobby, addLobbyMessage } = useGame();
+    const navigate = useNavigate();
+    const { status } = useSession();
     const [inputMessage, setInputMessage] = useState("");
     const [showInvitePopup, setShowInvitePopup] = useState(false);
 
     useEffect(() => {
         if (!lobby) {
-            console.log("creating lobby");
             createLobby().catch(err => console.error(err));
         }
     }, [lobby, createLobby]);
 
     useEffect(() => {
-        console.log("lobby: ", lobby);
-    }, [lobby]);
-
+        console.log("lobby status", status);
+        if (status === "game"){
+            navigate("/game");
+        }
+    }, [status]);
 
     if (!lobby) {
         return (
@@ -39,9 +41,29 @@ export default function MultiplayerLobby() {
         score: 0,
     })) || [];
 
-
     const ownerId = lobby.host.id;
     const gameConfig = lobby.game_config;
+
+    const sendReady = async () => {
+        try {
+            const res = await fetch(`/api/lobbies/${lobby.id}/ready`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+
+            if (!res.ok) {
+                const txt = await res.text();
+                console.log(`${txt}`);
+                throw new Error(txt || res.statusText);
+            }
+
+            addLobbyMessage("You marked ready.");
+        } catch (err) {
+            console.error("Ready error:", err);
+            addLobbyMessage("Ready request failed.");
+        }
+    };
 
     return (
         <div className="w-full flex justify-center">
@@ -70,6 +92,7 @@ export default function MultiplayerLobby() {
                         <div className="flex items-center justify-between mb-3 pr-[140px]">
                             <div className="flex items-center justify-between gap-3">
                                 <h2 className="text-lg font-semibold">Players</h2>
+
                                 <button
                                     className="px-4 py-1 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary transition"
                                     onClick={() => setShowInvitePopup(true)}
@@ -122,7 +145,10 @@ export default function MultiplayerLobby() {
                             <div className="h-50"></div>
                         </div>
 
-                        <button className="mt-2 w-full py-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition">
+                        <button
+                            onClick={sendReady}
+                            className="mt-2 w-full py-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition"
+                        >
                             Ready Up
                         </button>
                     </div>
@@ -135,13 +161,13 @@ export default function MultiplayerLobby() {
                             <p>
                                 Board size:{" "}
                                 <span className="font-semibold">
-                                    {gameConfig.difficulty_level.rows} × {gameConfig.difficulty_level.columns}
+                                    {gameConfig?.difficulty_level?.rows} × {gameConfig?.difficulty_level?.columns}
                                 </span>
                             </p>
                             <p>
                                 Mines:{" "}
                                 <span className="font-semibold">
-                                    {gameConfig.difficulty_level.mine_count}
+                                    {gameConfig?.difficulty_level?.mine_count}
                                 </span>
                             </p>
                         </div>
@@ -187,7 +213,6 @@ export default function MultiplayerLobby() {
                         </button>
                     </div>
                 </div>
-
                 {showInvitePopup && <InvitePopup onClose={() => setShowInvitePopup(false)} />}
             </div>
         </div>

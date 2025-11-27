@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Board from "../components/Board";
 import useGameWebSocket from "../hooks/useGameWebSocket";
-import gameInterpreter from "../utils/gameInterpreter";
+import boardInterpreter from "../utils/boardInterpreter";
 import Controls from "../components/Controls";
 import DifficultyMenu from "../components/DifficultyMenu";
 import VictoryScreen from "../components/VictoryScreen";
@@ -71,7 +71,7 @@ export default function GamePageSingle() {
     }, [startNewGame]);
 
     const socketUrl = gameplayId ? `api/game/single/${gameplayId}` : null;
-    const { send, socketRef } = useGameWebSocket(socketUrl, gameInterpreter, boardRef, gameState );
+    const { send, socketRef } = useGameWebSocket(socketUrl, boardInterpreter, boardRef, gameState );
 
     return (
         <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">

@@ -9,6 +9,7 @@ import StatsPage from "./pages/StatsPage";
 import GamePageSingle from "./pages/GamePageSingle";
 import MultiplayerLobby from "./pages/MultiplayerLobby";
 import ProtectedRoute from "./utils/ProtectedRoute";
+import MultiGamePage from "./pages/MultiGamePage";
 
 
 function App() {
@@ -17,9 +18,14 @@ function App() {
             <Routes>
                 <Route path="/" element={<AppLayout />}>
                     <Route index element={<GamePageSingle />} />
-                    <Route path="/game" element={
+                    <Route path="/lobby" element={
                         <ProtectedRoute>
                             <MultiplayerLobby />
+                        </ProtectedRoute>
+                    } />
+                    <Route path="/game" element={
+                        <ProtectedRoute>
+                            <MultiGamePage />
                         </ProtectedRoute>
                     } />
 

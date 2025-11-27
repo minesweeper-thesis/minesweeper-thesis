@@ -1,6 +1,6 @@
 import { GameState, State } from "../utility";
 
-export default function gameInterpreter(msg) {
+export default function boardInterpreter(msg) {
     if (!msg || typeof msg !== "object") return [];
 
     const cmds = [];
@@ -113,6 +113,6 @@ export default function gameInterpreter(msg) {
         return cmds;
     }
 
-    console.warn("[gameInterpreter] unknown message:", msg);
+    console.warn("[boardInterpreter] unknown message:", msg);
     return cmds;
 }

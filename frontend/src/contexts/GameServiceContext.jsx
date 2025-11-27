@@ -21,6 +21,23 @@ export function GameServiceProvider({ children }) {
 
     const socketRef = useRef(null);
 
+    const msgListenersRef = useRef(new Set());
+
+    function addMessageListener(fn) {
+        msgListenersRef.current.add(fn);
+        return () => msgListenersRef.current.delete(fn);
+    }
+
+    function removeMessageListener(fn) {
+        msgListenersRef.current.delete(fn);
+    }
+
+    function notifyListeners(msg) {
+        for (const fn of Array.from(msgListenersRef.current)) {
+            try { fn(msg); } catch (e) { console.error("msg listener error", e); }
+        }
+    }
+
     function safeJsonParse(str) {
         try {
             return JSON.parse(str);
@@ -38,6 +55,7 @@ export function GameServiceProvider({ children }) {
 
         const ws = new WebSocket(WS_URL);
         socketRef.current = ws;
+        setSocket(ws);
 
         ws.onopen = () => console.log("[NotificationWS] ✔ Połączono");
 
@@ -61,20 +79,22 @@ export function GameServiceProvider({ children }) {
                     setLastMessage(msg);
                     break;
 
-
                 case "user_connection_status":
                     handleUserStatus(msg);
                     break;
 
                 default:
-                    console.warn("[WS] Nieznany typ wiadomości:", msg.type);
+                    break;
             }
+
+            notifyListeners(msg);
         };
         ws.onerror = (err) => console.error("[NotificationWS] Błąd websocketu:", err);
 
         ws.onclose = () => {
             console.warn("[NotificationWS] Rozłączono. Próba ponownego połączenia w 2 sek...");
             socketRef.current = null;
+            setSocket(null);
             if (!isUnmounted.current) {
                 reconnectTimeout.current = setTimeout(connectWebSocket, 2000);
             }
@@ -134,28 +154,28 @@ export function GameServiceProvider({ children }) {
 
             if (msg.lobby_id !== prev.id) return prev;
 
-            const user = msg.user;
+            const user_ = msg.user;
 
             if (msg.status === "connected") {
-                const exists = prev.users.some(u => u.id === user.id);
+                const exists = prev.users.some(u => u.id === user_.id);
                 if (exists) return prev;
 
                 const updated = {
                     ...prev,
-                    users: [...prev.users, user]
+                    users: [...prev.users, user_]
                 };
 
-                addLobbyMessage(`${user.nickname} joined the lobby.`);
+                addLobbyMessage(`${user_.nickname} joined the lobby.`);
                 return updated;
             }
 
             if (msg.status === "disconnected") {
                 const updated = {
                     ...prev,
-                    users: prev.users.filter(u => u.id !== user.id),
+                    users: prev.users.filter(u => u.id !== user_.id),
                 };
 
-                addLobbyMessage(`${user.nickname} left the lobby.`);
+                addLobbyMessage(`${user_.nickname} left the lobby.`);
                 return updated;
             }
 
@@ -216,7 +236,7 @@ export function GameServiceProvider({ children }) {
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: userId }) // <-- dane w body
+                    body: JSON.stringify({ user_id: userId })
                 }
             );
 
@@ -278,6 +298,9 @@ export function GameServiceProvider({ children }) {
             chatMessages,
             addLobbyMessage,
             leaveLobby,
+            authFetch,
+            addMessageListener,
+            removeMessageListener,
         }}>
             {children}
         </GameServiceContext.Provider>
