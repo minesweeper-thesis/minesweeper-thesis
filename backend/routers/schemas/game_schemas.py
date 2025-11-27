@@ -364,6 +364,7 @@ class GameReadyMessageResponse(Response):
     session_id: uuid.UUID
     round: int
     start_at: int
+    difficulty_level: DifficultyLevel
 
     @classmethod
     def from_core(cls, message: "GameReadyMessage") -> Self:
@@ -371,6 +372,7 @@ class GameReadyMessageResponse(Response):
             session_id=message.session_id,
             round=message.round,
             start_at=message.start_at,
+            difficulty_level=message.difficulty_level,
         )
 
 

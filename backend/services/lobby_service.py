@@ -41,6 +41,7 @@ class GameReadyMessage:
     session_id: uuid.UUID
     round: int
     start_at: int
+    difficulty_level: DifficultyLevel
 
 
 @dataclass
@@ -352,6 +353,11 @@ class LobbyService:
                 game_notify=game_notify,
             )
 
-            data = GameReadyMessage(session_id=session_id, round=0, start_at=start_at)
+            data = GameReadyMessage(
+                session_id=session_id,
+                round=0,
+                start_at=start_at,
+                difficulty_level=lobby.game_config.difficulty_level,
+            )
             for lobby_user in lobby.users:
                 await notify(lobby_user.id, data)
