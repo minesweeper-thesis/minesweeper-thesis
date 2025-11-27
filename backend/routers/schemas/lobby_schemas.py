@@ -71,11 +71,11 @@ class InvitationLobbyResponse(Response):
     game_config: GameConfig
 
     @classmethod
-    def from_core(cls, lobby) -> Self:
+    def from_core(cls, lobby: Lobby) -> Self:
         return cls(
             id=lobby.id,
             host=UserResponse.from_user(lobby.host),
-            game_config=lobby.game_settings,
+            game_config=lobby.game_config,
         )
 
 
