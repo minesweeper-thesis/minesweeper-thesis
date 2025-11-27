@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
-from backend.lib.connections_manager import ConnectionsManager
+from backend.lib.connections_manager import connections_manager
 
 from .schemas.lobby_schemas import *
 
@@ -20,7 +20,7 @@ async def send_notifications(
     lobby_service: LobbyService,
 ):
     """WebSocket endpoint for receiving game invitations."""
-    ConnectionsManager.add(user.id, websocket)
+    connections_manager.add(user.id, websocket)
 
     async def receiver():
         while True:
@@ -42,4 +42,4 @@ async def send_notifications(
         await receiver()
 
     except WebSocketDisconnect:
-        ConnectionsManager.remove(user.id)
+        connections_manager.remove(user.id)

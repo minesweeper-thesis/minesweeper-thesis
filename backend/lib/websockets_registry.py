@@ -4,19 +4,17 @@ from fastapi import WebSocket
 
 
 class WebsocketsRegistry:
-    _websockets: dict[uuid.UUID, WebSocket] = {}
+    def __init__(self) -> None:
+        self._websockets: dict[uuid.UUID, WebSocket] = {}
 
-    @classmethod
-    def get(cls, id: uuid.UUID) -> WebSocket:
-        return cls._websockets[id]
+    def get(self, id: uuid.UUID) -> WebSocket:
+        return self._websockets[id]
 
-    @classmethod
-    def add(cls, id: uuid.UUID, websocket: WebSocket):
-        cls._websockets[id] = websocket
+    def add(self, id: uuid.UUID, websocket: WebSocket):
+        self._websockets[id] = websocket
 
-    @classmethod
-    def remove(cls, id: uuid.UUID):
-        cls._websockets.pop(id, None)
+    def remove(self, id: uuid.UUID):
+        self._websockets.pop(id, None)
 
 
 multi_websockets = WebsocketsRegistry()

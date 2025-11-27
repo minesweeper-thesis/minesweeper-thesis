@@ -10,8 +10,7 @@ from backend.core.board import BoardGenerator, DifficultyLevel, GenerationSettin
 from backend.core.game import *
 from backend.core.singleplayer import SingleplayerGameplay
 from backend.lib.auth import CurrentUser, OptionalCurrentUser
-from backend.lib.event_bus import event_bus
-from backend.lib.pending_gameplays import pending_store
+from backend.lib.pending_gameplays import GameplaySettings, PendingStore, pending_store
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
 
@@ -40,16 +39,28 @@ class SingleplayerService:
     ):
         self.game_repo = game_repo
         self.board_repo = board_repo
-        self.background_tasks = background_tasks
         self.gameplay: Optional[SingleplayerGameplay] = None
         self.gameplay_id: uuid.UUID = None  # type: ignore
+        self.background_tasks: BackgroundTasks = background_tasks
 
-    async def load_gameplay(self, gameplay_id: uuid.UUID):
-        pending = pending_store.get(gameplay_id)
-        if pending:
-            self.gameplay_id = gameplay_id
-            self.gameplay = None
-            return
+    async def load_gameplay(
+        self, gameplay_id: uuid.UUID, timeout: float = 120.0
+    ) -> GameStateResult:
+        self.gameplay_id = gameplay_id
+
+        if await pending_store.is_pending(gameplay_id):
+            pending = await pending_store.wait_for_ready(gameplay_id, timeout=timeout)
+            if pending is None or pending.board_id is None:
+                raise GenerationTimeout()
+
+            board = await self.board_repo.get_board_by_id(pending.board_id)
+
+            gameplay = SingleplayerGameplay(
+                id=gameplay_id,
+                board=board,
+                mode=pending.settings.mode,
+            )
+            await self.game_repo.add_gameplay(gameplay, board.id, pending.user_id)
 
         try:
             await self._set_gameplay(gameplay_id)
@@ -58,7 +69,7 @@ class SingleplayerService:
             if self.gameplay.status == "finished":
                 raise GameplayAlreadyFinished()
 
-            self.gameplay_id = gameplay_id
+            return self.gameplay.get_game_state()
 
         except GameplayNotFound:
             raise GameplayNotExists(
@@ -69,27 +80,6 @@ class SingleplayerService:
         gameplay = await self.game_repo.get_gameplay_by_id(gameplay_id)
         self.gameplay = gameplay
 
-    async def _wait_for_board_ready(self, timeout: float | None = None) -> bool:
-        pending = pending_store.get(self.gameplay_id)
-
-        if pending is None:
-            return True
-
-        if pending.status == "ready":
-            pending_store.remove(self.gameplay_id)
-            await self._set_gameplay(self.gameplay_id)
-            return True
-
-        channel = f"board_ready:{self.gameplay_id}"
-        message = await event_bus.wait_for_message(channel, timeout=timeout)
-
-        if message is None:
-            return False
-
-        pending_store.remove(self.gameplay_id)
-        await self._set_gameplay(self.gameplay_id)
-        return True
-
     async def create_singleplayer_gameplay(
         self,
         user: OptionalCurrentUser,
@@ -98,14 +88,26 @@ class SingleplayerService:
         gameplay_id = uuid.uuid4()
 
         if game_settings.generator and game_settings.difficulty_level:
-            pending_store.add(gameplay_id)
-
-            self.background_tasks.add_task(
-                self._generate_and_save_board,
-                gameplay_id,
-                user.id if user else None,
-                game_settings,
+            await pending_store.create_pending(
+                gameplay_id=gameplay_id,
+                user_id=user.id if user else None,
+                ttl_seconds=180,
+                settings=GameplaySettings(mode=game_settings.mode),
             )
+
+            def task():
+                assert game_settings.generator is not None
+                assert game_settings.difficulty_level is not None
+                asyncio.run(
+                    self._generate(
+                        gameplay_id=gameplay_id,
+                        difficulty_level=game_settings.difficulty_level,
+                        generator_settings=game_settings.generator,
+                        pending_store=pending_store,
+                    )
+                )
+
+            self.background_tasks.add_task(task)
 
             return gameplay_id
 
@@ -123,46 +125,6 @@ class SingleplayerService:
             )
 
             return gameplay_id
-
-    def _generate_and_save_board(
-        self,
-        gameplay_id: uuid.UUID,
-        user_id: Optional[uuid.UUID],
-        game_settings: NewGameSettings,
-    ) -> None:
-        if not game_settings.difficulty_level or not game_settings.generator:
-            return
-
-        generator = BoardGenerator(
-            game_settings.difficulty_level,
-            game_settings.generator.type,
-            game_settings.generator.settings,
-        )
-        board = asyncio.run(generator.generate_board())
-
-        async def _save_to_db():
-            nonlocal board
-            try:
-                board = await self.board_repo.get_board(
-                    board.difficulty_level, board.minefields
-                )
-            except BoardNotFound:
-                await self.board_repo.add_board(board)
-
-            gameplay = SingleplayerGameplay(
-                id=gameplay_id,
-                board=board,
-                mode=game_settings.mode,
-            )
-
-            await self.game_repo.add_gameplay(gameplay, board.id, user_id)
-
-            pending_store.mark_ready(gameplay_id)
-            await event_bus.publish(
-                f"board_ready:{gameplay_id}", {"gameplay_id": str(gameplay_id)}
-            )
-
-        asyncio.run(_save_to_db())
 
     async def _get_board(
         self, game_settings: NewGameSettings, user: OptionalCurrentUser
@@ -223,13 +185,26 @@ class SingleplayerService:
 
         await self.game_repo.update_gameplay(self.gameplay)
 
-    async def game_cleanup(self):
-        if self.gameplay_id is not None:
-            pending_store.remove(self.gameplay_id)
+    async def _generate(
+        self,
+        gameplay_id: uuid.UUID,
+        difficulty_level: DifficultyLevel,
+        generator_settings: GenerationSettings,
+        pending_store: PendingStore,
+    ) -> None:
+        generator = BoardGenerator(
+            difficulty_level,
+            generator_settings.type,
+            generator_settings.settings,
+        )
+        board = await generator.generate_board()
 
-    async def get_initial_state(self):
-        board_ready = await self._wait_for_board_ready(timeout=120.0)
-        if not board_ready:
-            raise GenerationTimeout()
+        try:
+            existing_board = await self.board_repo.get_board(
+                board.difficulty_level, board.minefields
+            )
+            board = existing_board
+        except BoardNotFound:
+            await self.board_repo.add_board(board)
 
-        return await self.get_game_state()
+        await pending_store.mark_ready(gameplay_id, board.id)

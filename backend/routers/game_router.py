@@ -72,10 +72,8 @@ async def play_single(
                 return
 
     try:
-        await service.load_gameplay(gameplay_id)
         await websocket.accept()
-
-        game_state = await service.get_initial_state()
+        game_state = await service.load_gameplay(gameplay_id)
         await websocket.send_text(create_response(game_state))
 
         await receiver()
@@ -84,8 +82,6 @@ async def play_single(
         await service.save_gameplay_progress()
     except GenerationTimeout:
         await websocket.close(code=1001, reason="Board generation timeout")
-    finally:
-        await service.game_cleanup()
 
 
 @game_router.websocket("/multi/{session_id}")

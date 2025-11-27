@@ -1,13 +1,14 @@
 import uuid
 
-from fastapi import WebSocket
-
 from backend.lib.websockets_registry import WebsocketsRegistry
 
 
 class ConnectionsManager(WebsocketsRegistry):
-    _websockets: dict[uuid.UUID, WebSocket] = {}
+    def __init__(self) -> None:
+        super().__init__()
 
-    @classmethod
-    def is_user_online(cls, user_id: uuid.UUID) -> bool:
-        return user_id in cls._websockets
+    def is_user_online(self, user_id: uuid.UUID) -> bool:
+        return user_id in self._websockets
+
+
+connections_manager = ConnectionsManager()
