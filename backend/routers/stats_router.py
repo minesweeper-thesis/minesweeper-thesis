@@ -34,7 +34,7 @@ async def get_gameplays_global_ranking(
     page.items = [
         schemas.GameplayRankingResponse(
             gameplay_id=item.gameplay_id,
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.from_core(item.user),
             time=item.time,
         )
         for item in page.items
@@ -61,7 +61,7 @@ async def get_gameplays_friends_ranking(
     page.items = [
         schemas.GameplayRankingResponse(
             gameplay_id=item.gameplay_id,
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.from_core(item.user),
             time=item.time,
         )
         for item in page.items
@@ -86,7 +86,7 @@ async def get_users_global_ranking(
     )
     page.items = [
         schemas.UserRankingResponse(
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.from_core(item.user),
             win_rate=item.win_rate,
             average_time=item.average_time,
             total_games=item.total_games,
@@ -115,7 +115,7 @@ async def get_users_friends_ranking(
     )
     page.items = [
         schemas.UserRankingResponse(
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.from_core(item.user),
             win_rate=item.win_rate,
             average_time=item.average_time,
             total_games=item.total_games,

@@ -6,11 +6,17 @@ from fastapi_pagination import Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.routers.schemas.serialize import create_response
+from backend.routers.schemas import Response
+from backend.routers.schemas.lobby import (
+    ChatMessageRequest,
+    ChatMessageResponse,
+    InviteUserToLobbyRequest,
+    JoinLobbyRequest,
+    LobbyResponse,
+    UpdateGameConfigRequest,
+)
 from backend.routers.websockets.connections_manager import connections_manager
 from backend.routers.websockets.websockets_registry import multi_websockets
-
-from .schemas.lobby_schemas import *
 
 PaginationParams = Annotated[Params, Depends()]
 
@@ -23,13 +29,13 @@ invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
 async def notify(receiver_id: uuid.UUID, data):
     if connections_manager.is_user_online(receiver_id):
         websocket = connections_manager.get(receiver_id)
-        await websocket.send_text(create_response(data))
+        await websocket.send_text(Response.create(data, include_ws_type=True))
 
 
 async def game_notify(receiver_id: uuid.UUID, data):
     if receiver_id in multi_websockets._websockets:
         websocket = multi_websockets.get(receiver_id)
-        await websocket.send_text(create_response(data))
+        await websocket.send_text(Response.create(data, include_ws_type=True))
 
 
 @lobby_router.post("")

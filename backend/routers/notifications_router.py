@@ -4,9 +4,11 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
+from backend.routers.schemas.lobby import (
+    CurrentLobbyResponse,
+    PendingInvitationsResponse,
+)
 from backend.routers.websockets.connections_manager import connections_manager
-
-from .schemas.lobby_schemas import *
 
 LobbyService = Annotated[services.LobbyService, Depends()]
 

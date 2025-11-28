@@ -226,4 +226,4 @@ class SingleplayerGameplay:
 
         self.grid.flagged[x][y] = False
 
-        return FlagResult()
+        return RemoveFlagResult()

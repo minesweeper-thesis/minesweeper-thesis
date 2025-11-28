@@ -24,13 +24,18 @@ class RevealResult(ActionResult):
 
 @dataclass
 class FlagResult(ActionResult):
-    game_status: Literal["in_progress"] = "in_progress"
+    game_status: GameStatus = "in_progress"
+
+
+@dataclass
+class RemoveFlagResult(ActionResult):
+    game_status: GameStatus = "in_progress"
 
 
 @dataclass
 class HintResult(ActionResult):
     safe_cells: list[Cell]
-    game_status: Literal["in_progress"] = "in_progress"
+    game_status: GameStatus = "in_progress"
 
 
 @dataclass

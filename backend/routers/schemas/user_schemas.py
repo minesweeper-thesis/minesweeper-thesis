@@ -1,11 +1,12 @@
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 from pydantic import BaseModel
 
 from backend.core.singleplayer import SingleplayerGameplay
 from backend.core.user import FriendRequest, FriendRequestStatus, User
+from backend.routers.schemas import Response
 
 
 class UserCreateRequest(BaseUserCreate):
@@ -13,15 +14,15 @@ class UserCreateRequest(BaseUserCreate):
     settings: dict = {}
 
 
-class UserResponse(BaseModel):
+class UserResponse(Response):
     id: uuid.UUID
     nickname: str
     email: str
     avatar_url: Optional[str] = None
 
-    @staticmethod
-    def from_user(user: User) -> "UserResponse":
-        return UserResponse(
+    @classmethod
+    def from_core(cls, user: User) -> "UserResponse":
+        return cls(
             id=user.id,
             email=user.email,
             nickname=user.nickname,
@@ -42,40 +43,27 @@ class MakeFriendRequest(BaseModel):
     friend_id: uuid.UUID
 
 
-class FriendRequestResponse(BaseModel):
+class FriendRequestResponse(Response):
     id: uuid.UUID
     user: UserResponse
     friend: UserResponse
     status: FriendRequestStatus
 
     @classmethod
-    def from_friend_request(
-        cls, friend_request: FriendRequest
-    ) -> "FriendRequestResponse":
+    def from_core(cls, friend_request: FriendRequest) -> "FriendRequestResponse":
         return cls(
             id=friend_request.id,
-            user=UserResponse.from_user(friend_request.user),
-            friend=UserResponse.from_user(friend_request.friend),
+            user=UserResponse.from_core(friend_request.user),
+            friend=UserResponse.from_core(friend_request.friend),
             status=friend_request.status,
         )
 
 
 class FriendRequestNotificationResponse(FriendRequestResponse):
-    type: str = "friend_request"
+    ws_type: Literal["friend_request"] = "friend_request"
 
 
-class FriendResponse(UserResponse):
-    @staticmethod
-    def from_user(user: User) -> "FriendResponse":
-        return FriendResponse(
-            id=user.id,
-            email=user.email,
-            nickname=user.nickname,
-            avatar_url=user.avatar.url if user.avatar else None,
-        )
-
-
-class UserGameplayResponse(BaseModel):
+class UserGameplayResponse(Response):
     id: uuid.UUID
     board_id: uuid.UUID
     status: str
@@ -84,9 +72,9 @@ class UserGameplayResponse(BaseModel):
     elapsed_time: float
     game_mode: str
 
-    @staticmethod
-    def from_gameplay(gameplay: "SingleplayerGameplay") -> "UserGameplayResponse":
-        return UserGameplayResponse(
+    @classmethod
+    def from_core(cls, gameplay: "SingleplayerGameplay") -> "UserGameplayResponse":
+        return cls(
             id=gameplay.id,
             board_id=gameplay.board.id,
             status=gameplay.status,

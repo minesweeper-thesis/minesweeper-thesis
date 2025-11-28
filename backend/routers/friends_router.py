@@ -41,15 +41,13 @@ async def notify(receiver_id: uuid.UUID, data: FriendRequest):
     if connections_manager.is_user_online(receiver_id):
         websocket = connections_manager.get(receiver_id)
         await websocket.send_text(
-            FriendRequestNotificationResponse.from_friend_request(
-                data
-            ).model_dump_json()
+            FriendRequestNotificationResponse.from_core(data).model_dump_json()
         )
 
 
 @friends_router.get(
     "",
-    responses={200: {"model": Page[FriendResponse]}},
+    responses={200: {"model": Page[UserResponse]}},
 )
 async def get_friends(
     user: CurrentUser,
@@ -58,7 +56,7 @@ async def get_friends(
 ):
     """Gets a list of friends for current user"""
     page = await service.get_friends(pagination_params)
-    page.items = [FriendResponse.from_user(friend) for friend in page.items]
+    page.items = [UserResponse.from_core(friend) for friend in page.items]
     return page
 
 
@@ -83,7 +81,7 @@ async def get_pending_friend_requests(
 ):
     """Lists pending friend requests for current user"""
     page = await service.get_pending_friend_requests(pagination_params)
-    page.items = [FriendRequestResponse.from_friend_request(req) for req in page.items]
+    page.items = [FriendRequestResponse.from_core(req) for req in page.items]
     return page
 
 
@@ -98,7 +96,7 @@ async def get_sent_friend_requests(
 ):
     """Lists sent friend requests for current user"""
     page = await service.get_sent_friend_requests(pagination_params)
-    page.items = [FriendRequestResponse.from_friend_request(req) for req in page.items]
+    page.items = [FriendRequestResponse.from_core(req) for req in page.items]
     return page
 
 
@@ -110,7 +108,7 @@ async def make_friend_request(
 ):
     """Makes a friend request to user with given id"""
     friend_request = await service.make_friend_request(body.friend_id, notify)
-    return FriendRequestResponse.from_friend_request(friend_request)
+    return FriendRequestResponse.from_core(friend_request)
 
 
 @friend_requests_router.post("/{friend_request_id}/accept")

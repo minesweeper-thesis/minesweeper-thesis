@@ -1,0 +1,108 @@
+import uuid
+from typing import Literal, Self
+
+from pydantic import BaseModel
+
+from backend.core.lobby import *
+from backend.routers.schemas import Response
+from backend.services.lobby_service import (
+    GameConfigUpdated,
+    NewGameConfig,
+    UserConnectionUpdated,
+)
+
+from ..user_schemas import UserResponse
+from .chat_schemas import ChatMessageResponse
+
+
+class LobbyResponse(Response):
+    id: uuid.UUID
+    host: UserResponse
+    users: list[UserResponse]
+    game_config: GameConfig
+    messages: list[ChatMessageResponse] = []
+
+    @classmethod
+    def from_core(cls, lobby: Lobby, messages: list[ChatMessage] = []) -> Self:
+        return cls(
+            id=lobby.id,
+            host=UserResponse.from_core(lobby.host),
+            users=[UserResponse.from_core(user) for user in lobby.users],
+            game_config=lobby.game_config,
+            messages=[ChatMessageResponse.from_core(message) for message in messages],
+        )
+
+
+class DifficultyLevelRequest(BaseModel):
+    rows: int
+    columns: int
+    mine_count: int
+
+
+class UpdateGameConfigRequest(BaseModel):
+    rounds: int
+    max_round_time: int
+    difficulty_level: DifficultyLevelRequest
+    game_mode: GameMode
+    generator_type: GeneratorType
+    generator_settings: Optional[GeneratorSettings] = None
+
+    def to_dto(self) -> NewGameConfig:
+        return NewGameConfig(
+            rounds=self.rounds,
+            max_round_time=self.max_round_time,
+            difficulty_level=DifficultyLevel(
+                rows=self.difficulty_level.rows,
+                columns=self.difficulty_level.columns,
+                mine_count=self.difficulty_level.mine_count,
+            ),
+            game_mode=self.game_mode,
+            generator_type=self.generator_type,
+            generator_settings=self.generator_settings,
+        )
+
+
+class GameConfigUpdatedResponse(Response):
+    ws_type: Literal["game_config_updated"] = "game_config_updated"
+    lobby_id: uuid.UUID
+    game_config: GameConfig
+
+    @classmethod
+    def from_core(cls, data: GameConfigUpdated) -> Self:
+        return cls(lobby_id=data.lobby_id, game_config=data.game_config)
+
+
+class UserConnectionStatusResponse(Response):
+    ws_type: Literal["user_connection_status"] = "user_connection_status"
+    lobby_id: uuid.UUID
+    user: UserResponse
+    status: Literal["connected", "disconnected"]
+
+    @classmethod
+    def from_core(cls, data: UserConnectionUpdated) -> Self:
+        return cls(
+            lobby_id=data.lobby_id,
+            user=UserResponse.from_core(data.user),
+            status=data.status,
+        )
+
+
+class CurrentLobbyResponse(Response):
+    ws_type: Literal["current_lobby"] = "current_lobby"
+    lobby: Optional[LobbyResponse]
+
+    @classmethod
+    def from_core(cls, lobby: Optional[Lobby]) -> Self:
+        return cls(
+            lobby=LobbyResponse.from_core(lobby) if lobby else None,
+        )
+
+
+__all__ = [
+    "UpdateGameConfigRequest",
+    "LobbyResponse",
+    "GameConfigUpdatedResponse",
+    "UserConnectionStatusResponse",
+    "CurrentLobbyResponse",
+    "GameConfigUpdatedResponse",
+]

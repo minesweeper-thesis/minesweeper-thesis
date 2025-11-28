@@ -2,9 +2,6 @@ import os
 import uuid
 from typing import Protocol
 
-from .local import LocalAvatarStorage
-from .remote import RemoteAvatarStorage
-
 AWS_ACCESS_KEY_ID = os.getenv("BUCKETEER_AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("BUCKETEER_AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("BUCKETEER_AWS_REGION")
@@ -18,6 +15,9 @@ class AvatarStorage(Protocol):
 
 
 def get_avatar_storage() -> AvatarStorage:
+    from .local import LocalAvatarStorage
+    from .remote import RemoteAvatarStorage
+
     if AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY and AWS_REGION and AWS_BUCKET_NAME:
         return RemoteAvatarStorage(
             aws_access_key_id=AWS_ACCESS_KEY_ID,
