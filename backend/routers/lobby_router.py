@@ -6,9 +6,9 @@ from fastapi_pagination import Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.lib.connections_manager import connections_manager
-from backend.lib.websockets_registry import multi_websockets
 from backend.routers.schemas.serialize import create_response
+from backend.routers.websockets.connections_manager import connections_manager
+from backend.routers.websockets.websockets_registry import multi_websockets
 
 from .schemas.lobby_schemas import *
 

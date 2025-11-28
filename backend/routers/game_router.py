@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
-from backend.lib.websockets_registry import multi_websockets
 from backend.routers.schemas.serialize import create_response
+from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions as service_exceptions
 from backend.services.lobby_service import SessionOverMessage
 from backend.services.singleplayer_service import GenerationTimeout

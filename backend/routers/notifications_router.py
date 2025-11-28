@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
-from backend.lib.connections_manager import connections_manager
+from backend.routers.websockets.connections_manager import connections_manager
 
 from .schemas.lobby_schemas import *
 

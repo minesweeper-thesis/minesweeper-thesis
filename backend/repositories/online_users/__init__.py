@@ -1,7 +1,7 @@
 import uuid
 from typing import Protocol
 
-from backend.lib.online_users.local import LocalOnlineUsersStore
+from .local import LocalOnlineUsersStore
 
 
 class OnlineUsersStore(Protocol):

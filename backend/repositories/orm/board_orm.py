@@ -26,10 +26,14 @@ class GenerationSettingsColumn(TypeDecorator):
     impl = JSON
     cache_ok = True
 
-    def process_bind_param(self, value: GenerationSettings, dialect):
+    def process_bind_param(self, value, dialect):
+        if not isinstance(value, GenerationSettings):
+            return None
         return asdict(value)
 
-    def process_result_value(self, value: dict, dialect):
+    def process_result_value(self, value, dialect):
+        if not isinstance(value, dict):
+            return None
         settings_dict = value["settings"]
         if settings_dict is not None:
             settings_dict["heuristic_args"] = tuple(settings_dict["heuristic_args"])

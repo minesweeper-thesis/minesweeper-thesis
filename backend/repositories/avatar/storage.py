@@ -1,13 +1,20 @@
 import os
+import uuid
+from typing import Protocol
 
 from .local import LocalAvatarStorage
 from .remote import RemoteAvatarStorage
-from .storage import AvatarStorage
 
 AWS_ACCESS_KEY_ID = os.getenv("BUCKETEER_AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("BUCKETEER_AWS_SECRET_ACCESS_KEY")
 AWS_REGION = os.getenv("BUCKETEER_AWS_REGION")
 AWS_BUCKET_NAME = os.getenv("BUCKETEER_BUCKET_NAME")
+
+
+class AvatarStorage(Protocol):
+    async def save(self, user_id: uuid.UUID, content: bytes) -> str: ...
+
+    async def delete(self, avatar_url: str) -> None: ...
 
 
 def get_avatar_storage() -> AvatarStorage:

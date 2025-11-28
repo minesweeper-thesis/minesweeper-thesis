@@ -108,6 +108,8 @@ class SingleplayerService:
         game_settings: NewGameSettings,
         user: OptionalCurrentUser,
     ):
+        board: Optional[Board] = None
+
         try:
             if game_settings.board_id:
                 board = await self.board_repo.get_board_by_id(game_settings.board_id)

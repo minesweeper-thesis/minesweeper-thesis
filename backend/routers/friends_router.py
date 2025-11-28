@@ -7,7 +7,7 @@ from fastapi_pagination import Page, Params
 import backend.services.exceptions as service_exceptions
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.lib.connections_manager import connections_manager
+from backend.routers.websockets.connections_manager import connections_manager
 
 from .schemas.user_schemas import *
 
