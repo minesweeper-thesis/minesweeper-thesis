@@ -6,7 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
-from backend.core.board import Board, DifficultyLevel, Minefields
+from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
 from backend.core.user import User
 from backend.db.db import DBSession
 
@@ -64,20 +64,32 @@ class BoardRepository:
             raise BoardNotFound(f"Board with id {board_id} not found") from None
 
     async def get_board(
-        self, difficulty_level: DifficultyLevel, minefields: Minefields
+        self,
+        difficulty_level: Optional[DifficultyLevel] = None,
+        minefields: Optional[Minefields] = None,
+        generation_settings: Optional[GenerationSettings] = None,
     ) -> Board:
         try:
+            args = []
+
+            if difficulty_level is not None:
+                difficulty_level_orm = await self.get_difficulty_level_orm(
+                    difficulty_level
+                )
+                args.append(BoardORM.difficulty_level_id == difficulty_level_orm.id)
+
+            if minefields is not None:
+                args.append(BoardORM.minefields == minefields)
+
+            if generation_settings is not None:
+                args.append(BoardORM.generation_settings == generation_settings)
+
             stmt = (
                 select(BoardORM)
-                .join(BoardORM.difficulty_level)
-                .where(
-                    DifficultyLevelORM.rows == difficulty_level.rows,
-                    DifficultyLevelORM.columns == difficulty_level.columns,
-                    DifficultyLevelORM.mine_count == difficulty_level.mine_count,
-                    BoardORM.minefields == minefields,
-                )
                 .options(selectinload(BoardORM.difficulty_level))
+                .where(*args)
             )
+
             result = await self.session.execute(stmt)
             return result.scalar_one().to_board()
 
@@ -87,15 +99,23 @@ class BoardRepository:
             ) from None
 
     async def get_unsolved_board(
-        self, difficulty_level: DifficultyLevel, user: Optional[User] = None
+        self,
+        difficulty_level: DifficultyLevel,
+        *,
+        generation_settings: Optional[GenerationSettings] = None,
+        user: Optional[User] = None,
     ) -> Board:
         difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
+
+        args = [BoardORM.difficulty_level_id == difficulty_level_orm.id]
+        if generation_settings is not None:
+            args.append(BoardORM.generation_settings == generation_settings)
 
         try:
             stmt = (
                 select(BoardORM)
                 .join(BoardORM.difficulty_level)
-                .where(BoardORM.difficulty_level_id == difficulty_level_orm.id)
+                .where(*args)
                 .options(selectinload(BoardORM.difficulty_level))
                 .order_by(func.random())
                 .limit(1)

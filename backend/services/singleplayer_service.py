@@ -6,9 +6,15 @@ from fastapi import BackgroundTasks, Depends
 from fastapi_pagination import Params
 
 from backend import repositories
-from backend.core.board import BoardGenerator, DifficultyLevel, GenerationSettings
+from backend.core.board import (
+    Board,
+    BoardGenerator,
+    DifficultyLevel,
+    GenerationSettings,
+)
 from backend.core.game import *
 from backend.core.singleplayer import SingleplayerGameplay
+from backend.core.user import User
 from backend.lib.auth import CurrentUser, OptionalCurrentUser
 from backend.lib.pending_gameplays import GameplaySettings, PendingStore, pending_store
 from backend.repositories.exceptions import *
@@ -87,59 +93,42 @@ class SingleplayerService:
     ) -> uuid.UUID:
         gameplay_id = uuid.uuid4()
 
-        if game_settings.generator and game_settings.difficulty_level:
-            await pending_store.create_pending(
-                gameplay_id=gameplay_id,
-                user_id=user.id if user else None,
-                ttl_seconds=180,
-                settings=GameplaySettings(mode=game_settings.mode),
+        board = await self._get_board(gameplay_id, game_settings, user)
+
+        if board is not None:
+            await self._create_and_save_gameplay(
+                gameplay_id, board, game_settings.mode, user
             )
 
-            def task():
-                assert game_settings.generator is not None
-                assert game_settings.difficulty_level is not None
-                asyncio.run(
-                    self._generate(
-                        gameplay_id=gameplay_id,
-                        difficulty_level=game_settings.difficulty_level,
-                        generator_settings=game_settings.generator,
-                        pending_store=pending_store,
-                    )
-                )
-
-            self.background_tasks.add_task(task)
-
-            return gameplay_id
-
-        else:
-            board = await self._get_board(game_settings, user)
-
-            gameplay = SingleplayerGameplay(
-                id=gameplay_id,
-                board=board,
-                mode=game_settings.mode,
-            )
-
-            await self.game_repo.add_gameplay(
-                gameplay, board.id, user.id if user else None
-            )
-
-            return gameplay_id
+        return gameplay_id
 
     async def _get_board(
-        self, game_settings: NewGameSettings, user: OptionalCurrentUser
+        self,
+        gameplay_id: uuid.UUID,
+        game_settings: NewGameSettings,
+        user: OptionalCurrentUser,
     ):
         try:
             if game_settings.board_id:
                 board = await self.board_repo.get_board_by_id(game_settings.board_id)
 
-            elif game_settings.difficulty_level:
+            if game_settings.difficulty_level and not game_settings.generator:
                 board = await self.board_repo.get_unsolved_board(
-                    game_settings.difficulty_level, user
+                    game_settings.difficulty_level, user=user
                 )
 
-            else:
-                raise ValueError("Invalid NewGameInput provided")
+            if game_settings.difficulty_level and game_settings.generator:
+                if user:
+                    board = await self._get_unsolved_or_generate_board(
+                        gameplay_id, game_settings, user
+                    )
+                else:
+                    await self._generate_board(
+                        gameplay_id=gameplay_id,
+                        game_settings=game_settings,
+                        user=None,
+                    )
+                    board = None
 
             return board
 
@@ -150,7 +139,67 @@ class SingleplayerService:
 
         except UnsolvedBoardNotFound:
             assert game_settings.difficulty_level is not None
-            raise SolvedAllBoards(game_settings.difficulty_level) from None
+            raise SolvedAllBoards(
+                game_settings.difficulty_level, game_settings.generator
+            ) from None
+
+    async def _create_and_save_gameplay(
+        self, id: uuid.UUID, board: Board, mode: GameMode, user: Optional[User] = None
+    ):
+        gameplay = SingleplayerGameplay(
+            id=id,
+            board=board,
+            mode=mode,
+        )
+
+        await self.game_repo.add_gameplay(gameplay, board.id, user.id if user else None)
+
+    async def _get_unsolved_or_generate_board(
+        self,
+        gameplay_id: uuid.UUID,
+        game_settings: NewGameSettings,
+        user: OptionalCurrentUser,
+    ) -> Optional[Board]:
+        assert game_settings.difficulty_level is not None
+        assert game_settings.generator is not None
+
+        try:
+            return await self.board_repo.get_unsolved_board(
+                game_settings.difficulty_level,
+                generation_settings=game_settings.generator,
+                user=user,
+            )
+
+        except UnsolvedBoardNotFound:
+            await self._generate_board(
+                gameplay_id=gameplay_id,
+                game_settings=game_settings,
+                user=user,
+            )
+
+            return None
+
+    async def _generate_board(
+        self,
+        gameplay_id: uuid.UUID,
+        game_settings: NewGameSettings,
+        user: OptionalCurrentUser,
+    ):
+        assert game_settings.difficulty_level is not None
+        assert game_settings.generator is not None
+
+        await pending_store.create_pending(
+            gameplay_id=gameplay_id,
+            user_id=user.id if user else None,
+            ttl_seconds=180,
+            settings=GameplaySettings(mode=game_settings.mode),
+        )
+
+        self._add_generation_task(
+            gameplay_id=gameplay_id,
+            difficulty_level=game_settings.difficulty_level,
+            generator_settings=game_settings.generator,
+        )
 
     async def get_gameplays(self, user: CurrentUser, pagination_params: Params):
         return await self.game_repo.get_gameplays(user.id, pagination_params)
@@ -184,6 +233,24 @@ class SingleplayerService:
             self.gameplay.update_elapsed_time()
 
         await self.game_repo.update_gameplay(self.gameplay)
+
+    def _add_generation_task(
+        self,
+        gameplay_id: uuid.UUID,
+        difficulty_level: DifficultyLevel,
+        generator_settings: GenerationSettings,
+    ) -> None:
+        def task():
+            asyncio.run(
+                self._generate(
+                    gameplay_id=gameplay_id,
+                    difficulty_level=difficulty_level,
+                    generator_settings=generator_settings,
+                    pending_store=pending_store,
+                )
+            )
+
+        self.background_tasks.add_task(task)
 
     async def _generate(
         self,
