@@ -28,17 +28,18 @@ class GeneratorSettings:
 
 
 @dataclass
+class GenerationSettings:
+    type: GeneratorType
+    settings: Optional[GeneratorSettings] = None
+
+
+@dataclass
 class Board:
     id: uuid.UUID
     difficulty_level: DifficultyLevel
     minefields: Minefields
     start_field: tuple[int, int]
-
-
-@dataclass
-class GenerationSettings:
-    type: GeneratorType
-    settings: Optional[GeneratorSettings] = None
+    generation_settings: GenerationSettings
 
 
 class BoardGenerator:
@@ -49,7 +50,7 @@ class BoardGenerator:
         settings: Optional[GeneratorSettings] = None,
     ) -> None:
         self.difficulty_level = difficulty_level
-        self.type = type
+        self.type: GeneratorType = type
         self.settings = settings
 
     async def generate_board(self) -> Board:
@@ -68,6 +69,9 @@ class BoardGenerator:
             difficulty_level=self.difficulty_level,
             minefields=minefields,
             start_field=start_field,
+            generation_settings=GenerationSettings(
+                type=self.type, settings=self.settings
+            ),
         )
 
     def _get_generator(self, start_field):
