@@ -36,9 +36,9 @@ class GenerationTimeout(Exception):
     pass
 
 
-class GameTransport(Protocol):
+class SingleplayerGameTransport(Protocol):
     async def receive_action(self) -> GameAction: ...
-    async def send_response(self, result: GameActionResult) -> None: ...
+    async def send(self, result: GameActionResult) -> None: ...
     async def close(self) -> None: ...
 
 
@@ -55,7 +55,10 @@ class SingleplayerService:
         self.background_tasks: BackgroundTasks = background_tasks
 
     async def load_gameplay(
-        self, gameplay_id: uuid.UUID, transport: GameTransport, timeout: float = 120.0
+        self,
+        gameplay_id: uuid.UUID,
+        transport: SingleplayerGameTransport,
+        timeout: float = 120.0,
     ):
         self.transport = transport
 
@@ -80,7 +83,7 @@ class SingleplayerService:
             if self.gameplay.status == "finished":
                 raise GameplayAlreadyFinished()
 
-            await self.transport.send_response(self.get_game_state())
+            await self.transport.send(self.get_game_state())
 
         except GameplayNotFound:
             raise GameplayNotExists(
@@ -93,7 +96,7 @@ class SingleplayerService:
             action_result = await self.handle_game_action(game_action)
 
             if action_result is not None:
-                await self.transport.send_response(action_result)
+                await self.transport.send(action_result)
 
             if await self.is_game_over():
                 await self.save_gameplay_progress()

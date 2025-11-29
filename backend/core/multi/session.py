@@ -5,7 +5,12 @@ from typing import Any, Awaitable, Callable
 from backend.core.board import BoardGenerator, DifficultyLevel
 from backend.core.game import *
 from backend.core.lobby import GameConfig
-from backend.core.multiplayer.round import MultiplayerRound, create_multiplayer_round
+from backend.core.multi.round import (
+    MultiplayerRound,
+    RoundEnd,
+    RoundStart,
+    create_multiplayer_round,
+)
 
 
 class MultiplayerSessionMessage(ABC):
@@ -24,7 +29,9 @@ class NotReadyMessage(MultiplayerSessionMessage):
         session.set_not_ready(user_id)
 
 
-type IsSessionOver = bool
+@dataclass
+class SessionOver:
+    session_id: uuid.UUID
 
 
 @dataclass
@@ -62,14 +69,40 @@ class MultiplayerSession:
     def all_users_ready(self) -> bool:
         return set(self.player_ids) == self.ready_players
 
-    def end_current_round(self):
+    @property
+    def current_round(self) -> MultiplayerRound:
+        if self.current_round_index == -1:
+            raise RuntimeError("No round is currently active")
+        return self.rounds[self.current_round_index]
+
+    def end_current_round(
+        self,
+    ) -> tuple[RoundEnd | SessionOver, list[tuple[uuid.UUID, GameOverResult]]]:
         if self.current_round_index == -1:
             raise RuntimeError("No round is currently active")
 
         current_round = self.rounds[self.current_round_index]
-        current_round.end()
+        round_end_data = current_round.end()
 
-    def start_next_round(self, start_at: int, end_at: int):
+        over_gameplays_data = []
+
+        gameplays = self.rounds[self.current_round_index].gameplays
+        for user_id, gameplay in gameplays.items():
+            if gameplay.loss_cause == LossCause("time_out"):
+                game_over_data = GameOverResult(
+                    result="loss",
+                    full_board=gameplay._gameplay.grid.grid,
+                    elapsed_time=gameplay.time,
+                    loss_cause=gameplay.loss_cause,
+                )
+                over_gameplays_data.append((user_id, game_over_data))
+
+        if self.is_session_over():
+            return SessionOver(session_id=self.id), over_gameplays_data
+
+        return round_end_data, over_gameplays_data
+
+    def start_next_round(self, start_at: int, end_at: int) -> RoundStart:
         if self.current_round_index != -1:
             previous_round = self.rounds[self.current_round_index]
             if not previous_round.is_round_over():
@@ -77,8 +110,9 @@ class MultiplayerSession:
 
         self.current_round_index += 1
         current_round = self.rounds[self.current_round_index]
-        current_round.start(start_at, end_at)
+        data = current_round.start(start_at, end_at)
         self.ready_players.clear()
+        return data
 
     def set_not_ready(self, user_id: uuid.UUID):
         self.ready_players.discard(user_id)

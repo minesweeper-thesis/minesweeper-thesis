@@ -2,14 +2,14 @@ import uuid
 from typing import Literal, Self
 
 from backend.core.game import *
-from backend.core.multiplayer.session import NotReadyMessage, ReadyMessage
-from backend.routers.schemas import Response, WSRequest
-from backend.services.lobby_service import (
+from backend.core.multi.round import RoundEnd, RoundStart
+from backend.core.multi.session import (
     GameReady,
-    RoundEnd,
-    RoundStart,
-    SessionOverMessage,
+    NotReadyMessage,
+    ReadyMessage,
+    SessionOver,
 )
+from backend.routers.schemas import Response, WSRequest
 
 
 class ReadyRequest(WSRequest):
@@ -63,7 +63,7 @@ class SessionOverResponse(Response):
     session_id: uuid.UUID
 
     @classmethod
-    def build(cls, message: "SessionOverMessage") -> Self:
+    def build(cls, message: "SessionOver") -> Self:
         return cls(
             session_id=message.session_id,
         )

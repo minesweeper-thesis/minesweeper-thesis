@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from backend.core.lobby import *
 from backend.routers.schemas import Response, WSRequest
+from backend.services.lobby_service import InvitationsQuery
 
 from ..user_schemas import UserResponse
 
@@ -20,6 +21,9 @@ class JoinLobbyRequest(BaseModel):
 class PendingInvitationsRequest(WSRequest):
     ws_type: Literal["pending_invitations"] = "pending_invitations"
 
+    def parse(self) -> "InvitationsQuery":
+        return InvitationsQuery()
+
 
 class InvitationLobbyResponse(BaseModel):
     id: uuid.UUID
@@ -27,11 +31,11 @@ class InvitationLobbyResponse(BaseModel):
     game_config: GameConfig
 
     @classmethod
-    def build(cls, lobby) -> Self:
+    def build(cls, lobby: Lobby) -> Self:
         return cls(
             id=lobby.id,
             host=UserResponse.build(lobby.host),
-            game_config=lobby.game_settings,
+            game_config=lobby.game_config,
         )
 
 

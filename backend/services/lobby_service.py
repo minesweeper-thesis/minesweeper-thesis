@@ -10,8 +10,8 @@ from backend import repositories
 from backend.core import lobby
 from backend.core.game import *
 from backend.core.lobby import *
-from backend.core.multiplayer import ROUND_START_DELAY
-from backend.core.multiplayer.session import create_multiplayer_session
+from backend.core.multi import ROUND_START_DELAY
+from backend.core.multi.session import create_multiplayer_session
 from backend.core.user import User
 from backend.lib.pending_sessions import pending_sessions_store
 from backend.repositories.exceptions import *
@@ -19,28 +19,8 @@ from backend.services.exceptions import *
 
 
 @dataclass
-class UserConnectionUpdated(UserConnectionStatus):
-    lobby_id: uuid.UUID
-
-
-@dataclass
-class RoundStart:
-    session_id: uuid.UUID
-    round: int
-    start_at: int
-    end_at: int
-    start_field: Cell
-
-
-@dataclass
-class RoundEnd:
-    session_id: uuid.UUID
-    round: int
-
-
-@dataclass
-class SessionOverMessage:
-    session_id: uuid.UUID
+class InvitationsQuery:
+    pass
 
 
 LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
@@ -104,14 +84,12 @@ class LobbyService:
         if invitation.invitee != user or invitation.lobby != lobby:
             raise PermissionError("User not authorized to join this lobby")
 
-        lobby.add_user(user)
+        data = lobby.add_user(user)
         self.lobby_repo.save_lobby(lobby)
         self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
         await notify(invitation.inviter.id, response)
-
-        data = UserConnectionUpdated(user=user, status="connected", lobby_id=lobby.id)
 
         for lobby_user in lobby.users:
             await notify(lobby_user.id, data)
@@ -195,15 +173,12 @@ class LobbyService:
         if not lobby:
             raise ValueError("Lobby not found")
 
-        lobby.remove_user(user)
+        data = lobby.remove_user(user)
 
         if lobby.is_empty():
             self.lobby_repo.delete_lobby(lobby_id)
         else:
             self.lobby_repo.save_lobby(lobby)
-            data = UserConnectionUpdated(
-                user=user, status="disconnected", lobby_id=lobby.id
-            )
             for lobby_user in lobby.users:
                 await notify(lobby_user.id, data)
 
@@ -231,7 +206,7 @@ class LobbyService:
             )
 
             end_at = start_at + session.max_round_time
-            session.start_next_round(start_at, end_at)
+            data = session.start_next_round(start_at, end_at)
 
             asyncio.run(self.multi_repo.save_session(session))
 
@@ -239,15 +214,6 @@ class LobbyService:
 
             async def send_start():
                 for user_id in session.player_ids:
-                    data = RoundStart(
-                        session_id=session_id,
-                        round=session.current_round_index,
-                        start_at=start_at,
-                        end_at=end_at,
-                        start_field=session.rounds[session.current_round_index]
-                        .gameplays[user_id]
-                        ._gameplay.start_field,
-                    )
                     print(f"[LOG] Sending round start to user {user_id}")
                     print(game_notify)
                     await game_notify(user_id, data)
@@ -261,32 +227,10 @@ class LobbyService:
         else:
             pending_sessions_store.remove(session_id)
 
-    async def _end_round(
-        self,
-        game_notify: Notify,
-    ):
+    async def _end_round(self, game_notify: Notify):
         session = await self.multi_repo.get_session(self.session_id)
-        session.end_current_round()
+        data = session.end_current_round()
         await self.multi_repo.save_session(session)
-
-        gameplays = session.rounds[session.current_round_index].gameplays
-        for user_id, gameplay in gameplays.items():
-            if gameplay.loss_cause == LossCause("time_out"):
-                game_over_data = GameOverResult(
-                    result="loss",
-                    full_board=gameplay._gameplay.grid.grid,
-                    elapsed_time=gameplay.time,
-                    loss_cause=gameplay.loss_cause,
-                )
-                await game_notify(user_id, game_over_data)
-
-        if session.is_session_over():
-            data: Any = SessionOverMessage(session_id=self.session_id)
-        else:
-            data = RoundEnd(
-                session_id=self.session_id,
-                round=session.current_round_index,
-            )
 
         for user_id in session.player_ids:
             await game_notify(user_id, data)
@@ -371,3 +315,9 @@ class LobbyService:
             raise PermissionError("User not in the lobby")
 
         return self.lobby_repo.get_messages(lobby_id, pagination_params)
+
+    async def get_pending_invitations(
+        self,
+        user: User,
+    ) -> list[Invitation]:
+        return self.lobby_repo.get_pending_invitations(user)

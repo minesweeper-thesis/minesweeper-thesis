@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.core.game import GameAction, GameActionResult
+from backend.core.multi.session import SessionOver
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.routers.schemas import WSRequest
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
@@ -14,7 +15,6 @@ from backend.routers.schemas.game.multi_schemas import SessionOverResponse
 from backend.routers.schemas.lobby.lobby_schemas import create_game_notification
 from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions as service_exceptions
-from backend.services.lobby_service import SessionOverMessage
 from backend.services.singleplayer_service import GenerationTimeout
 
 SingleplayerService = Annotated[services.SingleplayerService, Depends()]
@@ -55,7 +55,7 @@ async def start_singleplayer_game(
     return NewGameResponse(gameplay_id=gameplay_id)
 
 
-class WebSocketTransport(services.singleplayer_service.GameTransport):
+class WebSocketTransport(services.singleplayer_service.SingleplayerGameTransport):
     def __init__(self, websocket: WebSocket):
         self.websocket = websocket
 
@@ -63,7 +63,7 @@ class WebSocketTransport(services.singleplayer_service.GameTransport):
         data = await self.websocket.receive_json()
         return WSRequest.from_dict(data)
 
-    async def send_response(self, result: GameActionResult):
+    async def send(self, result: GameActionResult):
         await self.websocket.send_text(
             GameActionResponse.create(result, include_ws_type=True)
         )
@@ -121,7 +121,7 @@ async def play_multi(
                 if await service.is_session_over():
                     await websocket.send_text(
                         SessionOverResponse.create(
-                            SessionOverMessage(session_id=session_id),
+                            SessionOver(session_id=session_id),
                             include_ws_type=True,
                         )
                     )

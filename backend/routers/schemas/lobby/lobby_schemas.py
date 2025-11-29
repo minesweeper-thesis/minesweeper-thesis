@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
 from backend.core.game import GameActionResult, GameMode
 from backend.core.lobby import *
+from backend.core.multi.round import RoundEnd, RoundStart
+from backend.core.multi.session import SessionOver
 from backend.routers.schemas import Response
 from backend.routers.schemas.game.game_schemas import GameActionResponse
 from backend.routers.schemas.game.multi_schemas import (
@@ -17,12 +19,6 @@ from backend.routers.schemas.game.multi_schemas import (
 from backend.routers.schemas.lobby.invitations_schemas import (
     InvitationAnswerResponse,
     InvitationResponse,
-)
-from backend.services.lobby_service import (
-    RoundEnd,
-    RoundStart,
-    SessionOverMessage,
-    UserConnectionUpdated,
 )
 
 from ..user_schemas import UserResponse
@@ -130,7 +126,7 @@ def create_notification(data: Any) -> str:
 
 def create_game_notification(data: Any) -> str:
     mapping: dict[type, type[Response]] = {
-        SessionOverMessage: SessionOverResponse,
+        SessionOver: SessionOverResponse,
         RoundStart: RoundStartResponse,
         RoundEnd: RoundEndResponse,
         GameActionResult: GameActionResponse,

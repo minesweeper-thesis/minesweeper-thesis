@@ -4,9 +4,24 @@ from datetime import datetime
 
 from backend.core.board import Board
 from backend.core.game import *
-from backend.core.multiplayer.gameplay import MultiplayerGameplay
+from backend.core.multi.gameplay import MultiplayerGameplay
 
 type IsRoundOver = bool
+
+
+@dataclass
+class RoundStart:
+    session_id: uuid.UUID
+    round: int
+    start_at: int
+    end_at: int
+    start_field: Cell
+
+
+@dataclass
+class RoundEnd:
+    session_id: uuid.UUID
+    round: int
 
 
 class MultiplayerRound:
@@ -58,6 +73,14 @@ class MultiplayerRound:
         for gameplay in self.gameplays.values():
             gameplay.start_game_if_not_started()
 
+        return RoundStart(
+            session_id=self.session_id,
+            round=self.round_number,
+            start_at=start_at,
+            end_at=end_at,
+            start_field=self.board.start_field,
+        )
+
     def end(self):
         end_str = datetime.fromtimestamp(self.end_at).strftime("%Y-%m-%d %H:%M:%S")
         print(f"Ending round {self.round_number} at {end_str}")
@@ -65,6 +88,11 @@ class MultiplayerRound:
         for gameplay in self.gameplays.values():
             if not gameplay.is_game_over():
                 gameplay.finish_game("loss", loss_cause=LossCause("time_out"))
+
+        return RoundEnd(
+            session_id=self.session_id,
+            round=self.round_number,
+        )
 
 
 async def create_multiplayer_round(

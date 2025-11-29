@@ -2,8 +2,8 @@ import uuid
 from dataclasses import dataclass
 from typing import Literal
 
-from backend.core.multiplayer.config import GameConfig, GameConfigUpdated
-from backend.core.multiplayer.session import GameReady
+from backend.core.multi.config import GameConfig, GameConfigUpdated
+from backend.core.multi.session import GameReady
 from backend.core.user import User
 
 
@@ -13,6 +13,13 @@ class ChatMessage:
     sender: User
     content: str
     timestamp: int
+
+
+@dataclass
+class UserConnectionUpdated:
+    lobby_id: uuid.UUID
+    user: User
+    status: Literal["connected", "disconnected"]
 
 
 class Lobby:
@@ -28,10 +35,11 @@ class Lobby:
         self.game_config = game_config
         self._ready_users: set[uuid.UUID] = set()
 
-    def add_user(self, user: User) -> None:
+    def add_user(self, user: User) -> UserConnectionUpdated:
         self.users.append(user)
+        return UserConnectionUpdated(lobby_id=self.id, user=user, status="connected")
 
-    def remove_user(self, user: User) -> None:
+    def remove_user(self, user: User) -> UserConnectionUpdated:
         if user not in self.users:
             raise ValueError("User not in lobby.")
 
@@ -42,6 +50,8 @@ class Lobby:
                 self.host = self.users[0]
             else:
                 self.host = None  # type: ignore
+
+        return UserConnectionUpdated(lobby_id=self.id, user=user, status="disconnected")
 
     def is_empty(self) -> bool:
         return not len(self.users)
@@ -94,9 +104,3 @@ class Invitation:
 class InvitationAnswer:
     invitation: Invitation
     answer: Literal["accepted", "rejected"]
-
-
-@dataclass
-class UserConnectionStatus:
-    user: User
-    status: Literal["connected", "disconnected"]

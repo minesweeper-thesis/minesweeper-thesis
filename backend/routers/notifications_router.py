@@ -1,9 +1,11 @@
+from contextlib import suppress
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
+from backend.routers.schemas import WSRequest
 from backend.routers.schemas.lobby import (
     CurrentLobbyResponse,
     PendingInvitationsResponse,
@@ -21,16 +23,14 @@ async def send_notifications(
     user: CurrentUserWebSocket,
     lobby_service: LobbyService,
 ):
-    """WebSocket endpoint for receiving game invitations."""
     connections_manager.add(user.id, websocket)
 
     async def receiver():
         while True:
             data = await websocket.receive_json()
-            request_type = data.get("type")
-
-            if request_type == "pending_invitations":
-                invitations = lobby_service.lobby_repo.get_pending_invitations(user)
+            with suppress(ValueError):
+                _ = WSRequest.from_dict(data)
+                invitations = await lobby_service.get_pending_invitations(user)
                 response = PendingInvitationsResponse.create(invitations)
                 await websocket.send_text(response)
 
@@ -38,8 +38,8 @@ async def send_notifications(
         await websocket.accept()
 
         lobby = await lobby_service.get_user_lobby(user)
-        msg = CurrentLobbyResponse.create(lobby)
-        await websocket.send_text(msg)
+        response = CurrentLobbyResponse.create(lobby)
+        await websocket.send_text(response)
 
         await receiver()
 
