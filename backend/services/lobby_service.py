@@ -258,7 +258,7 @@ class LobbyService:
             start_at = int(time.time()) + ROUND_START_DELAY
 
             session_id = uuid.uuid4()
-            pending_sessions_store.add(session_id)
+            pending_sessions_store.add(session_id, [u.id for u in lobby.users])
 
             self.background_tasks.add_task(
                 self._create_game_session,

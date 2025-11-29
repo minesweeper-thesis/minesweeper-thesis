@@ -6,6 +6,7 @@ from typing import Literal, Optional
 @dataclass
 class PendingSession:
     id: uuid.UUID
+    player_ids: list[uuid.UUID]
     status: Literal["generating", "ready"] = "generating"
 
 
@@ -13,8 +14,8 @@ class PendingSessionsStore:
     def __init__(self) -> None:
         self._pending: dict[uuid.UUID, PendingSession] = {}
 
-    def add(self, session_id: uuid.UUID) -> None:
-        self._pending[session_id] = PendingSession(id=session_id)
+    def add(self, session_id: uuid.UUID, player_ids: list[uuid.UUID]) -> None:
+        self._pending[session_id] = PendingSession(id=session_id, player_ids=player_ids)
 
     def get(self, session_id: uuid.UUID) -> Optional[PendingSession]:
         return self._pending.get(session_id)

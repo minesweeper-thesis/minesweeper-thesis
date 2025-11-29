@@ -2,7 +2,6 @@ import asyncio
 import time
 import uuid
 from contextlib import suppress
-from datetime import datetime
 from typing import Annotated
 
 from fastapi import BackgroundTasks, Depends
@@ -25,9 +24,11 @@ from backend.services.exceptions import *
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 
+type MultiplayerAction = ReadyMessage | CancelReadyMessage | GameAction
+
 
 class MultiplayerGameTransport(Protocol):
-    async def receive(self) -> GameAction: ...
+    async def receive(self) -> MultiplayerAction: ...
     async def send(self, user_id: uuid.UUID, result: MultiplayerResult) -> None: ...
     async def close(self) -> None: ...
 
@@ -55,13 +56,13 @@ class MultiplayerService:
 
         self.transport = transport
 
-        if not pending_sessions_store.is_pending(session_id):
-            session = await self.multiplayer_repo.get_session(session_id)
+        if pending_sessions_store.is_pending(session_id):
+            session = pending_sessions_store.get(session_id)  # type: ignore
+        else:
+            session = await self.multiplayer_repo.get_session(session_id)  # type: ignore
 
-            if user.id not in session.player_ids:
-                raise ValueError("User is not part of this session")
-
-        # dodac player_id do pending session
+        if user.id not in session.player_ids:  # type: ignore
+            raise ValueError("User is not part of this session")
 
     async def session_loop(self):
         while True:
@@ -110,7 +111,6 @@ class MultiplayerService:
         return session.is_session_over()
 
     async def _end_round(self):
-        print(f"[LOG] Ending round for session {self.session_id}")
         session = await self.multiplayer_repo.get_session(self.session_id)
         data, over_gameplays = session.end_current_round()
 
@@ -126,9 +126,6 @@ class MultiplayerService:
             await self.transport.close()
 
     def _schedule_end_round(self, end_at: int):
-        end_str = datetime.fromtimestamp(end_at).strftime("%Y-%m-%d %H:%M:%S")
-
-        print(f"[LOG] Scheduling end round task to run at {end_str}")
         delay = end_at - int(time.time())
         if delay > 0:
             time.sleep(delay)
@@ -146,13 +143,8 @@ class MultiplayerService:
             data = session.start_next_round(start_at, end_at)
 
             asyncio.run(self.multiplayer_repo.save_session(session))
-            print(
-                f"[LOG] Started round {session.current_round_index} for session {session_id}, ending at {end_at}"
-            )
 
             async def send_start():
-                print(f"[LOG] Sending round start messages for session {session_id}")
-                print(session.player_ids)
                 for user_id in session.player_ids:
                     await self.transport.send(user_id, data)
 
@@ -171,10 +163,6 @@ class MultiplayerService:
         if session.all_users_ready():
             start_at = int(time.time()) + ROUND_START_DELAY
 
-            next_round = session.current_round_index + 1
-            print(
-                f"[LOG] All users ready for session {session_id}, starting round {next_round} at {start_at}"
-            )
             asyncio.create_task(
                 run_in_threadpool(self._start_next_round, session_id, start_at)
             )
