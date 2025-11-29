@@ -24,7 +24,7 @@ class ReadyMessage(MultiplayerSessionMessage):
         _ = session.set_ready(user_id)
 
 
-class NotReadyMessage(MultiplayerSessionMessage):
+class CancelReadyMessage(MultiplayerSessionMessage):
     def handle(self, session: "MultiplayerSession", user_id: uuid.UUID):
         session.set_not_ready(user_id)
 
@@ -39,6 +39,9 @@ class GameReady:
     session_id: uuid.UUID
     round: int
     start_at: int
+
+
+type MultiplayerResult = GameActionResult | RoundStart | RoundEnd | SessionOver | GameReady
 
 
 class MultiplayerSession:

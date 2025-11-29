@@ -1,21 +1,22 @@
 import uuid
-from contextlib import suppress
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.core.game import GameAction, GameActionResult
-from backend.core.multi.session import SessionOver
+from backend.core.multi.session import MultiplayerResult
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.routers.schemas import WSRequest
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
-from backend.routers.schemas.game.game_schemas import GameActionResponse
-from backend.routers.schemas.game.multi_schemas import SessionOverResponse
 from backend.routers.schemas.lobby.lobby_schemas import create_game_notification
 from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions as service_exceptions
-from backend.services.singleplayer_service import GenerationTimeout
+from backend.services.multiplayer_service import MultiplayerGameTransport
+from backend.services.singleplayer_service import (
+    GenerationTimeout,
+    SingleplayerGameTransport,
+)
 
 SingleplayerService = Annotated[services.SingleplayerService, Depends()]
 MultiplayerService = Annotated[services.MultiplayerService, Depends()]
@@ -36,13 +37,6 @@ game_exceptions = {
 game_router = APIRouter(tags=["game"])
 
 
-async def notify(receiver_id: uuid.UUID, data):
-    if receiver_id in multi_websockets._websockets:
-        websocket = multi_websockets.get(receiver_id)
-        response = create_game_notification(data)
-        await websocket.send_text(response)
-
-
 @game_router.post("/single")
 async def start_singleplayer_game(
     new_game_input: NewGameRequest,
@@ -55,7 +49,7 @@ async def start_singleplayer_game(
     return NewGameResponse(gameplay_id=gameplay_id)
 
 
-class WebSocketTransport(services.singleplayer_service.SingleplayerGameTransport):
+class SingleplayerWebSocketTransport(SingleplayerGameTransport):
     def __init__(self, websocket: WebSocket):
         self.websocket = websocket
 
@@ -64,9 +58,7 @@ class WebSocketTransport(services.singleplayer_service.SingleplayerGameTransport
         return WSRequest.from_dict(data)
 
     async def send(self, result: GameActionResult):
-        await self.websocket.send_text(
-            GameActionResponse.create(result, include_ws_type=True)
-        )
+        await self.websocket.send_text(create_game_notification(result))
 
     async def close(self):
         await self.websocket.close()
@@ -80,7 +72,9 @@ async def play_single(
 ):
     try:
         await websocket.accept()
-        await service.load_gameplay(gameplay_id, WebSocketTransport(websocket))
+        await service.load_gameplay(
+            gameplay_id, SingleplayerWebSocketTransport(websocket)
+        )
 
         await service.game_loop()
 
@@ -91,6 +85,24 @@ async def play_single(
         await websocket.close(code=1001, reason="Board generation timeout")
 
 
+class MultiplayerWebSocketTransport(MultiplayerGameTransport):
+    def __init__(self, websocket: WebSocket):
+        self.websocket = websocket
+
+    async def receive(self) -> GameAction:
+        data = await self.websocket.receive_json()
+        return WSRequest.from_dict(data)
+
+    async def send(self, user_id: uuid.UUID, result: MultiplayerResult):
+        if user_id in multi_websockets._websockets:
+            websocket = multi_websockets.get(user_id)
+            response = create_game_notification(result)
+            await websocket.send_text(response)
+
+    async def close(self):
+        await self.websocket.close()
+
+
 @game_router.websocket("/multi/{session_id}")
 async def play_multi(
     session_id: uuid.UUID,
@@ -98,44 +110,14 @@ async def play_multi(
     service: MultiplayerService,
     user: CurrentUserWebSocket,
 ):
-
-    async def receiver():
-        while True:
-            data = await websocket.receive_json()
-
-            if data.get("type") == "ready":
-                await service.set_user_ready(session_id, user)
-                continue
-
-            if data.get("type") == "not_ready":
-                # await service.set_user_not_ready(session_id, user, notify)
-                continue
-
-            with suppress(ValueError):
-                msg = WSRequest.from_dict(data)
-                action_result = await service.handle_game_action(msg)
-                await websocket.send_text(
-                    GameActionResponse.create(action_result, include_ws_type=True)
-                )
-
-                if await service.is_session_over():
-                    await websocket.send_text(
-                        SessionOverResponse.create(
-                            SessionOver(session_id=session_id),
-                            include_ws_type=True,
-                        )
-                    )
-                    await websocket.close()
-                    return
-
-    service.on_session_end_callback = lambda: websocket.close()
-
     try:
-        await service.set_session(session_id, user, notify)
+        transport = MultiplayerWebSocketTransport(websocket)
+        await service.set_session(session_id, user, transport)
+
         await websocket.accept()
         multi_websockets.add(user.id, websocket)
 
-        await receiver()
+        await service.session_loop()
 
     except WebSocketDisconnect:
         multi_websockets.remove(user.id)

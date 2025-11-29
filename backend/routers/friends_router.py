@@ -7,7 +7,6 @@ from fastapi_pagination import Page, Params
 import backend.services.exceptions as service_exceptions
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.routers.websockets.connections_manager import connections_manager
 
 from .schemas.user_schemas import *
 
@@ -35,12 +34,6 @@ friends_exceptions = {
 
 friends_router = APIRouter(prefix="/friends", tags=["friends"])
 friend_requests_router = APIRouter(prefix="/friend-requests", tags=["friend-requests"])
-
-
-async def notify(receiver_id: uuid.UUID, data: FriendRequest):
-    if connections_manager.is_user_online(receiver_id):
-        websocket = connections_manager.get(receiver_id)
-        await websocket.send_text(FriendRequestResponse.create(data))
 
 
 @friends_router.get(
@@ -105,7 +98,7 @@ async def make_friend_request(
     service: FriendsService,
 ):
     """Makes a friend request to user with given id"""
-    friend_request = await service.make_friend_request(body.friend_id, notify)
+    friend_request = await service.make_friend_request(body.friend_id)
     return FriendRequestResponse.build(friend_request)
 
 

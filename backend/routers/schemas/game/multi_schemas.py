@@ -4,8 +4,8 @@ from typing import Literal, Self
 from backend.core.game import *
 from backend.core.multi.round import RoundEnd, RoundStart
 from backend.core.multi.session import (
+    CancelReadyMessage,
     GameReady,
-    NotReadyMessage,
     ReadyMessage,
     SessionOver,
 )
@@ -22,8 +22,8 @@ class ReadyRequest(WSRequest):
 class CancelReadyRequest(WSRequest):
     ws_type: Literal["not_ready"] = "not_ready"
 
-    def parse(self) -> "NotReadyMessage":
-        return NotReadyMessage()
+    def parse(self) -> "CancelReadyMessage":
+        return CancelReadyMessage()
 
 
 class RoundStartResponse(Response):

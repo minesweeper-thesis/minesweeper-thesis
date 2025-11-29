@@ -13,6 +13,7 @@ from backend.core.lobby import *
 from backend.core.multi import ROUND_START_DELAY
 from backend.core.multi.session import create_multiplayer_session
 from backend.core.user import User
+from backend.lib.notification_system import NotificationSystem as Notifications
 from backend.lib.pending_sessions import pending_sessions_store
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
@@ -28,6 +29,8 @@ UserRepository = Annotated[repositories.UserRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
 
+NotificationSystem = Annotated[Notifications, Depends()]
+
 type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
@@ -38,12 +41,14 @@ class LobbyService:
         user_repo: UserRepository,
         board_repo: BoardRepository,
         multi_repo: MultiplayerRepository,
+        notification_system: NotificationSystem,
         background_tasks: BackgroundTasks,
     ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo
         self.board_repo = board_repo
         self.multi_repo = multi_repo
+        self.notification_system = notification_system
         self.background_tasks = background_tasks
         self.task = None
 
@@ -72,7 +77,6 @@ class LobbyService:
         self,
         user: User,
         invitation_id: uuid.UUID,
-        notify: Notify,
     ):
         user_lobbies = self.lobby_repo.get_user_lobbies(user)
         if user_lobbies:
@@ -89,10 +93,10 @@ class LobbyService:
         self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
-        await notify(invitation.inviter.id, response)
+        await self.notification_system.notify(invitation.inviter.id, response)
 
         for lobby_user in lobby.users:
-            await notify(lobby_user.id, data)
+            await self.notification_system.notify(lobby_user.id, data)
 
         messages = self.lobby_repo.get_messages(lobby.id, Params(page=1, size=10))
 
@@ -103,7 +107,6 @@ class LobbyService:
         lobby_id: uuid.UUID,
         user: User,
         game_config: GameConfig,
-        notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if not lobby:
@@ -117,14 +120,13 @@ class LobbyService:
         self.lobby_repo.save_lobby(lobby)
 
         for lobby_user in lobby.users:
-            await notify(lobby_user.id, event)
+            await self.notification_system.notify(lobby_user.id, event)
 
     async def invite_to_lobby(
         self,
         lobby_id: uuid.UUID,
         user: User,
         invitee_id: uuid.UUID,
-        notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if not lobby:
@@ -143,14 +145,13 @@ class LobbyService:
             inviter=user,
             invitee=invitee,
         )
-        await notify(invitation.invitee.id, invitation)
+        await self.notification_system.notify(invitation.invitee.id, invitation)
         self.lobby_repo.save_invitation(invitation)
 
     async def reject_game_invitation(
         self,
         invitation_id: uuid.UUID,
         user: User,
-        notify: Notify,
     ):
         invitation = self.lobby_repo.get_invitation(invitation_id)
         if not invitation:
@@ -160,14 +161,13 @@ class LobbyService:
             raise PermissionError("User not authorized to reject this invitation")
 
         response = InvitationAnswer(invitation=invitation, answer="rejected")
-        await notify(invitation.inviter.id, response)
+        await self.notification_system.notify(invitation.inviter.id, response)
         self.lobby_repo.delete_invitation(invitation.id)
 
     async def remove_user_from_lobby(
         self,
         lobby_id: uuid.UUID,
         user: User,
-        notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if not lobby:
@@ -180,7 +180,7 @@ class LobbyService:
         else:
             self.lobby_repo.save_lobby(lobby)
             for lobby_user in lobby.users:
-                await notify(lobby_user.id, data)
+                await self.notification_system.notify(lobby_user.id, data)
 
     def _create_game_session(
         self,
@@ -248,14 +248,11 @@ class LobbyService:
         self,
         lobby_id: uuid.UUID,
         user: User,
-        notify: Notify,
         game_notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
         lobby.set_user_ready(user)
         self.lobby_repo.save_lobby(lobby)
-
-        print("[LOG]", notify, game_notify)
 
         if lobby.all_users_ready():
             start_at = int(time.time()) + ROUND_START_DELAY
@@ -273,14 +270,13 @@ class LobbyService:
 
             event = lobby.start_countdown(start_at)
             for lobby_user in lobby.users:
-                await notify(lobby_user.id, event)
+                await self.notification_system.notify(lobby_user.id, event)
 
     async def send_chat_message(
         self,
         lobby_id: uuid.UUID,
         user: User,
         content: str,
-        notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if not lobby:
@@ -299,7 +295,7 @@ class LobbyService:
         self.lobby_repo.add_message(message)
 
         for lobby_user in lobby.users:
-            await notify(lobby_user.id, message)
+            await self.notification_system.notify(lobby_user.id, message)
 
     async def get_chat_messages(
         self,

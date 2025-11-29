@@ -14,11 +14,7 @@ from backend.routers.schemas.lobby import (
     LobbyResponse,
     UpdateGameConfigRequest,
 )
-from backend.routers.schemas.lobby.lobby_schemas import (
-    create_game_notification,
-    create_notification,
-)
-from backend.routers.websockets.connections_manager import connections_manager
+from backend.routers.schemas.lobby.lobby_schemas import create_game_notification
 from backend.routers.websockets.websockets_registry import multi_websockets
 
 PaginationParams = Annotated[Params, Depends()]
@@ -27,12 +23,6 @@ LobbyService = Annotated[services.LobbyService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
 invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
-
-
-async def notify(receiver_id: uuid.UUID, data):
-    if connections_manager.is_user_online(receiver_id):
-        websocket = connections_manager.get(receiver_id)
-        await websocket.send_text(create_notification(data))
 
 
 async def game_notify(receiver_id: uuid.UUID, data):
@@ -59,7 +49,7 @@ async def update_lobby_config(
     config: UpdateGameConfigRequest,
 ):
     """Updates lobby configuration."""
-    await service.update_lobby(lobby_id, user, config.to_dto(), notify)
+    await service.update_lobby(lobby_id, user, config.to_dto())
 
 
 @lobby_router.post("/{lobby_id}/invitations")
@@ -70,7 +60,7 @@ async def invite_user_to_lobby(
     request: InviteUserToLobbyRequest,
 ):
     """Sends an invitation to join the lobby."""
-    await service.invite_to_lobby(lobby_id, user, request.user_id, notify)
+    await service.invite_to_lobby(lobby_id, user, request.user_id)
 
 
 @lobby_router.post("/{lobby_id}/join")
@@ -81,7 +71,7 @@ async def join_lobby(
     request: JoinLobbyRequest,
 ):
     """Joins a lobby using an invitation."""
-    lobby, messages = await service.join_lobby(user, request.invitation_id, notify)
+    lobby, messages = await service.join_lobby(user, request.invitation_id)
     return LobbyResponse.build(lobby, messages)
 
 
@@ -92,7 +82,7 @@ async def leave_lobby(
     user: CurrentUser,
 ):
     """Leaves the lobby or removes a member."""
-    await service.remove_user_from_lobby(lobby_id, user, notify)
+    await service.remove_user_from_lobby(lobby_id, user)
 
 
 @invitations_router.delete("/{invitation_id}")
@@ -102,7 +92,7 @@ async def reject_game_invitation(
     invitation_id: uuid.UUID,
 ):
     """Rejects a game invitation."""
-    await service.reject_game_invitation(invitation_id, user, notify)
+    await service.reject_game_invitation(invitation_id, user)
 
 
 @lobby_router.post("/{lobby_id}/ready")
@@ -116,7 +106,7 @@ async def set_user_ready(
             await multi_websockets.get(user.id).close()
 
     service.on_session_end_callback = close_connection
-    await service.set_user_ready(lobby_id, user, notify, game_notify)
+    await service.set_user_ready(lobby_id, user, game_notify)
 
 
 @lobby_router.post("/{lobby_id}/cancel-ready")
@@ -126,7 +116,7 @@ async def set_user_not_ready(
     # service: LobbyService,
 ):
     """Sets the user as ready in the lobby."""
-    # await service.set_user_not_ready(lobby_id, user, notify)
+    # await service.set_user_not_ready(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/chat-messages")
@@ -137,7 +127,7 @@ async def send_chat_message(
     request: ChatMessageRequest,
 ):
     """Sends a chat message in the lobby."""
-    await service.send_chat_message(lobby_id, user, request.content, notify)
+    await service.send_chat_message(lobby_id, user, request.content)
 
 
 @lobby_router.get("/{lobby_id}/chat-messages")

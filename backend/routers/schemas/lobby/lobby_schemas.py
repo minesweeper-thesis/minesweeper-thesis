@@ -4,25 +4,36 @@ from typing import Any, Literal, Optional, Self
 from pydantic import BaseModel
 
 from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
-from backend.core.game import GameActionResult, GameMode
+from backend.core.game import (
+    FlagResult,
+    GameMode,
+    GameOverResult,
+    GameStateResult,
+    HintResult,
+    RemoveFlagResult,
+    RevealResult,
+)
 from backend.core.lobby import *
-from backend.core.multi.round import RoundEnd, RoundStart
-from backend.core.multi.session import SessionOver
+from backend.core.multi import MultiplayerResult, RoundEnd, RoundStart, SessionOver
 from backend.routers.schemas import Response
-from backend.routers.schemas.game.game_schemas import GameActionResponse
-from backend.routers.schemas.game.multi_schemas import (
+from backend.routers.schemas.game import (
+    FlagResponse,
+    GameOverResponse,
     GameReadyResponse,
+    GameStateResponse,
+    HintResponse,
+    RemoveFlagResponse,
+    RevealResponse,
     RoundEndResponse,
     RoundStartResponse,
     SessionOverResponse,
 )
-from backend.routers.schemas.lobby.invitations_schemas import (
+from backend.routers.schemas.lobby import (
+    ChatMessageResponse,
     InvitationAnswerResponse,
     InvitationResponse,
 )
-
-from ..user_schemas import UserResponse
-from .chat_schemas import ChatMessageResponse
+from backend.routers.schemas.user_schemas import UserResponse
 
 
 class LobbyResponse(BaseModel):
@@ -124,16 +135,21 @@ def create_notification(data: Any) -> str:
     return mapping[type(data)].create(data, include_ws_type=True)
 
 
-def create_game_notification(data: Any) -> str:
-    mapping: dict[type, type[Response]] = {
+def create_game_notification(data: MultiplayerResult) -> str:
+    mapping: dict[type[MultiplayerResult], type[Response]] = {
         SessionOver: SessionOverResponse,
         RoundStart: RoundStartResponse,
         RoundEnd: RoundEndResponse,
-        GameActionResult: GameActionResponse,
+        RevealResult: RevealResponse,
+        GameOverResult: GameOverResponse,
+        GameStateResult: GameStateResponse,
+        FlagResult: FlagResponse,
+        RemoveFlagResult: RemoveFlagResponse,
+        HintResult: HintResponse,
     }
 
     if type(data) not in mapping:
-        raise ValueError("Unsupported response type")
+        raise RuntimeError("Unsupported response type")
 
     return mapping[type(data)].create(data, include_ws_type=True)
 

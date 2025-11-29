@@ -1,6 +1,6 @@
 import uuid
 from contextlib import suppress
-from typing import Annotated, Awaitable, Callable
+from typing import Annotated
 
 from fastapi import Depends
 from fastapi_pagination import Params
@@ -9,11 +9,12 @@ import backend.repositories.exceptions as repo_exceptions
 from backend import repositories
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.lib.auth import CurrentUser
+from backend.lib.notification_system import NotificationSystem as Notifications
 from backend.services.exceptions import *
 
 FriendsRepository = Annotated[repositories.FriendsRepository, Depends()]
 
-type Notify = Callable[[uuid.UUID, FriendRequest], Awaitable[None]]
+NotificationSystem = Annotated[Notifications, Depends()]
 
 
 class FriendsService:
@@ -22,10 +23,12 @@ class FriendsService:
         friends_repo: FriendsRepository,
         user_repo: Annotated[repositories.UserRepository, Depends()],
         user: CurrentUser,
+        notification_system: NotificationSystem,
     ):
         self.friends_repo = friends_repo
         self.user_repo = user_repo
         self.user = user
+        self.notification_system = notification_system
 
     async def get_friends(self, pagination_params: Params):
         return await self.friends_repo.get_friends(self.user.id, pagination_params)
@@ -50,7 +53,7 @@ class FriendsService:
         except repo_exceptions.UserNotFound:
             raise RequestedFriendNotExists() from None
 
-    async def make_friend_request(self, friend_id: uuid.UUID, notify: Notify):
+    async def make_friend_request(self, friend_id: uuid.UUID):
         if self.user.id == friend_id:
             raise CannotFriendRequestYourself()
 
@@ -82,7 +85,7 @@ class FriendsService:
         )
         await self.friends_repo.add_friend_request(friend_request)
 
-        await notify(friend_id, friend_request)
+        await self.notification_system.notify(friend_id, friend_request)
 
         return friend_request
 
