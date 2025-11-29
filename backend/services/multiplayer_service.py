@@ -15,12 +15,7 @@ from backend.lib.auth import CurrentUser
 from backend.lib.pending_sessions import pending_sessions_store
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
-from backend.services.lobby_service import (
-    GameReadyMessage,
-    RoundEndMessage,
-    RoundStartMessage,
-    SessionOverMessage,
-)
+from backend.services.lobby_service import RoundEnd, RoundStart, SessionOverMessage
 
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
@@ -79,7 +74,7 @@ class MultiplayerService:
                     await self.notify(user_id, game_over_data)
 
             for user_id in session.player_ids:
-                data = RoundEndMessage(
+                data = RoundEnd(
                     session_id=self.session_id,
                     round=session.current_round_index,
                 )
@@ -113,7 +108,7 @@ class MultiplayerService:
         if session.is_session_over():
             data: Any = SessionOverMessage(session_id=self.session_id)
         else:
-            data = RoundEndMessage(
+            data = RoundEnd(
                 session_id=self.session_id,
                 round=session.current_round_index,
             )
@@ -153,7 +148,7 @@ class MultiplayerService:
                 print(f"[LOG] Sending round start messages for session {session_id}")
                 print(session.player_ids)
                 for user_id in session.player_ids:
-                    data = RoundStartMessage(
+                    data = RoundStart(
                         session_id=session_id,
                         round=session.current_round_index,
                         start_at=start_at,
@@ -187,8 +182,6 @@ class MultiplayerService:
                 run_in_threadpool(self._start_next_round, session_id, start_at)
             )
 
-            data = GameReadyMessage(
-                session_id=session_id, round=next_round, start_at=start_at
-            )
+            event = session.start_countdown(start_at)
             for player_id in session.player_ids:
-                await self.notify(player_id, data)
+                await self.notify(player_id, event)

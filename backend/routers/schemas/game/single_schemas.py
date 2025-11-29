@@ -77,7 +77,4 @@ class NewGameResponse(BaseModel):
     gameplay_id: uuid.UUID
 
 
-__all__ = [
-    "NewGameRequest",
-    "NewGameResponse",
-]
+__all__ = ["NewGameRequest", "NewGameResponse"]

@@ -1,10 +1,10 @@
 import uuid
-from typing import ClassVar, Literal, Self
+from typing import Literal, Self
 
 from pydantic import BaseModel
 
 from backend.core.lobby import *
-from backend.routers.schemas import Response
+from backend.routers.schemas import Response, WSRequest
 
 from ..user_schemas import UserResponse
 
@@ -17,20 +17,20 @@ class JoinLobbyRequest(BaseModel):
     invitation_id: uuid.UUID
 
 
-class PendingInvitationsRequest(BaseModel):
-    type: ClassVar[Literal["pending_invitations"]] = "pending_invitations"
+class PendingInvitationsRequest(WSRequest):
+    ws_type: Literal["pending_invitations"] = "pending_invitations"
 
 
-class InvitationLobbyResponse(Response):
+class InvitationLobbyResponse(BaseModel):
     id: uuid.UUID
     host: UserResponse
     game_config: GameConfig
 
     @classmethod
-    def from_core(cls, lobby) -> Self:
+    def build(cls, lobby) -> Self:
         return cls(
             id=lobby.id,
-            host=UserResponse.from_core(lobby.host),
+            host=UserResponse.build(lobby.host),
             game_config=lobby.game_settings,
         )
 
@@ -41,10 +41,10 @@ class InvitationResponse(Response):
     lobby: InvitationLobbyResponse
 
     @classmethod
-    def from_core(cls, invitation: Invitation) -> Self:
+    def build(cls, invitation: Invitation) -> Self:
         return cls(
             id=invitation.id,
-            lobby=InvitationLobbyResponse.from_core(invitation.lobby),
+            lobby=InvitationLobbyResponse.build(invitation.lobby),
         )
 
 
@@ -54,9 +54,9 @@ class InvitationAnswerResponse(Response):
     response: Literal["accepted", "rejected"]
 
     @classmethod
-    def from_core(cls, invitation_response: InvitationAnswer) -> Self:
+    def build(cls, invitation_response: InvitationAnswer) -> Self:
         return cls(
-            invitation=InvitationResponse.from_core(invitation_response.invitation),
+            invitation=InvitationResponse.build(invitation_response.invitation),
             response=invitation_response.answer,
         )
 
@@ -66,10 +66,10 @@ class PendingInvitationsResponse(Response):
     invitations: list[InvitationResponse]
 
     @classmethod
-    def from_core(cls, invitations: list[Invitation]) -> Self:
+    def build(cls, invitations: list[Invitation]) -> Self:
         return cls(
             invitations=[
-                InvitationResponse.from_core(invitation) for invitation in invitations
+                InvitationResponse.build(invitation) for invitation in invitations
             ],
         )
 

@@ -14,14 +14,14 @@ class UserCreateRequest(BaseUserCreate):
     settings: dict = {}
 
 
-class UserResponse(Response):
+class UserResponse(BaseModel):
     id: uuid.UUID
     nickname: str
     email: str
     avatar_url: Optional[str] = None
 
     @classmethod
-    def from_core(cls, user: User) -> "UserResponse":
+    def build(cls, user: User) -> "UserResponse":
         return cls(
             id=user.id,
             email=user.email,
@@ -44,23 +44,20 @@ class MakeFriendRequest(BaseModel):
 
 
 class FriendRequestResponse(Response):
+    ws_type: Literal["friend_request"] = "friend_request"
     id: uuid.UUID
     user: UserResponse
     friend: UserResponse
     status: FriendRequestStatus
 
     @classmethod
-    def from_core(cls, friend_request: FriendRequest) -> "FriendRequestResponse":
+    def build(cls, friend_request: FriendRequest) -> "FriendRequestResponse":
         return cls(
             id=friend_request.id,
-            user=UserResponse.from_core(friend_request.user),
-            friend=UserResponse.from_core(friend_request.friend),
+            user=UserResponse.build(friend_request.user),
+            friend=UserResponse.build(friend_request.friend),
             status=friend_request.status,
         )
-
-
-class FriendRequestNotificationResponse(FriendRequestResponse):
-    ws_type: Literal["friend_request"] = "friend_request"
 
 
 class UserGameplayResponse(Response):
@@ -73,7 +70,7 @@ class UserGameplayResponse(Response):
     game_mode: str
 
     @classmethod
-    def from_core(cls, gameplay: "SingleplayerGameplay") -> "UserGameplayResponse":
+    def build(cls, gameplay: "SingleplayerGameplay") -> "UserGameplayResponse":
         return cls(
             id=gameplay.id,
             board_id=gameplay.board.id,

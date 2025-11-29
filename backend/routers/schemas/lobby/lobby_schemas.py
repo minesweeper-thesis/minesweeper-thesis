@@ -1,13 +1,27 @@
 import uuid
-from typing import Literal, Self
+from typing import Any, Literal, Optional, Self
 
 from pydantic import BaseModel
 
+from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
+from backend.core.game import ActionResult, GameMode
 from backend.core.lobby import *
 from backend.routers.schemas import Response
+from backend.routers.schemas.game.game_schemas import GameActionResponse
+from backend.routers.schemas.game.multi_schemas import (
+    GameReadyResponse,
+    RoundEndResponse,
+    RoundStartResponse,
+    SessionOverResponse,
+)
+from backend.routers.schemas.lobby.invitations_schemas import (
+    InvitationAnswerResponse,
+    InvitationResponse,
+)
 from backend.services.lobby_service import (
-    GameConfigUpdated,
-    NewGameConfig,
+    RoundEnd,
+    RoundStart,
+    SessionOverMessage,
     UserConnectionUpdated,
 )
 
@@ -15,7 +29,7 @@ from ..user_schemas import UserResponse
 from .chat_schemas import ChatMessageResponse
 
 
-class LobbyResponse(Response):
+class LobbyResponse(BaseModel):
     id: uuid.UUID
     host: UserResponse
     users: list[UserResponse]
@@ -23,13 +37,13 @@ class LobbyResponse(Response):
     messages: list[ChatMessageResponse] = []
 
     @classmethod
-    def from_core(cls, lobby: Lobby, messages: list[ChatMessage] = []) -> Self:
+    def build(cls, lobby: Lobby, messages: list[ChatMessage] = []) -> Self:
         return cls(
             id=lobby.id,
-            host=UserResponse.from_core(lobby.host),
-            users=[UserResponse.from_core(user) for user in lobby.users],
+            host=UserResponse.build(lobby.host),
+            users=[UserResponse.build(user) for user in lobby.users],
             game_config=lobby.game_config,
-            messages=[ChatMessageResponse.from_core(message) for message in messages],
+            messages=[ChatMessageResponse.build(message) for message in messages],
         )
 
 
@@ -47,8 +61,8 @@ class UpdateGameConfigRequest(BaseModel):
     generator_type: GeneratorType
     generator_settings: Optional[GeneratorSettings] = None
 
-    def to_dto(self) -> NewGameConfig:
-        return NewGameConfig(
+    def to_dto(self) -> GameConfig:
+        return GameConfig(
             rounds=self.rounds,
             max_round_time=self.max_round_time,
             difficulty_level=DifficultyLevel(
@@ -68,7 +82,7 @@ class GameConfigUpdatedResponse(Response):
     game_config: GameConfig
 
     @classmethod
-    def from_core(cls, data: GameConfigUpdated) -> Self:
+    def build(cls, data: GameConfigUpdated) -> Self:
         return cls(lobby_id=data.lobby_id, game_config=data.game_config)
 
 
@@ -79,10 +93,10 @@ class UserConnectionStatusResponse(Response):
     status: Literal["connected", "disconnected"]
 
     @classmethod
-    def from_core(cls, data: UserConnectionUpdated) -> Self:
+    def build(cls, data: UserConnectionUpdated) -> Self:
         return cls(
             lobby_id=data.lobby_id,
-            user=UserResponse.from_core(data.user),
+            user=UserResponse.build(data.user),
             status=data.status,
         )
 
@@ -92,10 +106,40 @@ class CurrentLobbyResponse(Response):
     lobby: Optional[LobbyResponse]
 
     @classmethod
-    def from_core(cls, lobby: Optional[Lobby]) -> Self:
+    def build(cls, lobby: Optional[Lobby]) -> Self:
         return cls(
-            lobby=LobbyResponse.from_core(lobby) if lobby else None,
+            lobby=LobbyResponse.build(lobby) if lobby else None,
         )
+
+
+def create_notification(data: Any) -> str:
+    mapping: dict[type, type[Response]] = {
+        GameConfigUpdated: GameConfigUpdatedResponse,
+        Invitation: InvitationResponse,
+        InvitationAnswer: InvitationAnswerResponse,
+        UserConnectionUpdated: UserConnectionStatusResponse,
+        GameReady: GameReadyResponse,
+        ChatMessage: ChatMessageResponse,
+    }
+
+    if type(data) not in mapping:
+        raise ValueError("Unsupported response type")
+
+    return mapping[type(data)].create(data, include_ws_type=True)
+
+
+def create_game_notification(data: Any) -> str:
+    mapping: dict[type, type[Response]] = {
+        SessionOverMessage: SessionOverResponse,
+        RoundStart: RoundStartResponse,
+        RoundEnd: RoundEndResponse,
+        ActionResult: GameActionResponse,
+    }
+
+    if type(data) not in mapping:
+        raise ValueError("Unsupported response type")
+
+    return mapping[type(data)].create(data, include_ws_type=True)
 
 
 __all__ = [

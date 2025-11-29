@@ -6,7 +6,6 @@ from fastapi_pagination import Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.routers.schemas import Response
 from backend.routers.schemas.lobby import (
     ChatMessageRequest,
     ChatMessageResponse,
@@ -14,6 +13,10 @@ from backend.routers.schemas.lobby import (
     JoinLobbyRequest,
     LobbyResponse,
     UpdateGameConfigRequest,
+)
+from backend.routers.schemas.lobby.lobby_schemas import (
+    create_game_notification,
+    create_notification,
 )
 from backend.routers.websockets.connections_manager import connections_manager
 from backend.routers.websockets.websockets_registry import multi_websockets
@@ -29,13 +32,13 @@ invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
 async def notify(receiver_id: uuid.UUID, data):
     if connections_manager.is_user_online(receiver_id):
         websocket = connections_manager.get(receiver_id)
-        await websocket.send_text(Response.create(data, include_ws_type=True))
+        await websocket.send_text(create_notification(data))
 
 
 async def game_notify(receiver_id: uuid.UUID, data):
     if receiver_id in multi_websockets._websockets:
         websocket = multi_websockets.get(receiver_id)
-        await websocket.send_text(Response.create(data, include_ws_type=True))
+        await websocket.send_text(create_game_notification(data))
 
 
 @lobby_router.post("")
@@ -45,7 +48,7 @@ async def create_lobby(
 ) -> LobbyResponse:
     """Creates a new lobby."""
     lobby = await service.create_lobby(user)
-    return LobbyResponse.from_core(lobby)
+    return LobbyResponse.build(lobby)
 
 
 @lobby_router.put("/{lobby_id}")
@@ -79,7 +82,7 @@ async def join_lobby(
 ):
     """Joins a lobby using an invitation."""
     lobby, messages = await service.join_lobby(user, request.invitation_id, notify)
-    return LobbyResponse.from_core(lobby, messages)
+    return LobbyResponse.build(lobby, messages)
 
 
 @lobby_router.post("/{lobby_id}/leave")
@@ -146,4 +149,4 @@ async def get_chat_messages(
 ):
     """Retrieves chat messages from the lobby."""
     messages = await service.get_chat_messages(lobby_id, user, params)
-    return [ChatMessageResponse.from_core(message) for message in messages]
+    return [ChatMessageResponse.build(message) for message in messages]

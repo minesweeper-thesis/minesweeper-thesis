@@ -1,14 +1,13 @@
 import uuid
 from typing import Callable, Optional
 
-from pydantic import BaseModel
-
 from backend.core.board import Board
 from backend.core.game import *
 from backend.core.singleplayer import SingleplayerGameplay
 
 
-class OpponentState(BaseModel):  # todo: bez base model
+@dataclass
+class OpponentState:
     revealed_cnt: int
     result: Optional[GameResult]
 
@@ -95,13 +94,13 @@ class MultiplayerGameplay(Gameplay):
         self._notify_opponents()
         return result
 
-    def flag(self, x: int, y: int) -> FlagResult:
+    def flag(self, x: int, y: int):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")
 
         return self._gameplay.flag(x, y)
 
-    def remove_flag(self, x: int, y: int) -> FlagResult:
+    def remove_flag(self, x: int, y: int):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")
 
@@ -110,13 +109,13 @@ class MultiplayerGameplay(Gameplay):
     def start_game_if_not_started(self):
         self._gameplay.start_game_if_not_started()
 
-    def get_game_state(self) -> GameStateResult:
+    def get_game_state(self):
         return self._gameplay.get_game_state()
 
     def use_hint(self):
         raise RuntimeError("Hints are not available in multiplayer mode")
 
-    def is_game_over(self) -> bool:
+    def is_game_over(self):
         return self.status == "finished"
 
     def finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):

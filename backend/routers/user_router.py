@@ -51,7 +51,7 @@ async def search_users(
     service: UserService,
 ):
     page = await service.search_users(query, pagination_params)
-    page.items = [UserResponse.from_core(user) for user in page.items]
+    page.items = [UserResponse.build(user) for user in page.items]
     return page
 
 
@@ -61,5 +61,5 @@ async def get_gameplays(
     service: UserService,
 ):
     page = await service.get_gameplays(pagination_params)
-    page.items = [UserGameplayResponse.from_core(gp) for gp in page.items]
+    page.items = [UserGameplayResponse.build(gp) for gp in page.items]
     return page

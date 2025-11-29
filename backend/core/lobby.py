@@ -1,20 +1,10 @@
 import uuid
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Literal
 
-from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
-from backend.core.game import GameMode
+from backend.core.multiplayer.config import GameConfig, GameConfigUpdated
+from backend.core.multiplayer.session import GameReady
 from backend.core.user import User
-
-
-@dataclass
-class GameConfig:
-    rounds: int
-    max_round_time: int
-    difficulty_level: DifficultyLevel
-    game_mode: GameMode
-    generator_type: GeneratorType
-    generator_settings: Optional[GeneratorSettings] = None
 
 
 @dataclass
@@ -72,6 +62,14 @@ class Lobby:
 
     def all_users_ready(self) -> bool:
         return all(user.id in self._ready_users for user in self.users)
+
+    def update_game_config(self, new_config: GameConfig):
+        self.game_config = new_config
+
+        return GameConfigUpdated(lobby_id=self.id, game_config=new_config)
+
+    def start_countdown(self, start_at: int) -> GameReady:
+        return GameReady(session_id=self.id, round=0, start_at=start_at)
 
 
 class Invitation:

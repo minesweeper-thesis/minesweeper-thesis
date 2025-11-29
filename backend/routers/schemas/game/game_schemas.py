@@ -1,72 +1,95 @@
 import enum
 import uuid
-from typing import Literal, Optional, Self
+from typing import Any, Literal, Optional, Self
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
-from backend.routers.schemas import Request, Response
+from backend.routers.schemas import Response, WSRequest
 
 
-class HintRequest(Request):
+class HintRequest(WSRequest):
     ws_type: Literal["hint"] = "hint"
 
-    def to_core(self) -> HintAction:
+    def parse(self) -> HintAction:
         return HintAction()
 
 
-class CellGameActionRequest(Request):
+class CellGameActionRequest(WSRequest):
     cell: tuple[int, int]
 
 
 class RevealOneRequest(CellGameActionRequest):
     ws_type: Literal["reveal_one"] = "reveal_one"
 
-    def to_core(self) -> RevealOneAction:
+    def parse(self) -> RevealOneAction:
         return RevealOneAction(self.cell)
 
 
 class RevealManyRequest(CellGameActionRequest):
     ws_type: Literal["reveal_many"] = "reveal_many"
 
-    def to_core(self) -> RevealManyAction:
+    def parse(self) -> RevealManyAction:
         return RevealManyAction(self.cell)
 
 
 class FlagRequest(CellGameActionRequest):
     ws_type: Literal["flag"] = "flag"
 
-    def to_core(self) -> FlagAction:
+    def parse(self) -> FlagAction:
         return FlagAction(self.cell)
 
 
 class RemoveFlagRequest(CellGameActionRequest):
     ws_type: Literal["remove_flag"] = "remove_flag"
 
-    def to_core(self) -> RemoveFlagAction:
+    def parse(self) -> RemoveFlagAction:
         return RemoveFlagAction(self.cell)
 
 
-class GameStateRequest(Request):
+class GameStateRequest(WSRequest):
     ws_type: Literal["get_state"] = "get_state"
 
-    def to_core(self) -> GameStateAction:
+    def parse(self) -> GameStateAction:
         return GameStateAction()
 
 
-class RevealResponse(Response):
+class GameActionResponse(Response):
+
+    @classmethod
+    def build_game_action(cls, *args: Any) -> "GameActionResponse":
+        raise NotImplementedError()
+
+    @classmethod
+    def build(cls, arg: Any) -> "GameActionResponse":
+        mapping: dict[type, type["GameActionResponse"]] = {
+            RevealResult: RevealResponse,
+            GameOverResult: GameOverResponse,
+            GameStateResult: GameStateResponse,
+            FlagResult: FlagResponse,
+            RemoveFlagResult: RemoveFlagResponse,
+            HintResult: HintResponse,
+        }
+
+        result_type = type(arg)
+        if result_type in mapping:
+            return mapping[result_type].build_game_action(arg)
+        raise ValueError(f"Unsupported result type: {result_type}")
+
+
+class RevealResponse(GameActionResponse):
     ws_type: Literal["reveal"] = "reveal"
     revealed_cells: list[RevealedCell]
     game_status: GameStatus
 
     @classmethod
-    def from_core(cls, result: RevealResult) -> Self:
+    def build_game_action(cls, result: RevealResult) -> Self:
         return cls(
             revealed_cells=result.revealed_cells,
             game_status=result.game_status,
         )
 
 
-class GameOverResponse(Response):
+class GameOverResponse(GameActionResponse):
     ws_type: Literal["game_over"] = "game_over"
     game_status: GameResult
     full_board: list[list[int]]
@@ -74,7 +97,7 @@ class GameOverResponse(Response):
     loss_cause: Optional[LossCause] = None
 
     @classmethod
-    def from_core(cls, result: GameOverResult) -> Self:
+    def build_game_action(cls, result: GameOverResult) -> Self:
         return cls(
             game_status=result.result,
             full_board=result.full_board,
@@ -93,7 +116,7 @@ class CellSpecial(enum.Enum):
 type CellState = CellSpecial | int
 
 
-class GameStateResponse(Response):
+class GameStateResponse(GameActionResponse):
     ws_type: Literal["game_state"] = "game_state"
     board_id: uuid.UUID
     status: GameStatus
@@ -105,7 +128,7 @@ class GameStateResponse(Response):
     start_field: Cell
 
     @classmethod
-    def from_core(cls, result: GameStateResult) -> Self:
+    def build_game_action(cls, result: GameStateResult) -> Self:
         rows = result.difficulty_level.rows
         cols = result.difficulty_level.columns
 
@@ -142,34 +165,34 @@ class GameStateResponse(Response):
         )
 
 
-class FlagResponse(Response):
+class FlagResponse(GameActionResponse):
     ws_type: Literal["flag"] = "flag"
     game_status: GameStatus
 
     @classmethod
-    def from_core(cls, result: FlagResult) -> Self:
+    def build_game_action(cls, result: FlagResult) -> Self:
         return cls(
             game_status=result.game_status,
         )
 
 
-class RemoveFlagResponse(Response):
+class RemoveFlagResponse(GameActionResponse):
     ws_type: Literal["remove_flag"] = "remove_flag"
     game_status: GameStatus
 
     @classmethod
-    def from_core(cls, result: RemoveFlagResult) -> Self:
+    def build_game_action(cls, result: RemoveFlagResult) -> Self:
         return cls(
             game_status=result.game_status,
         )
 
 
-class HintResponse(Response):
+class HintResponse(GameActionResponse):
     ws_type: Literal["hint"] = "hint"
     safe_cells: list[Cell]
 
     @classmethod
-    def from_core(cls, result: HintResult) -> Self:
+    def build_game_action(cls, result: HintResult) -> Self:
         return cls(
             safe_cells=result.safe_cells,
         )

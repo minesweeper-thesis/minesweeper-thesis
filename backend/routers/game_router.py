@@ -6,8 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
-from backend.routers.schemas import Request, Response
+from backend.routers.schemas import WSRequest
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
+from backend.routers.schemas.game.game_schemas import GameActionResponse
+from backend.routers.schemas.game.multi_schemas import SessionOverResponse
+from backend.routers.schemas.lobby.lobby_schemas import create_game_notification
 from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions as service_exceptions
 from backend.services.lobby_service import SessionOverMessage
@@ -35,7 +38,8 @@ game_router = APIRouter(tags=["game"])
 async def notify(receiver_id: uuid.UUID, data):
     if receiver_id in multi_websockets._websockets:
         websocket = multi_websockets.get(receiver_id)
-        await websocket.send_text(Response.create(data, include_ws_type=True))
+        response = create_game_notification(data)
+        await websocket.send_text(response)
 
 
 @game_router.post("/single")
@@ -59,12 +63,12 @@ async def play_single(
     async def receiver():
         while True:
             data = await websocket.receive_json()
-            game_action = Request.from_dict(data)
+            game_action = WSRequest.from_dict(data)
 
             action_result = await service.handle_game_action(game_action)
             if action_result is not None:
                 await websocket.send_text(
-                    Response.create(action_result, include_ws_type=True)
+                    GameActionResponse.create(action_result, include_ws_type=True)
                 )
 
             if await service.is_game_over():
@@ -75,7 +79,9 @@ async def play_single(
     try:
         await websocket.accept()
         game_state = await service.load_gameplay(gameplay_id)
-        await websocket.send_text(Response.create(game_state, include_ws_type=True))
+        await websocket.send_text(
+            GameActionResponse.create(game_state, include_ws_type=True)
+        )
 
         await receiver()
 
@@ -106,15 +112,15 @@ async def play_multi(
                 continue
 
             with suppress(ValueError):
-                msg = Request.from_dict(data)
+                msg = WSRequest.from_dict(data)
                 action_result = await service.handle_game_action(msg)
                 await websocket.send_text(
-                    Response.create(action_result, include_ws_type=True)
+                    GameActionResponse.create(action_result, include_ws_type=True)
                 )
 
                 if await service.is_session_over():
                     await websocket.send_text(
-                        Response.create(
+                        SessionOverResponse.create(
                             SessionOverMessage(session_id=session_id),
                             include_ws_type=True,
                         )

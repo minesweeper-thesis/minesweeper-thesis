@@ -19,35 +19,12 @@ from backend.services.exceptions import *
 
 
 @dataclass
-class GameConfigUpdated:
-    lobby_id: uuid.UUID
-    game_config: GameConfig
-
-
-@dataclass
 class UserConnectionUpdated(UserConnectionStatus):
     lobby_id: uuid.UUID
 
 
 @dataclass
-class NewGameConfig:
-    rounds: int
-    max_round_time: int
-    difficulty_level: DifficultyLevel
-    game_mode: GameMode
-    generator_type: GeneratorType
-    generator_settings: Optional[GeneratorSettings] = None
-
-
-@dataclass
-class GameReadyMessage:
-    session_id: uuid.UUID
-    round: int
-    start_at: int
-
-
-@dataclass
-class RoundStartMessage:
+class RoundStart:
     session_id: uuid.UUID
     round: int
     start_at: int
@@ -56,7 +33,7 @@ class RoundStartMessage:
 
 
 @dataclass
-class RoundEndMessage:
+class RoundEnd:
     session_id: uuid.UUID
     round: int
 
@@ -147,7 +124,7 @@ class LobbyService:
         self,
         lobby_id: uuid.UUID,
         user: User,
-        game_settings: NewGameConfig,
+        game_config: GameConfig,
         notify: Notify,
     ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
@@ -157,19 +134,12 @@ class LobbyService:
         if lobby.host != user:
             raise PermissionError("User not authorized to update lobby")
 
-        lobby.game_config = GameConfig(
-            rounds=game_settings.rounds,
-            max_round_time=game_settings.max_round_time,
-            difficulty_level=game_settings.difficulty_level,
-            game_mode=game_settings.game_mode,
-            generator_type=game_settings.generator_type,
-            generator_settings=game_settings.generator_settings,
-        )
+        event = lobby.update_game_config(game_config)
 
         self.lobby_repo.save_lobby(lobby)
-        data = GameConfigUpdated(lobby.id, lobby.game_config)
+
         for lobby_user in lobby.users:
-            await notify(lobby_user.id, data)
+            await notify(lobby_user.id, event)
 
     async def invite_to_lobby(
         self,
@@ -269,7 +239,7 @@ class LobbyService:
 
             async def send_start():
                 for user_id in session.player_ids:
-                    data = RoundStartMessage(
+                    data = RoundStart(
                         session_id=session_id,
                         round=session.current_round_index,
                         start_at=start_at,
@@ -313,7 +283,7 @@ class LobbyService:
         if session.is_session_over():
             data: Any = SessionOverMessage(session_id=self.session_id)
         else:
-            data = RoundEndMessage(
+            data = RoundEnd(
                 session_id=self.session_id,
                 round=session.current_round_index,
             )
@@ -357,9 +327,9 @@ class LobbyService:
                 game_notify=game_notify,
             )
 
-            data = GameReadyMessage(session_id=session_id, round=0, start_at=start_at)
+            event = lobby.start_countdown(start_at)
             for lobby_user in lobby.users:
-                await notify(lobby_user.id, data)
+                await notify(lobby_user.id, event)
 
     async def send_chat_message(
         self,

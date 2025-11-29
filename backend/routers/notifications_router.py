@@ -31,15 +31,15 @@ async def send_notifications(
 
             if request_type == "pending_invitations":
                 invitations = lobby_service.lobby_repo.get_pending_invitations(user)
-                response = PendingInvitationsResponse.from_core(invitations)
-                await websocket.send_text(response.model_dump_json())
+                response = PendingInvitationsResponse.create(invitations)
+                await websocket.send_text(response)
 
     try:
         await websocket.accept()
 
         lobby = await lobby_service.get_user_lobby(user)
-        msg = CurrentLobbyResponse.from_core(lobby)
-        await websocket.send_text(msg.model_dump_json())
+        msg = CurrentLobbyResponse.create(lobby)
+        await websocket.send_text(msg)
 
         await receiver()
 

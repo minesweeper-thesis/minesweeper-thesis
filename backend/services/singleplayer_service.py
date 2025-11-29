@@ -46,14 +46,11 @@ class SingleplayerService:
         self.game_repo = game_repo
         self.board_repo = board_repo
         self.gameplay: Optional[SingleplayerGameplay] = None
-        self.gameplay_id: uuid.UUID = None  # type: ignore
         self.background_tasks: BackgroundTasks = background_tasks
 
     async def load_gameplay(
         self, gameplay_id: uuid.UUID, timeout: float = 120.0
     ) -> GameStateResult:
-        self.gameplay_id = gameplay_id
-
         if await pending_store.is_pending(gameplay_id):
             pending = await pending_store.wait_for_ready(gameplay_id, timeout=timeout)
             if pending is None or pending.board_id is None:

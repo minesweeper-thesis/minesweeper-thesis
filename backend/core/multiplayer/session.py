@@ -27,6 +27,13 @@ class NotReadyMessage(MultiplayerSessionMessage):
 type IsSessionOver = bool
 
 
+@dataclass
+class GameReady:
+    session_id: uuid.UUID
+    round: int
+    start_at: int
+
+
 class MultiplayerSession:
     send_data: Callable[[Any], Awaitable[None]]
 
@@ -86,6 +93,11 @@ class MultiplayerSession:
         action_result = current_round.handle_game_action(action, user_id)
 
         return action_result
+
+    def start_countdown(self, start_at: int) -> GameReady:
+        return GameReady(
+            session_id=self.id, round=self.current_round_index + 1, start_at=start_at
+        )
 
 
 async def create_multiplayer_session(
