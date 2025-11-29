@@ -88,7 +88,7 @@ class MultiplayerSession:
 
     def handle_game_action(
         self, action: GameAction, user_id: uuid.UUID
-    ) -> ActionResult:
+    ) -> GameActionResult:
         current_round = self.rounds[self.current_round_index]
         action_result = current_round.handle_game_action(action, user_id)
 

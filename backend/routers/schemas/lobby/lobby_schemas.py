@@ -4,7 +4,7 @@ from typing import Any, Literal, Optional, Self
 from pydantic import BaseModel
 
 from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
-from backend.core.game import ActionResult, GameMode
+from backend.core.game import GameActionResult, GameMode
 from backend.core.lobby import *
 from backend.routers.schemas import Response
 from backend.routers.schemas.game.game_schemas import GameActionResponse
@@ -133,7 +133,7 @@ def create_game_notification(data: Any) -> str:
         SessionOverMessage: SessionOverResponse,
         RoundStart: RoundStartResponse,
         RoundEnd: RoundEndResponse,
-        ActionResult: GameActionResponse,
+        GameActionResult: GameActionResponse,
     }
 
     if type(data) not in mapping:

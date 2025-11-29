@@ -55,7 +55,7 @@ class MultiplayerService:
 
         # dodac player_id do pending session
 
-    async def handle_game_action(self, action: GameAction) -> ActionResult:
+    async def handle_game_action(self, action: GameAction) -> GameActionResult:
         session = await self.multiplayer_repo.get_session(self.session_id)
 
         result = session.handle_game_action(action, self.user_id)

@@ -36,6 +36,12 @@ class GenerationTimeout(Exception):
     pass
 
 
+class GameTransport(Protocol):
+    async def receive_action(self) -> GameAction: ...
+    async def send_response(self, result: GameActionResult) -> None: ...
+    async def close(self) -> None: ...
+
+
 class SingleplayerService:
     def __init__(
         self,
@@ -49,8 +55,10 @@ class SingleplayerService:
         self.background_tasks: BackgroundTasks = background_tasks
 
     async def load_gameplay(
-        self, gameplay_id: uuid.UUID, timeout: float = 120.0
-    ) -> GameStateResult:
+        self, gameplay_id: uuid.UUID, transport: GameTransport, timeout: float = 120.0
+    ):
+        self.transport = transport
+
         if await pending_store.is_pending(gameplay_id):
             pending = await pending_store.wait_for_ready(gameplay_id, timeout=timeout)
             if pending is None or pending.board_id is None:
@@ -72,12 +80,25 @@ class SingleplayerService:
             if self.gameplay.status == "finished":
                 raise GameplayAlreadyFinished()
 
-            return self.gameplay.get_game_state()
+            await self.transport.send_response(self.get_game_state())
 
         except GameplayNotFound:
             raise GameplayNotExists(
                 f"Gameplay with id {gameplay_id} does not exist"
             ) from None
+
+    async def game_loop(self):
+        while True:
+            game_action = await self.transport.receive_action()
+            action_result = await self.handle_game_action(game_action)
+
+            if action_result is not None:
+                await self.transport.send_response(action_result)
+
+            if await self.is_game_over():
+                await self.save_gameplay_progress()
+                await self.transport.close()
+                return
 
     async def _set_gameplay(self, gameplay_id: uuid.UUID):
         gameplay = await self.game_repo.get_gameplay_by_id(gameplay_id)
@@ -203,7 +224,9 @@ class SingleplayerService:
     async def get_gameplays(self, user: CurrentUser, pagination_params: Params):
         return await self.game_repo.get_gameplays(user.id, pagination_params)
 
-    async def handle_game_action(self, action: GameAction) -> Optional[ActionResult]:
+    async def handle_game_action(
+        self, action: GameAction
+    ) -> Optional[GameActionResult]:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
@@ -212,7 +235,7 @@ class SingleplayerService:
         except InvalidAction:
             return None
 
-    async def get_game_state(self) -> GameStateResult:
+    def get_game_state(self) -> GameStateResult:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 

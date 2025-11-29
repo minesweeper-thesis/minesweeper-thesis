@@ -27,7 +27,7 @@ class MultiplayerRound:
 
     def handle_game_action(
         self, action: GameAction, user_id: uuid.UUID
-    ) -> ActionResult:
+    ) -> GameActionResult:
         if not self.start_at or not self.end_at:
             raise RuntimeError("Round has not started yet")
 

@@ -5,6 +5,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
+from backend.core.game import GameAction, GameActionResult
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.routers.schemas import WSRequest
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
@@ -54,39 +55,38 @@ async def start_singleplayer_game(
     return NewGameResponse(gameplay_id=gameplay_id)
 
 
+class WebSocketTransport(services.singleplayer_service.GameTransport):
+    def __init__(self, websocket: WebSocket):
+        self.websocket = websocket
+
+    async def receive_action(self) -> GameAction:
+        data = await self.websocket.receive_json()
+        return WSRequest.from_dict(data)
+
+    async def send_response(self, result: GameActionResult):
+        await self.websocket.send_text(
+            GameActionResponse.create(result, include_ws_type=True)
+        )
+
+    async def close(self):
+        await self.websocket.close()
+
+
 @game_router.websocket("/single/{gameplay_id}")
 async def play_single(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
     service: SingleplayerService,
 ):
-    async def receiver():
-        while True:
-            data = await websocket.receive_json()
-            game_action = WSRequest.from_dict(data)
-
-            action_result = await service.handle_game_action(game_action)
-            if action_result is not None:
-                await websocket.send_text(
-                    GameActionResponse.create(action_result, include_ws_type=True)
-                )
-
-            if await service.is_game_over():
-                await service.save_gameplay_progress()
-                await websocket.close()
-                return
-
     try:
         await websocket.accept()
-        game_state = await service.load_gameplay(gameplay_id)
-        await websocket.send_text(
-            GameActionResponse.create(game_state, include_ws_type=True)
-        )
+        await service.load_gameplay(gameplay_id, WebSocketTransport(websocket))
 
-        await receiver()
+        await service.game_loop()
 
     except WebSocketDisconnect:
         await service.save_gameplay_progress()
+
     except GenerationTimeout:
         await websocket.close(code=1001, reason="Board generation timeout")
 
