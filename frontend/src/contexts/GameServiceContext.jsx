@@ -12,6 +12,7 @@ export function GameServiceProvider({ children }) {
     const [lastMessage, setLastMessage] = useState(null);
     const [lobby, setLobby] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
+    const [gotLobby, setGotLobby] = useState(false);
     let creatingLobbyPromise = null;
 
     const reconnectTimeout = useRef(null);
@@ -68,10 +69,23 @@ export function GameServiceProvider({ children }) {
             switch (msg.type) {
                 case "current_lobby":
                     if (!msg.lobby){
+                        setGotLobby(false);
                         break;
                     }
                     console.log("[WS] Ustawiam current lobby:", msg.lobby);
+                    setGotLobby(true);
                     setLobby(msg.lobby);
+                    break;
+
+                case "game_config_updated":
+                    setLobby(prev => {
+                        if (!prev) return prev;
+
+                        return {
+                            ...prev,
+                            game_config: msg.game_config,
+                        };
+                    });
                     break;
 
                 case "invitation":
@@ -83,11 +97,16 @@ export function GameServiceProvider({ children }) {
                     handleUserStatus(msg);
                     break;
 
+
+                case "ready":
+                    notifyListeners(msg);
+                    break;
+
                 default:
                     break;
             }
 
-            notifyListeners(msg);
+
         };
         ws.onerror = (err) => console.error("[NotificationWS] Błąd websocketu:", err);
 
@@ -272,6 +291,8 @@ export function GameServiceProvider({ children }) {
             });
             console.log("Invitation accepted:", response);
 
+            setLobby(response);
+
             return response;
         } catch (err) {
             console.error("Error accepting invitation:", err);
@@ -279,9 +300,48 @@ export function GameServiceProvider({ children }) {
         }
     };
 
+    // UPDATE LOBBY SETTINGS
+    const updateLobbySettings = async (settings) => {
+        if (!lobby) {
+            console.warn("updateLobbySettings: No active lobby.");
+            return null;
+        }
+
+        try {
+            console.log("[Lobby] Updating settings:", settings);
+
+            const response = await authFetch(
+                `/api/lobbies/${lobby.id}`,
+                {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(settings)
+                }
+            );
+
+
+        } catch (err) {
+            console.error("[Lobby] Error updating settings:", err);
+            throw err;
+        }
+    };
+
+    const isHost = () => {
+        if (!lobby || !user) return false;
+        if (!lobby.host || !lobby.host.id) return false;
+
+        return lobby.host.id === user.id;
+    };
+
+
 
     const getLobby = async () => {
-        return lobby || await createLobby();
+        if (gotLobby && lobby === null) {
+            console.log("Lobby:", lobby);
+            return await createLobby();
+        }
+
+        return lobby;
     }
 
 
@@ -301,6 +361,8 @@ export function GameServiceProvider({ children }) {
             authFetch,
             addMessageListener,
             removeMessageListener,
+            updateLobbySettings,
+            isHost,
         }}>
             {children}
         </GameServiceContext.Provider>

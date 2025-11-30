@@ -1,18 +1,17 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
+import React, {
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+    useCallback,
+    useRef
+} from "react";
 import { useGame } from "./GameServiceContext";
+import useMultiplayerWebSocket from "../hooks/useMultiplayerWebSocket";
+import {GameState, State} from "../utility";
+import boardInterpreter from "../utils/boardInterpreter";
 
 export const SessionContext = createContext(null);
-
-/*
-{
-  sessionId: string | null,
-  round: number | null,
-  startAt: number | null,
-  endAt: number | null,
-  startField: [x,y] | null,
-  status: "lobby | game"
-}
-*/
 
 export function SessionProvider({ children }) {
     const { addMessageListener, removeMessageListener } = useGame();
@@ -23,55 +22,121 @@ export function SessionProvider({ children }) {
     const [endAt, setEndAt] = useState(null);
     const [startField, setStartField] = useState(null);
     const [status, setStatus] = useState("lobby");
-    const [lastGameOver, setLastGameOver] = useState(null);
+    const [mines, setMines] = useState(null);
+    const [boardData, setBoardData] = useState( null );
 
-    const handleIncoming = useCallback((msg) => {
-        console.log("[Session] msg: ", msg);
-        if (!msg || typeof msg !== "object") return;
+    const [send, setSend] = useState(null);
+    const [socketRef, setSocketRef] = useState(null);
+
+    const boardRef = useRef(null);
+    const [gameState, setGameState] = useState(GameState.NOT_STARTED);
+
+    const boardDataRef = useRef(null);
+    useEffect(() => {
+        boardDataRef.current = boardData;
+    }, [boardData]);
+
+
+    const handleGameServiceMessage = useCallback((msg) => {
+        if (!msg || msg.type !== "ready") return;
+
+        console.log("[Session] (forwarded):", msg);
+
+        setSessionId(msg.session_id);
+        setRound(msg.round ?? 0);
+        setStartAt(msg.start_at ?? null);
+        setStatus("game");
+        console.log("->", msg.difficulty_level);
+        setBoardData(msg.difficulty_level);
+
+    }, []);
+
+    useEffect( () => {
+        console.log("boardData: ", boardData);
+    }, [boardData])
+
+    useEffect(() => {
+        addMessageListener(handleGameServiceMessage);
+        return () => removeMessageListener(handleGameServiceMessage);
+    }, [addMessageListener, removeMessageListener, handleGameServiceMessage]);
+
+
+    const handleSessionCommand = useCallback((msg) => {
+        if (!msg?.type) return;
+
+        console.log("[Session socket]: ", msg);
 
         switch (msg.type) {
-            case "ready":
-                // server tells when next round will start and provides session_id
-                setSessionId(msg.session_id ?? null);
-                setRound(msg.round ?? 0);
-                setStartAt(msg.start_at ?? null);
-                setStatus("game");
-                break;
-
             case "round_start":
-                // round has started in session socket too, but handle if arrives on global ws
-                setSessionId(msg.session_id ?? sessionId);
-                setRound(msg.round ?? round);
-                setStartAt(msg.start_at ?? startAt);
-                setEndAt(msg.end_at ?? null);
-                setStartField(msg.start_field ?? null);
+                setRound(msg.round);
+                setStartAt(msg.start_at);
+
+                const difficulty = boardDataRef.current;
+
+
+                boardRef.current?.dispatchCommand({
+                    type: "RESET_BOARD",
+                    rows: difficulty.rows,
+                    cols: difficulty.columns,
+                    mineCount: difficulty.mine_count
+                });
+
+                boardRef.current?.dispatchCommand({
+                    type: "SET_CELL",
+                    x: msg.start_field[0],
+                    y: msg.start_field[1],
+                    value: State.START_FIELD
+                });
+
                 break;
 
             case "round_end":
-                setStatus("loby");
-                break;
-
-            case "game_over":
-                // could be sent either on global ws or session ws; record result
-                setLastGameOver(msg);
+                setStatus("lobby");
+                setEndAt(msg.end_at);
                 break;
 
             case "session_over":
                 setStatus("lobby");
+                setSessionId(null);
                 break;
 
+            case "ready":
+                setSessionId(msg.session_id);
+                setRound(msg.round ?? 0);
+                setStartAt(msg.start_at ?? null);
+                setStatus("game");
+                console.log("->", msg.difficulty_level);
+                setBoardData(msg.difficulty_level);
+                break
             default:
-                // ignore other messages here
-                break;
+                return false;
         }
-    }, [sessionId, round, startAt, status]);
+
+        return true;
+    }, []);
+
+
+    const ws = useMultiplayerWebSocket(
+        (data) => {
+            const handled = handleSessionCommand(data);
+            if (handled) return [];
+            return boardInterpreter(data);
+        },
+        boardRef,
+        gameState
+    );
 
     useEffect(() => {
-        if (!addMessageListener) return;
-        console.log("podpinam listenera")
-        addMessageListener(handleIncoming);
-        return () => removeMessageListener(handleIncoming);
-    }, [addMessageListener, removeMessageListener, handleIncoming]);
+        if (!sessionId) return;
+
+        const socketUrl = `api/game/multi/${sessionId}`;
+        ws.open(socketUrl);
+
+        setSend(() => ws.send);
+        setSocketRef(() => ws.socketRef);
+
+    }, [sessionId]);
+
 
     const resetSession = () => {
         setSessionId(null);
@@ -80,7 +145,6 @@ export function SessionProvider({ children }) {
         setEndAt(null);
         setStartField(null);
         setStatus("lobby");
-        setLastGameOver(null);
     };
 
     return (
@@ -91,14 +155,13 @@ export function SessionProvider({ children }) {
             endAt,
             startField,
             status,
-            lastGameOver,
-            setSessionId,
-            setRound,
-            setStartAt,
-            setEndAt,
-            setStartField,
-            setStatus,
+            boardData,
+            boardRef,
+            gameState,
+            send,
             resetSession,
+            setGameState,
+            setMines
         }}>
             {children}
         </SessionContext.Provider>

@@ -13,18 +13,22 @@ export default function MultiGamePage() {
         startAt,
         endAt,
         startField,
-        status
+        status,
+        boardData,
+        send,
+        boardRef,
+        gameState,
+        setMines,
+        setGameState,
     } = useSession();
 
-    const boardRef = useRef(null);
-    const [gameState, setGameState] = useState(GameState.NOT_STARTED);
-    const [mines, setMines] = useState(0);
+
+
+
     const navigate = useNavigate();
-    const socketUrl = sessionId ? `api/game/multi/${sessionId}` : null;
-    const { send, socketRef } = useGameWebSocket(socketUrl, boardInterpreter, boardRef, gameState);
+
 
     useEffect(() => {
-        console.log("lobby, status:", status);
         if (status === "lobby") {
             navigate("/lobby");
         }
@@ -51,11 +55,10 @@ export default function MultiGamePage() {
                     <Board
                         key={`${sessionId}-${round}`}
                         ref={boardRef}
-                        boardData={{mines: 10}}
+                        boardData={boardData}
                         sendCommand={send}
                         setGameState={setGameState}
                         setMines={setMines}
-                        startField={startField}
                     />
                 </div>
             </main>

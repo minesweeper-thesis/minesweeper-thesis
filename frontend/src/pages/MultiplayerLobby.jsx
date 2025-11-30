@@ -4,19 +4,22 @@ import { Crown } from "lucide-react";
 import InvitePopup from "../components/InvitePopup";
 import {useSession} from "../contexts/SessionContext";
 import {useNavigate} from "react-router-dom";
+import LobbySettingsPopup from "../components/LobbySettingsPopup";
 
 export default function MultiplayerLobby() {
-    const { lobby, chatMessages, leaveLobby, createLobby, addLobbyMessage } = useGame();
+    const { lobby, chatMessages, leaveLobby, getLobby, addLobbyMessage, updateLobbySettings, isHost } = useGame();
+    const { sessionId, send, round } = useSession();
     const navigate = useNavigate();
     const { status } = useSession();
     const [inputMessage, setInputMessage] = useState("");
     const [showInvitePopup, setShowInvitePopup] = useState(false);
+    const [showSettingsPopup, setShowSettingsPopup] = useState(false);
 
     useEffect(() => {
         if (!lobby) {
-            createLobby().catch(err => console.error(err));
+            getLobby().catch(err => console.error(err));
         }
-    }, [lobby, createLobby]);
+    }, [lobby, getLobby]);
 
     useEffect(() => {
         console.log("lobby status", status);
@@ -42,9 +45,14 @@ export default function MultiplayerLobby() {
     })) || [];
 
     const ownerId = lobby.host.id;
-    const gameConfig = lobby.game_config;
+
 
     const sendReady = async () => {
+        if (sessionId){
+            send({ type: "ready"});
+            return;
+        }
+
         try {
             const res = await fetch(`/api/lobbies/${lobby.id}/ready`, {
                 method: "POST",
@@ -72,13 +80,13 @@ export default function MultiplayerLobby() {
                 <div className="flex-1 flex flex-col gap-6">
                     {/* ROUND HEADER */}
                     <div className="bg-bg-secondary border border-border-primary rounded-xl shadow p-4 flex items-center justify-between">
-                        <span className="text-lg font-semibold">Round 1 / 1</span>
+                        <span className="text-lg font-semibold">Round {round} / {lobby.game_config?.rounds}</span>
 
                         <button
                             onClick={async () => {
                                 const ok = await leaveLobby();
                                 if (ok) {
-                                    window.location.href = "/";
+                                    navigate("/");
                                 }
                             }}
                             className="px-4 py-1 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
@@ -157,21 +165,70 @@ export default function MultiplayerLobby() {
                     <div className="bg-bg-secondary border border-border-primary rounded-xl shadow p-4">
                         <h2 className="text-lg font-semibold mb-3">Lobby Settings</h2>
 
-                        <div className="space-y-2 text-sm">
-                            <p>
-                                Board size:{" "}
-                                <span className="font-semibold">
-                                    {gameConfig?.difficulty_level?.rows} × {gameConfig?.difficulty_level?.columns}
-                                </span>
-                            </p>
-                            <p>
-                                Mines:{" "}
-                                <span className="font-semibold">
-                                    {gameConfig?.difficulty_level?.mine_count}
-                                </span>
-                            </p>
+                        {/* Dwie kolumny – responsywne */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mb-4">
+
+                            <div className="space-y-2">
+                                <p>
+                                    <span className="text-text-muted">Board size:</span>{" "}
+                                    <span className="font-semibold">
+                                        {lobby.game_config?.difficulty_level?.rows} × {lobby.game_config?.difficulty_level?.columns}
+                                    </span>
+                                                    </p>
+
+                                                    <p>
+                                                        <span className="text-text-muted">Mines:</span>{" "}
+                                                        <span className="font-semibold">
+                                        {lobby.game_config?.difficulty_level?.mine_count}
+                                    </span>
+                                </p>
+
+                                <p>
+                                    <span className="text-text-muted">Rounds:</span>{" "}
+                                    <span className="font-semibold">{lobby.game_config?.rounds}</span>
+                                </p>
+
+                                <p>
+                                    <span className="text-text-muted">Max round time:</span>{" "}
+                                    <span className="font-semibold">{lobby.game_config?.max_round_time}s</span>
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <p>
+                                    <span className="text-text-muted">Mode:</span>{" "}
+                                    <span className="font-semibold capitalize">{lobby.game_config?.game_mode}</span>
+                                </p>
+
+                                <p>
+                                    <span className="text-text-muted">Generator:</span>{" "}
+                                    <span className="font-semibold">{lobby.game_config?.generator_type}</span>
+                                </p>
+
+                                <p>
+                                    <span className="text-text-muted">Classifier:</span>{" "}
+                                    <span className="font-semibold">{lobby.game_config?.generator_settings?.classifier}</span>
+                                </p>
+
+                                <p>
+                                    <span className="text-text-muted">Heuristic:</span>{" "}
+                                    <span className="font-semibold">{lobby.game_config?.generator_settings?.heuristic}</span>
+                                </p>
+                            </div>
+
                         </div>
+
+                        {isHost() && sessionId === null && (
+                            <button
+                                onClick={() => setShowSettingsPopup(true)}
+                                className="px-3 py-2 bg-accent-primary text-white rounded-lg w-full md:w-auto"
+                            >
+                                Edit Settings
+                            </button>
+                        )}
                     </div>
+
+
                 </div>
 
                 {/* CHAT */}
@@ -214,6 +271,14 @@ export default function MultiplayerLobby() {
                     </div>
                 </div>
                 {showInvitePopup && <InvitePopup onClose={() => setShowInvitePopup(false)} />}
+                {showSettingsPopup && (
+                    <LobbySettingsPopup
+                        onClose={() => setShowSettingsPopup(false)}
+                        config={lobby.game_config}
+                        onSave={updateLobbySettings}
+                    />
+                )}
+
             </div>
         </div>
     );
