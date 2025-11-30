@@ -192,3 +192,6 @@ class FriendsRepository:
 
         except NoResultFound:
             raise FriendshipNotFound() from None
+
+    async def is_user_online(self, user_id: uuid.UUID) -> bool:
+        return await self.online_users_store.is_user_online(user_id)

@@ -12,9 +12,24 @@ class AsyncScheduler:
     def __init__(self):
         self._scheduler = BackgroundScheduler()
         self._scheduler.start()
-        self._loop = asyncio.get_event_loop()
+        # Prefer the running loop when present; otherwise create a dedicated
+        # event loop running in a background thread. This avoids DeprecationWarning
+        # about `asyncio.get_event_loop()` when no loop is running.
+        try:
+            self._loop = asyncio.get_running_loop()
+            self._own_loop_thread = None
+        except RuntimeError:
+            self._loop = asyncio.new_event_loop()
+            self._own_loop_thread = threading.Thread(
+                target=self._run_loop, name="async-scheduler-loop", daemon=True
+            )
+            self._own_loop_thread.start()
         self._jobs = {}
         self._lock = threading.Lock()
+
+    def _run_loop(self):
+        asyncio.set_event_loop(self._loop)
+        self._loop.run_forever()
 
     def schedule(self, coro_func, when, *args, job_id=None, **kwargs):
         def runner():
@@ -33,9 +48,6 @@ class AsyncScheduler:
             job = self._jobs.pop(job_id, None)
         if job:
             job.remove()
-
-    def shutdown(self):
-        self._scheduler.shutdown()
 
 
 async_scheduler = AsyncScheduler()

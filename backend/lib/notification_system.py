@@ -11,9 +11,11 @@ from backend.core.game import (
 )
 from backend.core.lobby import *
 from backend.core.multi import *
+from backend.core.user import FriendRequest
 from backend.routers.schemas import Response
 from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
+from backend.routers.schemas.user_schemas import FriendRequestResponse
 from backend.routers.websockets.connections_manager import connections_manager
 
 
@@ -36,6 +38,7 @@ def create_notification(data: Any) -> str:
         UserConnectionUpdated: UserConnectionStatusResponse,
         RoundAwaiting: GameReadyResponse,
         ChatMessage: ChatMessageResponse,
+        FriendRequest: FriendRequestResponse,
     }
 
     if type(data) not in mapping:
