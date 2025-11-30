@@ -5,7 +5,6 @@ from pydantic import BaseModel
 
 from backend.core.lobby import *
 from backend.routers.schemas import Response, WSRequest
-from backend.services.lobby_service import InvitationsQuery
 
 from ..user_schemas import UserResponse
 

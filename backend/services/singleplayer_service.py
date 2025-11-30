@@ -238,7 +238,7 @@ class SingleplayerService:
         except InvalidAction:
             return None
 
-    def get_game_state(self) -> GameStateResult:
+    def get_game_state(self) -> GameState:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 

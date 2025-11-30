@@ -1,20 +1,18 @@
-import time
 import uuid
-from datetime import datetime
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 
 from backend.core.board import Board
 from backend.core.game import *
 from backend.core.multi.gameplay import MultiplayerGameplay
-
-type IsRoundOver = bool
 
 
 @dataclass
 class RoundStart:
     session_id: uuid.UUID
     round: int
-    start_at: int
-    end_at: int
+    start_at: datetime
+    end_at: datetime
     start_field: Cell
 
 
@@ -22,6 +20,10 @@ class RoundStart:
 class RoundEnd:
     session_id: uuid.UUID
     round: int
+    time_out_gameplays: list[MultiplayerGameplay] = field(default_factory=list)
+
+
+type RoundState = Literal["not_started", "playing", "ended"]
 
 
 class MultiplayerRound:
@@ -29,47 +31,42 @@ class MultiplayerRound:
         self,
         session_id: uuid.UUID,
         round_number: int,
+        round_time: timedelta,
         board: Board,
         gameplays: list[MultiplayerGameplay],
     ):
         self.session_id = session_id
         self.round_number = round_number
+        self.round_time = round_time
         self.board = board
         self.gameplays = {gameplay.user_id: gameplay for gameplay in gameplays}
+        self.ready_players: set[uuid.UUID] = set()
 
-        self.start_at = 0
-        self.end_at = 0
+        self.state: RoundState = "not_started"
+
+        self.start_at: datetime = None  # type: ignore
+        self.end_at: datetime = None  # type: ignore
 
     def handle_game_action(
         self, action: GameAction, user_id: uuid.UUID
     ) -> GameActionResult:
-        if not self.start_at or not self.end_at:
+        if self.state != "playing":
             raise RuntimeError("Round has not started yet")
 
-        start_str = datetime.fromtimestamp(self.start_at).strftime("%Y-%m-%d %H:%M:%S")
-        end_str = datetime.fromtimestamp(self.end_at).strftime("%Y-%m-%d %H:%M:%S")
-        print(
-            f"Handling action for round {self.round_number} (started at {start_str}, ends at {end_str})"
-        )
-
-        if not self.start_at <= time.time() < self.end_at:
-            raise RuntimeError("Round is not active")
-
-        gameplay = self.gameplays[user_id]
-        action_result = action.handle(gameplay)
-
-        return action_result
+        return action.handle(self.gameplays[user_id])
 
     def is_round_over(self) -> bool:
         return all(gameplay.is_game_over() for gameplay in self.gameplays.values())
 
-    def start(self, start_at, end_at):
-        start_str = datetime.fromtimestamp(start_at).strftime("%Y-%m-%d %H:%M:%S")
-        end_str = datetime.fromtimestamp(end_at).strftime("%Y-%m-%d %H:%M:%S")
+    def start(self, start_at: datetime) -> RoundStart:
+        if self.state != "not_started":
+            raise RuntimeError("Round is started or ended already")
 
-        print(f"Starting round {self.round_number} at {start_str}, ends at {end_str}")
+        self.state = "playing"
+
         self.start_at = start_at
-        self.end_at = end_at
+        self.end_at = start_at + self.round_time
+
         for gameplay in self.gameplays.values():
             gameplay.start_game_if_not_started()
 
@@ -77,27 +74,32 @@ class MultiplayerRound:
             session_id=self.session_id,
             round=self.round_number,
             start_at=start_at,
-            end_at=end_at,
+            end_at=self.end_at,
             start_field=self.board.start_field,
         )
 
     def end(self):
-        end_str = datetime.fromtimestamp(self.end_at).strftime("%Y-%m-%d %H:%M:%S")
-        print(f"Ending round {self.round_number} at {end_str}")
+        if self.state != "playing":
+            raise RuntimeError("Round is not in playing state")
+
+        time_out_gameplays = []
 
         for gameplay in self.gameplays.values():
             if not gameplay.is_game_over():
                 gameplay.finish_game("loss", loss_cause=LossCause("time_out"))
+                time_out_gameplays.append(gameplay)
 
         return RoundEnd(
             session_id=self.session_id,
             round=self.round_number,
+            time_out_gameplays=time_out_gameplays,
         )
 
 
 async def create_multiplayer_round(
     session_id: uuid.UUID,
-    round_number: int,
+    round_index: int,
+    round_time: timedelta,
     board: Board,
     player_ids: list[uuid.UUID],
     mode: GameMode,
@@ -114,7 +116,8 @@ async def create_multiplayer_round(
 
     return MultiplayerRound(
         session_id=session_id,
-        round_number=round_number,
+        round_number=round_index,
+        round_time=round_time,
         board=board,
         gameplays=gameplays,
     )

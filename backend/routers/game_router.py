@@ -7,9 +7,9 @@ from backend import services
 from backend.core.game import GameAction, GameActionResult
 from backend.core.multi.session import MultiplayerResult
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
+from backend.lib.notification_system import create_game_notification
 from backend.routers.schemas import WSRequest
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
-from backend.routers.schemas.lobby.lobby_schemas import create_game_notification
 from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions as service_exceptions
 from backend.services.multiplayer_service import MultiplayerGameTransport
@@ -111,11 +111,11 @@ async def play_multi(
     user: CurrentUserWebSocket,
 ):
     try:
-        transport = MultiplayerWebSocketTransport(websocket)
-        await service.set_session(session_id, user, transport)
-
         await websocket.accept()
         multi_websockets.add(user.id, websocket)
+        transport = MultiplayerWebSocketTransport(websocket)
+
+        await service.set_session(session_id, user, transport)
 
         await service.session_loop()
 

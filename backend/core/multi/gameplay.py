@@ -107,7 +107,7 @@ class MultiplayerGameplay(Gameplay):
         return self._gameplay.remove_flag(x, y)
 
     def start_game_if_not_started(self):
-        self._gameplay.start_game_if_not_started()
+        self._gameplay._start_game_if_not_started()
 
     def get_game_state(self):
         return self._gameplay.get_game_state()
@@ -122,4 +122,4 @@ class MultiplayerGameplay(Gameplay):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")
 
-        self._gameplay.finish_game(result, loss_cause)
+        self._gameplay._finish_game(result, loss_cause)

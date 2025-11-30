@@ -5,8 +5,8 @@ from backend.core.game import *
 from backend.core.multi.round import RoundEnd, RoundStart
 from backend.core.multi.session import (
     CancelReadyMessage,
-    GameReady,
     ReadyMessage,
+    RoundAwaiting,
     SessionOver,
 )
 from backend.routers.schemas import Response, WSRequest
@@ -37,8 +37,8 @@ class RoundStartResponse(Response):
     @classmethod
     def build(cls, message: "RoundStart") -> Self:
         return cls(
-            start_at=message.start_at,
-            end_at=message.end_at,
+            start_at=int(message.start_at.timestamp()),
+            end_at=int(message.end_at.timestamp()),
             session_id=message.session_id,
             round=message.round,
             start_field=message.start_field,
@@ -69,10 +69,6 @@ class SessionOverResponse(Response):
         )
 
 
-class FirstRoundStartResponse(RoundStartResponse):
-    gameplay_id: uuid.UUID
-
-
 class GameReadyResponse(Response):
     ws_type: Literal["ready"] = "ready"
     session_id: uuid.UUID
@@ -80,11 +76,11 @@ class GameReadyResponse(Response):
     start_at: int
 
     @classmethod
-    def build(cls, message: "GameReady") -> Self:
+    def build(cls, message: "RoundAwaiting") -> Self:
         return cls(
             session_id=message.session_id,
             round=message.round,
-            start_at=message.start_at,
+            start_at=int(message.start_at.timestamp()),
         )
 
 
@@ -92,6 +88,5 @@ __all__ = [
     "RoundStartResponse",
     "RoundEndResponse",
     "SessionOverResponse",
-    "FirstRoundStartResponse",
     "GameReadyResponse",
 ]

@@ -10,11 +10,12 @@ from backend import repositories
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.lib.auth import CurrentUser
 from backend.lib.notification_system import NotificationSystem as Notifications
+from backend.lib.notification_system import get_notification_system
 from backend.services.exceptions import *
 
 FriendsRepository = Annotated[repositories.FriendsRepository, Depends()]
 
-NotificationSystem = Annotated[Notifications, Depends()]
+NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
 
 
 class FriendsService:

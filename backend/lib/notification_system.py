@@ -1,6 +1,19 @@
 import uuid
+from typing import Any
 
-from backend.routers.schemas.lobby.lobby_schemas import create_notification
+from backend.core.game import (
+    FlagResult,
+    GameOverResult,
+    GameState,
+    HintResult,
+    RemoveFlagResult,
+    RevealResult,
+)
+from backend.core.lobby import *
+from backend.core.multi import *
+from backend.routers.schemas import Response
+from backend.routers.schemas.game import *
+from backend.routers.schemas.lobby import *
 from backend.routers.websockets.connections_manager import connections_manager
 
 
@@ -13,3 +26,39 @@ class NotificationSystem:
 
 def get_notification_system() -> NotificationSystem:
     return NotificationSystem()
+
+
+def create_notification(data: Any) -> str:
+    mapping: dict[type, type[Response]] = {
+        GameConfigUpdated: GameConfigUpdatedResponse,
+        Invitation: InvitationResponse,
+        InvitationAnswer: InvitationAnswerResponse,
+        UserConnectionUpdated: UserConnectionStatusResponse,
+        RoundAwaiting: GameReadyResponse,
+        ChatMessage: ChatMessageResponse,
+    }
+
+    if type(data) not in mapping:
+        raise ValueError("Unsupported response type")
+
+    return mapping[type(data)].create(data, include_ws_type=True)
+
+
+def create_game_notification(data: MultiplayerResult) -> str:
+    mapping: dict[type[MultiplayerResult], type[Response]] = {
+        RoundAwaiting: GameReadyResponse,
+        SessionOver: SessionOverResponse,
+        RoundStart: RoundStartResponse,
+        RoundEnd: RoundEndResponse,
+        RevealResult: RevealResponse,
+        GameOverResult: GameOverResponse,
+        GameState: GameStateResponse,
+        FlagResult: FlagResponse,
+        RemoveFlagResult: RemoveFlagResponse,
+        HintResult: HintResponse,
+    }
+
+    if type(data) not in mapping:
+        raise RuntimeError("Unsupported response type")
+
+    return mapping[type(data)].create(data, include_ws_type=True)

@@ -39,18 +39,18 @@ class SingleplayerGameplay:
         self.used_hints = used_hints
         self.elapsed_time = elapsed_time
         self.game_mode: GameMode = mode
-        self._revealed: list[tuple[int, int, int]] = []
+        self.revealed_cells: list[RevealedCell] = []
         self.loss_cause: Optional[LossCause] = None
 
         for i, j in revealed_cells:
             self.grid.revealed[i][j] = True
-            self._revealed.append((i, j, self.grid.grid[i][j]))
+            self.revealed_cells.append((i, j, self.grid.grid[i][j]))
 
         for i, j in flagged_cells:
             self.grid.flagged[i][j] = True
 
         if len(revealed_cells) or len(flagged_cells):
-            self.start_game_if_not_started()
+            self._start_game_if_not_started()
 
     def _get_safe_cells(self) -> list[tuple[int, int]]:
         safe_cells = HintGenerator.get_safe_fields_no_cache(self.grid)
@@ -62,11 +62,11 @@ class SingleplayerGameplay:
         return safe_cells
 
     def use_hint(self) -> HintResult:
-        self.start_game_if_not_started()
+        self._start_game_if_not_started()
         self.used_hints = True
         return HintResult(safe_cells=self._get_safe_cells()[:1])
 
-    def start_game_if_not_started(self):
+    def _start_game_if_not_started(self):
         if self.status == "not_started":
             self.status = "in_progress"
 
@@ -79,7 +79,7 @@ class SingleplayerGameplay:
 
         self.elapsed_time += time.monotonic() - self._time_start
 
-    def finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
+    def _finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
         if self.status == "finished":
             return
 
@@ -104,7 +104,7 @@ class SingleplayerGameplay:
             raise IndexError("Field out of bounds")
 
     def reveal_one(self, x: int, y: int):
-        self.start_game_if_not_started()
+        self._start_game_if_not_started()
         self._validate_coords(x, y)
         self._reset_revealed()
 
@@ -113,7 +113,7 @@ class SingleplayerGameplay:
 
         if self.game_mode == "hardcore":
             if (x, y) not in self._get_safe_cells():
-                self.finish_game("loss", LossCause(type="unsafe_move", cell=(x, y)))
+                self._finish_game("loss", LossCause(type="unsafe_move", cell=(x, y)))
                 return GameOverResult(
                     result="loss",
                     full_board=self.grid.grid,
@@ -124,10 +124,10 @@ class SingleplayerGameplay:
         old_revealed = set(self.get_revealed_cells())
         self.grid.handle_field_click((x, y))
 
-        revealed = list(set(self.get_revealed_cells()) - old_revealed)
+        revealed_delta = list(set(self.get_revealed_cells()) - old_revealed)
 
-        self._update_result(revealed)
-        self._set_revealed(revealed)
+        self._update_result(revealed_delta)
+        self._update_revealed_cells(revealed_delta)
 
         if self.result is not None:
             return GameOverResult(
@@ -137,10 +137,10 @@ class SingleplayerGameplay:
                 loss_cause=self.loss_cause,
             )
 
-        return RevealResult(revealed_cells=self._revealed, game_status=self.status)
+        return RevealResult(revealed_cells=self.revealed_cells, game_status=self.status)
 
     def reveal_many(self, x: int, y: int):
-        self.start_game_if_not_started()
+        self._start_game_if_not_started()
         self._validate_coords(x, y)
         self._reset_revealed()
 
@@ -159,10 +159,10 @@ class SingleplayerGameplay:
             if not self.grid.flagged[nx][ny] and not self.grid.revealed[nx][ny]:
                 self.grid.handle_field_click((nx, ny))
 
-        revealed = list(set(self.get_revealed_cells()) - old_revealed)
+        revealed_delta = list(set(self.get_revealed_cells()) - old_revealed)
 
-        self._update_result(revealed)
-        self._set_revealed(revealed)
+        self._update_result(revealed_delta)
+        self._update_revealed_cells(revealed_delta)
 
         if self.result is not None:
             return GameOverResult(
@@ -172,24 +172,25 @@ class SingleplayerGameplay:
                 loss_cause=self.loss_cause,
             )
 
-        return RevealResult(revealed_cells=self._revealed, game_status=self.status)
+        return RevealResult(revealed_cells=self.revealed_cells, game_status=self.status)
 
-    def _update_result(self, revealed: list[tuple[int, int]]):
-        for x, y in revealed:
+    def _update_result(self, revealed_delta: list[Cell]):
+        for x, y in revealed_delta:
             if self.grid.grid[x][y] == -1:
                 loss_cause = LossCause(type="mine_clicked", cell=(x, y))
-                self.finish_game("loss", loss_cause=loss_cause)
+                self._finish_game("loss", loss_cause=loss_cause)
                 return
 
         if self.grid.check_win():
-            self.finish_game("win")
-            return
+            self._finish_game("win")
 
     def _reset_revealed(self):
-        self._revealed = []
+        self.revealed_cells = []
 
-    def _set_revealed(self, revealed: list[Cell]):
-        self._revealed = sorted((x, y, self.grid.grid[x][y]) for (x, y) in revealed)
+    def _update_revealed_cells(self, revealed_delta: list[Cell]):
+        self.revealed_cells = sorted(
+            (x, y, self.grid.grid[x][y]) for (x, y) in revealed_delta
+        )
 
     def get_flagged_cells(self) -> list[Cell]:
         return [
@@ -199,13 +200,13 @@ class SingleplayerGameplay:
             if self.grid.flagged[i][j]
         ]
 
-    def get_game_state(self) -> GameStateResult:
-        return GameStateResult(
+    def get_game_state(self) -> GameState:
+        return GameState(
             board_id=self.board.id,
             difficulty_level=self.board.difficulty_level,
             status=self.status,
             result=self.result,
-            revealed_cells=self._revealed,
+            revealed_cells=self.revealed_cells,
             flagged_cells=self.get_flagged_cells(),
             elapsed_time=self.elapsed_time,
             loss_cause=self.loss_cause,
@@ -213,7 +214,7 @@ class SingleplayerGameplay:
         )
 
     def flag(self, x: int, y: int):
-        self.start_game_if_not_started()
+        self._start_game_if_not_started()
         self._validate_coords(x, y)
 
         self.grid.flagged[x][y] = True
@@ -221,7 +222,7 @@ class SingleplayerGameplay:
         return FlagResult()
 
     def remove_flag(self, x: int, y: int):
-        self.start_game_if_not_started()
+        self._start_game_if_not_started()
         self._validate_coords(x, y)
 
         self.grid.flagged[x][y] = False

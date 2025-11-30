@@ -3,7 +3,6 @@ from dataclasses import dataclass
 from typing import Literal
 
 from backend.core.multi.config import GameConfig, GameConfigUpdated
-from backend.core.multi.session import GameReady
 from backend.core.user import User
 
 
@@ -78,9 +77,6 @@ class Lobby:
 
         return GameConfigUpdated(lobby_id=self.id, game_config=new_config)
 
-    def start_countdown(self, start_at: int) -> GameReady:
-        return GameReady(session_id=self.id, round=0, start_at=start_at)
-
 
 class Invitation:
     id: uuid.UUID
@@ -104,3 +100,8 @@ class Invitation:
 class InvitationAnswer:
     invitation: Invitation
     answer: Literal["accepted", "rejected"]
+
+
+@dataclass
+class InvitationsQuery:
+    pass

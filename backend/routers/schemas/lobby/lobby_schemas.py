@@ -1,38 +1,13 @@
 import uuid
-from typing import Any, Literal, Optional, Self
+from typing import Literal, Optional, Self
 
 from pydantic import BaseModel
 
 from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
-from backend.core.game import (
-    FlagResult,
-    GameMode,
-    GameOverResult,
-    GameStateResult,
-    HintResult,
-    RemoveFlagResult,
-    RevealResult,
-)
+from backend.core.game import GameMode
 from backend.core.lobby import *
-from backend.core.multi import MultiplayerResult, RoundEnd, RoundStart, SessionOver
 from backend.routers.schemas import Response
-from backend.routers.schemas.game import (
-    FlagResponse,
-    GameOverResponse,
-    GameReadyResponse,
-    GameStateResponse,
-    HintResponse,
-    RemoveFlagResponse,
-    RevealResponse,
-    RoundEndResponse,
-    RoundStartResponse,
-    SessionOverResponse,
-)
-from backend.routers.schemas.lobby import (
-    ChatMessageResponse,
-    InvitationAnswerResponse,
-    InvitationResponse,
-)
+from backend.routers.schemas.lobby import ChatMessageResponse
 from backend.routers.schemas.user_schemas import UserResponse
 
 
@@ -117,41 +92,6 @@ class CurrentLobbyResponse(Response):
         return cls(
             lobby=LobbyResponse.build(lobby) if lobby else None,
         )
-
-
-def create_notification(data: Any) -> str:
-    mapping: dict[type, type[Response]] = {
-        GameConfigUpdated: GameConfigUpdatedResponse,
-        Invitation: InvitationResponse,
-        InvitationAnswer: InvitationAnswerResponse,
-        UserConnectionUpdated: UserConnectionStatusResponse,
-        GameReady: GameReadyResponse,
-        ChatMessage: ChatMessageResponse,
-    }
-
-    if type(data) not in mapping:
-        raise ValueError("Unsupported response type")
-
-    return mapping[type(data)].create(data, include_ws_type=True)
-
-
-def create_game_notification(data: MultiplayerResult) -> str:
-    mapping: dict[type[MultiplayerResult], type[Response]] = {
-        SessionOver: SessionOverResponse,
-        RoundStart: RoundStartResponse,
-        RoundEnd: RoundEndResponse,
-        RevealResult: RevealResponse,
-        GameOverResult: GameOverResponse,
-        GameStateResult: GameStateResponse,
-        FlagResult: FlagResponse,
-        RemoveFlagResult: RemoveFlagResponse,
-        HintResult: HintResponse,
-    }
-
-    if type(data) not in mapping:
-        raise RuntimeError("Unsupported response type")
-
-    return mapping[type(data)].create(data, include_ws_type=True)
 
 
 __all__ = [

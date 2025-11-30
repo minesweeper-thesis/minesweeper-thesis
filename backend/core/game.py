@@ -41,11 +41,11 @@ class HintResult(GameActionResult):
 @dataclass
 class LossCause:
     type: Literal["mine_clicked", "unsafe_move", "time_out"]
-    cell: Optional[tuple[int, int]] = None
+    cell: Optional[Cell] = None
 
 
 @dataclass
-class GameStateResult(GameActionResult):
+class GameState(GameActionResult):
     board_id: uuid.UUID
     difficulty_level: DifficultyLevel
     status: GameStatus
@@ -75,7 +75,7 @@ class Gameplay(Protocol):
     def remove_flag(self, x: int, y: int) -> GameActionResult: ...
     def use_hint(self) -> GameActionResult: ...
     def is_game_over(self) -> bool: ...
-    def get_game_state(self) -> GameStateResult: ...
+    def get_game_state(self) -> GameState: ...
 
 
 class GameAction(ABC):
@@ -94,9 +94,9 @@ class HintAction(GameAction):
 
 
 class RevealOneAction(GameAction):
-    cell: tuple[int, int]
+    cell: Cell
 
-    def __init__(self, cell: tuple[int, int]):
+    def __init__(self, cell: Cell):
         self.cell = cell
 
     def handle(self, gameplay: Gameplay) -> "GameActionResult":
@@ -105,9 +105,9 @@ class RevealOneAction(GameAction):
 
 
 class RevealManyAction(GameAction):
-    cell: tuple[int, int]
+    cell: Cell
 
-    def __init__(self, cell: tuple[int, int]):
+    def __init__(self, cell: Cell):
         self.cell = cell
 
     def handle(self, gameplay: Gameplay) -> "GameActionResult":
@@ -116,9 +116,9 @@ class RevealManyAction(GameAction):
 
 
 class FlagAction(GameAction):
-    cell: tuple[int, int]
+    cell: Cell
 
-    def __init__(self, cell: tuple[int, int]):
+    def __init__(self, cell: Cell):
         self.cell = cell
 
     def handle(self, gameplay: Gameplay) -> "GameActionResult":
@@ -127,9 +127,9 @@ class FlagAction(GameAction):
 
 
 class RemoveFlagAction(GameAction):
-    cell: tuple[int, int]
+    cell: Cell
 
-    def __init__(self, cell: tuple[int, int]):
+    def __init__(self, cell: Cell):
         self.cell = cell
 
     def handle(self, gameplay: Gameplay) -> "GameActionResult":

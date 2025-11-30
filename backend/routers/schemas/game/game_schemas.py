@@ -105,7 +105,7 @@ class GameStateResponse(Response):
     start_field: Cell
 
     @classmethod
-    def build(cls, result: GameStateResult) -> Self:
+    def build(cls, result: GameState) -> Self:
         rows = result.difficulty_level.rows
         cols = result.difficulty_level.columns
 

@@ -6,6 +6,8 @@ from fastapi_pagination import Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
+from backend.lib.notification_system import create_game_notification
+from backend.routers.game_router import MultiplayerService
 from backend.routers.schemas.lobby import (
     ChatMessageRequest,
     ChatMessageResponse,
@@ -14,7 +16,6 @@ from backend.routers.schemas.lobby import (
     LobbyResponse,
     UpdateGameConfigRequest,
 )
-from backend.routers.schemas.lobby.lobby_schemas import create_game_notification
 from backend.routers.websockets.websockets_registry import multi_websockets
 
 PaginationParams = Annotated[Params, Depends()]
@@ -98,15 +99,10 @@ async def reject_game_invitation(
 @lobby_router.post("/{lobby_id}/ready")
 async def set_user_ready(
     lobby_id: uuid.UUID,
-    service: LobbyService,
+    service: MultiplayerService,
     user: CurrentUser,
 ):
-    async def close_connection():
-        if user.id in multi_websockets._websockets:
-            await multi_websockets.get(user.id).close()
-
-    service.on_session_end_callback = close_connection
-    await service.set_user_ready(lobby_id, user, game_notify)
+    await service.set_user_ready_in_lobby(lobby_id, user, game_notify)
 
 
 @lobby_router.post("/{lobby_id}/cancel-ready")
