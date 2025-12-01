@@ -76,7 +76,7 @@ class LobbyService:
                     user=user, status="disconnected", lobby_id=lobby_to_leave.id
                 )
                 for lobby_user in lobby_to_leave.users:
-                    await notify(lobby_user.id, data)
+                    await self.notification_system.notify(lobby_user.id, data)
 
         invitation = self.lobby_repo.get_invitation(invitation_id)
         lobby = invitation.lobby
