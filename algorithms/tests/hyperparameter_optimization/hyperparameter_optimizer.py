@@ -20,7 +20,7 @@ class HyperparameterOptimizer:
         tries: int,
         param_space: list,
         constraint: Callable[[tuple], bool],
-        classifier_iterations: int = -1,
+        version: str,
     ) -> None:
         self.classifier = classifier
         self.heuristic = heuristic
@@ -28,7 +28,7 @@ class HyperparameterOptimizer:
         self.columns = columns
         self.mine_count = mine_count
         self.tries = tries
-        self.classifier_iterations = classifier_iterations
+        self.version = version
         self.fields = all_fields(rows, columns, (-2, -2), [])
         self.fields = [random.choice(self.fields) for _ in range(tries)]
         self.constraint = constraint
@@ -63,7 +63,7 @@ class HyperparameterOptimizer:
                 self.columns,
                 self.fields[i],
                 self.mine_count,
-                self.classifier_iterations,
+                self.version,
             ).generate()
 
         end = time.time()
