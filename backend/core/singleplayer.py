@@ -49,6 +49,9 @@ class SingleplayerGameplay:
         for i, j in flagged_cells:
             self.grid.flagged[i][j] = True
 
+        if len(revealed_cells) or len(flagged_cells):
+            self.start_game_if_not_started()
+
     def _get_safe_cells(self) -> list[tuple[int, int]]:
         safe_cells = HintGenerator.get_safe_fields_no_cache(self.grid)
 
@@ -67,7 +70,8 @@ class SingleplayerGameplay:
         if self.status == "not_started":
             self.status = "in_progress"
 
-        self._time_start = time.monotonic()
+        if self._time_start is None:
+            self._time_start = time.monotonic()
 
     def update_elapsed_time(self):
         if self._time_start is None:

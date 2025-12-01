@@ -27,6 +27,7 @@ def create_response(data: Any) -> str:
         RoundStartMessage: RoundStartResponse,
         RoundEndMessage: RoundEndResponse,
         SessionOverMessage: SessionOverResponse,
+        ChatMessage: ChatMessageResponse,
     }
 
     if type(data) in lobby_mapping:

@@ -84,14 +84,16 @@ class LobbyResponse(Response):
     host: UserResponse
     users: list[UserResponse]
     game_config: GameConfig
+    messages: list["ChatMessageResponse"] = []
 
     @classmethod
-    def from_core(cls, lobby: Lobby) -> Self:
+    def from_core(cls, lobby: Lobby, messages: list[ChatMessage] = []) -> Self:
         return cls(
             id=lobby.id,
             host=UserResponse.from_user(lobby.host),
             users=[UserResponse.from_user(user) for user in lobby.users],
             game_config=lobby.game_config,
+            messages=[ChatMessageResponse.from_core(message) for message in messages],
         )
 
 
@@ -160,6 +162,27 @@ class CurrentLobbyResponse(Response):
         )
 
 
+class ChatMessageRequest(BaseModel):
+    content: str
+
+
+class ChatMessageResponse(Response):
+    type: Literal["chat_message"] = "chat_message"
+    sender: UserResponse
+    lobby_id: uuid.UUID
+    content: str
+    timestamp: int
+
+    @classmethod
+    def from_core(cls, message: ChatMessage) -> Self:
+        return cls(
+            sender=UserResponse.from_user(message.sender),
+            lobby_id=message.lobby_id,
+            content=message.content,
+            timestamp=message.timestamp,
+        )
+
+
 __all__ = [
     "InviteUserToLobbyRequest",
     "JoinLobbyRequest",
@@ -173,4 +196,6 @@ __all__ = [
     "PendingInvitationsResponse",
     "CurrentLobbyResponse",
     "GameConfigUpdatedResponse",
+    "ChatMessageRequest",
+    "ChatMessageResponse",
 ]
