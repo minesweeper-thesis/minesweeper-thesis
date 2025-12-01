@@ -7,6 +7,8 @@ export default function Controls({ onReset, mines, gameState, onHint, mode = "si
     const [seconds, setSeconds] = useState(0);
     const intervalRef = useRef(null);
 
+    const style = mode === "multi" ? "justify-evenly" : "justify-center";
+
     useEffect(() => {
         if (gameState === GameState.NOT_STARTED) {
             clearInterval(intervalRef.current);
@@ -29,7 +31,7 @@ export default function Controls({ onReset, mines, gameState, onHint, mode = "si
     }, [gameState]);
 
     return (
-        <div className={`controls-container ${mode === "multi" ? "multi-mode" : ""}`}>
+        <div className={`controls-container ${style} ${mode === "multi" ? "multi-mode" : ""}`}>
             {/* Timer */}
             <div className="counter-display">
                 {seconds.toString().padStart(3, '0')}
