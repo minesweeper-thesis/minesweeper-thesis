@@ -1,10 +1,15 @@
 import uuid
+from collections import defaultdict
 from contextlib import suppress
 
-from backend.core.lobby import Invitation, Lobby
+from fastapi_pagination import Params
+
+from backend.core.lobby import ChatMessage, Invitation, Lobby
 
 lobbies: dict[uuid.UUID, Lobby] = {}
 invitations: dict[uuid.UUID, Invitation] = {}
+
+messages: dict[uuid.UUID, list[ChatMessage]] = defaultdict(list)
 
 
 class LobbyNotFound(Exception):
@@ -55,3 +60,16 @@ class LobbyRepository:
 
     def get_user_lobbies(self, user) -> list[Lobby]:
         return [lobby for lobby in lobbies.values() if user in lobby.users]
+
+    def add_message(self, message: ChatMessage) -> None:
+        messages[message.lobby_id].append(message)
+
+    def get_messages(
+        self, lobby_id: uuid.UUID, pagination_params: Params
+    ) -> list[ChatMessage]:
+        all_messages = messages[lobby_id]
+        start = (pagination_params.page - 1) * pagination_params.size
+        end = start + pagination_params.size
+        return sorted(all_messages, key=lambda msg: msg.timestamp, reverse=True)[
+            start:end
+        ]
