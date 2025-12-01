@@ -54,7 +54,7 @@ export default function MultiplayerLobby() {
         }
 
         try {
-            const res = await fetch(`/api/lobbies/${lobby.id}/ready`, {
+            const res = await fetch(`api/lobbies/${lobby.id}/ready`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -80,7 +80,7 @@ export default function MultiplayerLobby() {
                 <div className="flex-1 flex flex-col gap-6">
                     {/* ROUND HEADER */}
                     <div className="bg-bg-secondary border border-border-primary rounded-xl shadow p-4 flex items-center justify-between">
-                        <span className="text-lg font-semibold">Round {round} / {lobby.game_config?.rounds}</span>
+                        <span className="text-lg font-semibold">Round {round ?? "-"} / {lobby.game_config?.rounds}</span>
 
                         <button
                             onClick={async () => {

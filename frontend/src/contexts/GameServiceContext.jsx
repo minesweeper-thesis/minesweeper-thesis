@@ -70,6 +70,7 @@ export function GameServiceProvider({ children }) {
                 case "current_lobby":
                     if (!msg.lobby){
                         setGotLobby(false);
+                        createLobby();
                         break;
                     }
                     console.log("[WS] Ustawiam current lobby:", msg.lobby);
@@ -149,7 +150,7 @@ export function GameServiceProvider({ children }) {
         if (!lobby) return;
 
         try {
-            await authFetch(`/api/lobbies/${lobby.id}/leave`, {
+            await authFetch(`api/lobbies/${lobby.id}/leave`, {
                 method: "POST",
             });
 
@@ -230,7 +231,7 @@ export function GameServiceProvider({ children }) {
 
         creatingLobbyPromise = (async () => {
             try {
-                const response = await authFetch("/api/lobbies", { method: "POST" });
+                const response = await authFetch("api/lobbies", { method: "POST" });
 
                 setLobby(response);
                 return response;
@@ -251,7 +252,7 @@ export function GameServiceProvider({ children }) {
 
         try {
             const response = await authFetch(
-                `/api/lobbies/${currentLobby.id}/invitations`,
+                `api/lobbies/${currentLobby.id}/invitations`,
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -284,7 +285,7 @@ export function GameServiceProvider({ children }) {
 // ACCEPT INVITATION
     const acceptGameInvite = async (invitationId, lobbyId) => {
         try {
-            const response = await authFetch(`/api/lobbies/${lobbyId}/join`, {
+            const response = await authFetch(`api/lobbies/${lobbyId}/join`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ invitation_id: invitationId })

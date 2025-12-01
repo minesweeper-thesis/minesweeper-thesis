@@ -3,7 +3,7 @@ import { GameState } from "../utility";
 import { Lightbulb, RotateCcw } from "lucide-react";
 import '../styles/controls.css';
 
-export default function Controls({ onReset, mines, gameState, onHint }) {
+export default function Controls({ onReset, mines, gameState, onHint, mode = "single" }) {
     const [seconds, setSeconds] = useState(0);
     const intervalRef = useRef(null);
 
@@ -29,19 +29,26 @@ export default function Controls({ onReset, mines, gameState, onHint }) {
     }, [gameState]);
 
     return (
-        <div className="controls-container">
+        <div className={`controls-container ${mode === "multi" ? "multi-mode" : ""}`}>
+            {/* Timer */}
             <div className="counter-display">
                 {seconds.toString().padStart(3, '0')}
             </div>
 
-            <button className="control-btn reset" onClick={onReset} title="Restart">
-                <RotateCcw size={22} />
-            </button>
+            {/* Buttons only in single mode */}
+            {mode !== "multi" && (
+                <>
+                    <button className="control-btn reset" onClick={onReset} title="Restart">
+                        <RotateCcw size={22} />
+                    </button>
 
-            <button className="control-btn hint-button" onClick={onHint} title="Hint">
-                <Lightbulb size={22} />
-            </button>
+                    <button className="control-btn hint-button" onClick={onHint} title="Hint">
+                        <Lightbulb size={22} />
+                    </button>
+                </>
+            )}
 
+            {/* Mines */}
             <div className="counter-display">
                 {mines.toString().padStart(2, '0')}
             </div>

@@ -161,7 +161,8 @@ export function SessionProvider({ children }) {
             send,
             resetSession,
             setGameState,
-            setMines
+            setMines,
+            mines
         }}>
             {children}
         </SessionContext.Provider>
