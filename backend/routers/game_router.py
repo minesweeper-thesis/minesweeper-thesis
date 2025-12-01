@@ -4,14 +4,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
-from backend.core.multi.session import MultiplayerResult
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
 from backend.routers.schemas import WSRequest
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
 from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions as service_exceptions
-from backend.services.multiplayer_service import MultiplayerGameTransport
+from backend.services.multiplayer_service import (
+    MultiplayerGameTransport,
+    MultiplayerResult,
+)
 from backend.services.single.game_actions import *
 from backend.services.single.singleplayer_service import GenerationTimeout
 

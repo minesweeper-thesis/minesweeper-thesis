@@ -41,8 +41,13 @@ def create_notification(data: Any) -> str:
     return mapping[type(data)].create(data, include_ws_type=True)
 
 
-def create_game_notification(data: MultiplayerResult) -> str:
-    mapping: dict[type[MultiplayerResult], type[Response]] = {
+type Notifiable = RoundStart | RoundEnd | RoundAwaiting | RoundReadyCanceled | SessionOver | GameActionResult | GameState
+
+
+def create_game_notification(
+    data: Notifiable,
+) -> str:
+    mapping: dict[type[Notifiable], type[Response]] = {
         RoundAwaiting: GameReadyResponse,
         SessionOver: SessionOverResponse,
         RoundStart: RoundStartResponse,

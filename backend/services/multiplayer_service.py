@@ -3,7 +3,7 @@ import uuid
 from collections.abc import Callable
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import Annotated, Any, Awaitable
+from typing import Annotated, Any, Awaitable, Protocol
 
 from fastapi import BackgroundTasks, Depends
 
@@ -24,19 +24,20 @@ from backend.lib.notification_system import get_notification_system
 from backend.lib.pending_sessions import pending_sessions_store
 from backend.lib.scheduler import async_scheduler
 from backend.repositories.exceptions import *
+from backend.services.dto import GameActionResult, GameOverResult
 from backend.services.exceptions import *
+from backend.services.single.game_actions import GameAction
 
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
 
 NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-type MultiplayerAction = MultiplayerSessionAction | GameAction
-type MultiplayerResult = RoundStart | RoundEnd | GameActionResult | RoundAwaiting | RoundReadyCanceled | SessionOver
+type MultiplayerResult = RoundStart | RoundEnd | RoundAwaiting | RoundReadyCanceled | SessionOver | GameActionResult
 
 
 class MultiplayerGameTransport(Protocol):
-    async def receive(self) -> MultiplayerAction: ...
+    async def receive(self) -> MultiplayerSessionAction: ...
     async def send(self, user_id: uuid.UUID, result: MultiplayerResult) -> None: ...
     async def close(self) -> None: ...
 
@@ -116,14 +117,22 @@ class MultiplayerService:
         await self.multi_repo.save_session(self.session)
 
     async def handle_game_action(self, action: GameAction):
-        result = self.session.handle_game_action(action, self.user.id)
+        result = action.execute(self.session.get_gameplay_for_user(self.user.id))
         await self.transport.send(self.user.id, result)
 
         if self.session.is_current_round_over():
             data, over_gameplays = self.session.end_current_round()
 
             for user_id, game_over_data in over_gameplays:
-                await self.transport.send(user_id, game_over_data)
+                await self.transport.send(
+                    user_id,
+                    GameOverResult(
+                        result="loss",
+                        full_board=game_over_data._gameplay.grid.grid,
+                        elapsed_time=game_over_data.time,
+                        loss_cause=game_over_data.loss_cause,
+                    ),
+                )
 
         await self.multi_repo.save_session(self.session)
 
@@ -137,7 +146,15 @@ class MultiplayerService:
 
         data, over_gameplays = self.session.end_current_round()
         for user_id, game_over_data in over_gameplays:
-            await self.transport.send(user_id, game_over_data)
+            await self.transport.send(
+                user_id,
+                GameOverResult(
+                    result="loss",
+                    full_board=game_over_data._gameplay.grid.grid,
+                    elapsed_time=game_over_data.time,
+                    loss_cause=game_over_data.loss_cause,
+                ),
+            )
 
         for user_id in self.session.player_ids:
             await self.transport.send(user_id, data)

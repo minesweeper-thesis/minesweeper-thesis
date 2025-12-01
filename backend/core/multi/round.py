@@ -1,6 +1,7 @@
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from typing import Literal
 
 from backend.core.board import Board
 from backend.core.game import *
@@ -46,14 +47,6 @@ class MultiplayerRound:
 
         self.start_at: datetime = None  # type: ignore
         self.end_at: datetime = None  # type: ignore
-
-    def handle_game_action(
-        self, action: GameAction, user_id: uuid.UUID
-    ) -> GameActionResult:
-        if self.state != "playing":
-            raise RuntimeError("Round has not started yet")
-
-        return action.handle(self.gameplays[user_id])
 
     def is_round_over(self) -> bool:
         return all(gameplay.is_game_over() for gameplay in self.gameplays.values())

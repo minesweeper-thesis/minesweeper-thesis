@@ -79,33 +79,33 @@ class MultiplayerGameplay(Gameplay):
         )
         self.notify_opponents(my_state)
 
-    def reveal_one(self, x: int, y: int):
+    def reveal_one(self, cell: Cell):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")
 
-        result = self._gameplay.reveal_one(x, y)
+        result = self._gameplay.reveal_one(cell)
         self._notify_opponents()
         return result
 
-    def reveal_many(self, x: int, y: int):
+    def reveal_many(self, cell: Cell):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")
 
-        result = self._gameplay.reveal_many(x, y)
+        result = self._gameplay.reveal_many(cell)
         self._notify_opponents()
         return result
 
-    def flag(self, x: int, y: int):
+    def flag(self, cell: Cell):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")
 
-        return self._gameplay.flag(x, y)
+        return self._gameplay.flag(cell)
 
-    def remove_flag(self, x: int, y: int):
+    def remove_flag(self, cell: Cell):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")
 
-        return self._gameplay.remove_flag(x, y)
+        return self._gameplay.remove_flag(cell)
 
     def start_game_if_not_started(self):
         self._gameplay._start_game_if_not_started()
