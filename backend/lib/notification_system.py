@@ -1,14 +1,7 @@
 import uuid
 from typing import Any
 
-from backend.core.game import (
-    FlagResult,
-    GameOverResult,
-    GameState,
-    HintResult,
-    RemoveFlagResult,
-    RevealResult,
-)
+from backend.core.game import GameState
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import FriendRequest
@@ -17,6 +10,7 @@ from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
 from backend.routers.schemas.user_schemas import FriendRequestResponse
 from backend.routers.websockets.connections_manager import connections_manager
+from backend.services.single.game_actions import *
 
 
 class NotificationSystem:

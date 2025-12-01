@@ -16,7 +16,7 @@ from backend.core.board import (
     Board,
     DifficultyLevel,
     GenerationSettings,
-    GeneratorSettings,
+    GeneratorParams,
     Minefields,
 )
 from backend.repositories.orm import Base
@@ -37,11 +37,15 @@ class GenerationSettingsColumn(TypeDecorator):
         settings_dict = value["settings"]
         if settings_dict is not None:
             settings_dict["heuristic_args"] = tuple(settings_dict["heuristic_args"])
-            settings = GeneratorSettings(**settings_dict)
+            settings = GeneratorParams(**settings_dict)
         else:
             settings = None
 
-        return GenerationSettings(type=value["type"], settings=settings)
+        return GenerationSettings(
+            type=value["type"],
+            difficulty_level=DifficultyLevel(**value["difficulty_level"]),
+            settings=settings,
+        )
 
 
 class DifficultyLevelORM(Base):

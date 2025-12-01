@@ -2,7 +2,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Optional
 
-from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
+from backend.core.board import DifficultyLevel, GeneratorParams, GeneratorType
 from backend.core.game import GameMode
 
 
@@ -13,7 +13,7 @@ class GameConfig:
     difficulty_level: DifficultyLevel
     game_mode: GameMode
     generator_type: GeneratorType
-    generator_settings: Optional[GeneratorSettings] = None
+    generator_settings: Optional[GeneratorParams] = None
 
 
 @dataclass

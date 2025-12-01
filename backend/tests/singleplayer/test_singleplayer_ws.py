@@ -39,7 +39,7 @@ def _create_board_in_db(minefields, start_field, rows=5, columns=5):
                     minefields=minefields,
                     start_field=start_field,
                     generation_settings=GenerationSettings(
-                        type="random", settings=None
+                        type="random", settings=None, difficulty_level=difficulty
                     ),
                 )
                 await repo.add_board(board)

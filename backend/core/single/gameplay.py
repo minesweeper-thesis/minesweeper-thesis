@@ -1,6 +1,6 @@
 import time
 import uuid
-from typing import Optional
+from typing import Optional, Protocol
 
 from algorithms.boards.functions.moore import moore_neighborhood
 from algorithms.boards.grid import Grid
@@ -9,7 +9,13 @@ from backend.core.board import Board
 from backend.core.game import *
 
 
-class SingleplayerGameplay:
+class Timer(Protocol):
+    def start(self) -> None: ...
+    def stop(self) -> None: ...
+    def get_elapsed_time(self) -> float: ...
+
+
+class SingleplayerGameplay(Gameplay):
     def __init__(
         self,
         id: uuid.UUID,
@@ -61,10 +67,10 @@ class SingleplayerGameplay:
 
         return safe_cells
 
-    def use_hint(self) -> HintResult:
+    def use_hint(self) -> Optional[Cell]:
         self._start_game_if_not_started()
         self.used_hints = True
-        return HintResult(safe_cells=self._get_safe_cells()[:1])
+        return self._get_safe_cells()[0] if self._get_safe_cells() else None
 
     def _start_game_if_not_started(self):
         if self.status == "not_started":
@@ -103,7 +109,8 @@ class SingleplayerGameplay:
         if x < 0 or y < 0 or x >= self.grid.rows or y >= self.grid.columns:
             raise IndexError("Field out of bounds")
 
-    def reveal_one(self, x: int, y: int):
+    def reveal_one(self, cell: Cell) -> RevealedCell:
+        x, y = cell
         self._start_game_if_not_started()
         self._validate_coords(x, y)
         self._reset_revealed()
@@ -114,12 +121,6 @@ class SingleplayerGameplay:
         if self.game_mode == "hardcore":
             if (x, y) not in self._get_safe_cells():
                 self._finish_game("loss", LossCause(type="unsafe_move", cell=(x, y)))
-                return GameOverResult(
-                    result="loss",
-                    full_board=self.grid.grid,
-                    elapsed_time=self.elapsed_time,
-                    loss_cause=self.loss_cause,
-                )
 
         old_revealed = set(self.get_revealed_cells())
         self.grid.handle_field_click((x, y))
@@ -129,17 +130,10 @@ class SingleplayerGameplay:
         self._update_result(revealed_delta)
         self._update_revealed_cells(revealed_delta)
 
-        if self.result is not None:
-            return GameOverResult(
-                result=self.result,
-                full_board=self.grid.grid,
-                elapsed_time=self.elapsed_time,
-                loss_cause=self.loss_cause,
-            )
+        return x, y, self.grid.grid[x][y]
 
-        return RevealResult(revealed_cells=self.revealed_cells, game_status=self.status)
-
-    def reveal_many(self, x: int, y: int):
+    def reveal_many(self, cell: Cell) -> list[RevealedCell]:
+        x, y = cell
         self._start_game_if_not_started()
         self._validate_coords(x, y)
         self._reset_revealed()
@@ -164,15 +158,7 @@ class SingleplayerGameplay:
         self._update_result(revealed_delta)
         self._update_revealed_cells(revealed_delta)
 
-        if self.result is not None:
-            return GameOverResult(
-                result=self.result,
-                full_board=self.grid.grid,
-                elapsed_time=self.elapsed_time,
-                loss_cause=self.loss_cause,
-            )
-
-        return RevealResult(revealed_cells=self.revealed_cells, game_status=self.status)
+        return self.revealed_cells
 
     def _update_result(self, revealed_delta: list[Cell]):
         for x, y in revealed_delta:
@@ -213,18 +199,19 @@ class SingleplayerGameplay:
             start_field=self.start_field,
         )
 
-    def flag(self, x: int, y: int):
+    def flag(self, cell: Cell) -> None:
+        x, y = cell
         self._start_game_if_not_started()
         self._validate_coords(x, y)
 
         self.grid.flagged[x][y] = True
 
-        return FlagResult()
-
-    def remove_flag(self, x: int, y: int):
+    def remove_flag(self, cell: Cell) -> None:
+        x, y = cell
         self._start_game_if_not_started()
         self._validate_coords(x, y)
 
         self.grid.flagged[x][y] = False
 
-        return RemoveFlagResult()
+
+__all__ = ["SingleplayerGameplay"]

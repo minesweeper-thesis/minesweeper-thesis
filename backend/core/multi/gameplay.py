@@ -1,9 +1,10 @@
 import uuid
+from dataclasses import dataclass
 from typing import Callable, Optional
 
 from backend.core.board import Board
 from backend.core.game import *
-from backend.core.singleplayer import SingleplayerGameplay
+from backend.core.single.gameplay import SingleplayerGameplay
 
 
 @dataclass

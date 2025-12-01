@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
-from backend.core.singleplayer import SingleplayerGameplay
+from backend.core.single.gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
 
 from .exceptions import *

@@ -4,7 +4,7 @@ from typing import Literal, Optional
 from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 from pydantic import BaseModel
 
-from backend.core.singleplayer import SingleplayerGameplay
+from backend.core.single.gameplay import SingleplayerGameplay
 from backend.core.user import FriendRequest, FriendRequestStatus, User
 from backend.routers.schemas import Response
 

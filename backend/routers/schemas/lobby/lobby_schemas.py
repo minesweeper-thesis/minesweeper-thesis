@@ -3,7 +3,7 @@ from typing import Literal, Optional, Self
 
 from pydantic import BaseModel
 
-from backend.core.board import DifficultyLevel, GeneratorSettings, GeneratorType
+from backend.core.board import DifficultyLevel, GeneratorParams, GeneratorType
 from backend.core.game import GameMode
 from backend.core.lobby import *
 from backend.routers.schemas import Response
@@ -41,7 +41,7 @@ class UpdateGameConfigRequest(BaseModel):
     difficulty_level: DifficultyLevelRequest
     game_mode: GameMode
     generator_type: GeneratorType
-    generator_settings: Optional[GeneratorSettings] = None
+    generator_settings: Optional[GeneratorParams] = None
 
     def to_dto(self) -> GameConfig:
         return GameConfig(

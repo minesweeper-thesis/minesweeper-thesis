@@ -4,7 +4,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
-from backend.core.game import GameAction, GameActionResult
 from backend.core.multi.session import MultiplayerResult
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
@@ -13,12 +12,13 @@ from backend.routers.schemas.game import NewGameRequest, NewGameResponse
 from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions as service_exceptions
 from backend.services.multiplayer_service import MultiplayerGameTransport
-from backend.services.singleplayer_service import (
-    GenerationTimeout,
-    SingleplayerGameTransport,
-)
+from backend.services.single.game_actions import *
+from backend.services.single.singleplayer_service import GenerationTimeout
 
-SingleplayerService = Annotated[services.SingleplayerService, Depends()]
+CreateSingleplayerGameplayUseCase = Annotated[
+    services.CreateSingleplayerGameplayUseCase, Depends()
+]
+SingleplayerGameplayUseCase = Annotated[services.SingleplayerGameplayUseCase, Depends()]
 MultiplayerService = Annotated[services.MultiplayerService, Depends()]
 LobbyService = Annotated[services.LobbyService, Depends()]
 
@@ -41,7 +41,7 @@ game_router = APIRouter(tags=["game"])
 async def start_singleplayer_game(
     new_game_input: NewGameRequest,
     user: OptionalCurrentUser,
-    service: SingleplayerService,
+    service: CreateSingleplayerGameplayUseCase,
 ) -> NewGameResponse:
     gameplay_id = await service.create_singleplayer_gameplay(
         user, new_game_input.to_game_settings()
@@ -49,34 +49,53 @@ async def start_singleplayer_game(
     return NewGameResponse(gameplay_id=gameplay_id)
 
 
-class SingleplayerWebSocketTransport(SingleplayerGameTransport):
-    def __init__(self, websocket: WebSocket):
-        self.websocket = websocket
+async def handle(data, service: SingleplayerGameplayUseCase):
+    if data["type"] == "get_game_state":
+        return service.get_game_state()
 
-    async def receive_action(self) -> GameAction:
-        data = await self.websocket.receive_json()
-        return WSRequest.from_dict(data)
+    action = _create_action_from_data(data)
+    return await service.execute_action(action)
 
-    async def send(self, result: GameActionResult):
-        await self.websocket.send_text(create_game_notification(result))
 
-    async def close(self):
-        await self.websocket.close()
+def _create_action_from_data(data) -> GameAction:
+    match data["type"]:
+        case "reveal_one":
+            return RevealOneAction(cell=(data["x"], data["y"]))
+        case "reveal_many":
+            return RevealManyAction(cell=(data["x"], data["y"]))
+        case "flag":
+            return FlagAction(cell=(data["x"], data["y"]))
+        case "remove_flag":
+            return RemoveFlagAction(cell=(data["x"], data["y"]))
+        case "use_hint":
+            return UseHintAction()
+        case _:
+            raise ValueError(f"Unknown action type: {data['type']}")
 
 
 @game_router.websocket("/single/{gameplay_id}")
 async def play_single(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
-    service: SingleplayerService,
+    service: SingleplayerGameplayUseCase,
 ):
     try:
         await websocket.accept()
-        await service.load_gameplay(
-            gameplay_id, SingleplayerWebSocketTransport(websocket)
-        )
+        game_state = await service.load_gameplay(gameplay_id)
+        await websocket.send_text(create_game_notification(game_state))
 
-        await service.game_loop()
+        while True:
+            data = await websocket.receive_json()
+            result = await handle(data, service)
+
+            if result is not None:
+                await websocket.send_text(create_game_notification(result))
+
+            if await service.is_game_over():
+                await service.save_gameplay_progress()
+                break
+
+        await websocket.close()
 
     except WebSocketDisconnect:
         await service.save_gameplay_progress()
@@ -89,7 +108,7 @@ class MultiplayerWebSocketTransport(MultiplayerGameTransport):
     def __init__(self, websocket: WebSocket):
         self.websocket = websocket
 
-    async def receive(self) -> GameAction:
+    async def receive(self):
         data = await self.websocket.receive_json()
         return WSRequest.from_dict(data)
 

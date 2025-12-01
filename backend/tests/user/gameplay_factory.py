@@ -1,7 +1,9 @@
-import asyncio
 import uuid
 
 from backend.core.board import DifficultyLevel, GenerationSettings
+from backend.infra.board_generator import LocalBoardGenerator
+from backend.infra.pending_boards import get_pending_boards_store
+from backend.services.single.create_gameplay import CreateSingleplayerGameplayUseCase
 
 
 async def create_gameplay_via_service(user_id) -> uuid.UUID:
@@ -11,60 +13,41 @@ async def create_gameplay_via_service(user_id) -> uuid.UUID:
     from backend.db.db import async_session_maker
     from backend.repositories.board_repo import BoardRepository
     from backend.repositories.singleplayer_repo import SingleplayerRepository
-    from backend.services.singleplayer_service import (
+    from backend.services.single.singleplayer_service import (
         NewGameSettings,
-        SingleplayerService,
+        SingleplayerGameplayUseCase,
     )
 
     async with async_session_maker() as session:
         board_repo = BoardRepository(session)
         gp_repo = SingleplayerRepository(session)
 
-        # run generation synchronously in test to avoid background scheduling
-        class ImmediateBG:
-            def add_task(self, func, *a, **kw):
-                try:
-                    loop = asyncio.get_running_loop()
-                except RuntimeError:
-                    # No running loop: call directly (sync test case)
-                    return func(*a, **kw)
-                else:
-                    # We're inside an event loop (async test). Run the task
-                    # in a separate thread so that any inner `asyncio.run()`
-                    # calls inside `func` execute in a fresh loop without
-                    # conflicting with the running loop.
-                    from functools import partial
+        board_generator = LocalBoardGenerator(board_repo, BackgroundTasks())
 
-                    return loop.run_in_executor(None, partial(func, *a, **kw))
-
-        svc = SingleplayerService(board_repo, gp_repo, ImmediateBG())
+        create = CreateSingleplayerGameplayUseCase(
+            board_repo, gp_repo, board_generator, get_pending_boards_store()
+        )
+        play = SingleplayerGameplayUseCase(
+            board_repo, gp_repo, get_pending_boards_store()
+        )
 
         if isinstance(user_id, str):
             user_obj = type("U", (), {"id": uuid.UUID(user_id)})()
         else:
             user_obj = type("U", (), {"id": user_id})()
 
+        difficulty_level = DifficultyLevel(rows=2, columns=2, mine_count=0)
         settings = NewGameSettings(
             board_id=None,
-            generator=GenerationSettings(type="random", settings=None),
-            difficulty_level=DifficultyLevel(rows=2, columns=2, mine_count=0),
+            generator=GenerationSettings(
+                type="random", settings=None, difficulty_level=difficulty_level
+            ),
+            difficulty_level=difficulty_level,
             mode="normal",
         )
 
-        gameplay_id = await svc.create_singleplayer_gameplay(user_obj, settings)
+        gameplay_id = await create.create_singleplayer_gameplay(user_obj, settings)
 
-        # minimal transport to satisfy load_gameplay
-        class DummyTransport:
-            async def receive_action(self):
-                await asyncio.sleep(0)
-                return None
-
-            async def send(self, result):
-                return None
-
-            async def close(self):
-                return None
-
-        await svc.load_gameplay(gameplay_id, DummyTransport(), timeout=5.0)
+        await play.load_gameplay(gameplay_id, timeout=5.0)
 
         return gameplay_id

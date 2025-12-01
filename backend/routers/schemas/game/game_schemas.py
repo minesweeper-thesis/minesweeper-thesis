@@ -4,53 +4,8 @@ from typing import Literal, Optional, Self
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
-from backend.routers.schemas import Response, WSRequest
-
-
-class HintRequest(WSRequest):
-    ws_type: Literal["hint"] = "hint"
-
-    def parse(self) -> HintAction:
-        return HintAction()
-
-
-class CellGameActionRequest(WSRequest):
-    cell: tuple[int, int]
-
-
-class RevealOneRequest(CellGameActionRequest):
-    ws_type: Literal["reveal_one"] = "reveal_one"
-
-    def parse(self) -> RevealOneAction:
-        return RevealOneAction(self.cell)
-
-
-class RevealManyRequest(CellGameActionRequest):
-    ws_type: Literal["reveal_many"] = "reveal_many"
-
-    def parse(self) -> RevealManyAction:
-        return RevealManyAction(self.cell)
-
-
-class FlagRequest(CellGameActionRequest):
-    ws_type: Literal["flag"] = "flag"
-
-    def parse(self) -> FlagAction:
-        return FlagAction(self.cell)
-
-
-class RemoveFlagRequest(CellGameActionRequest):
-    ws_type: Literal["remove_flag"] = "remove_flag"
-
-    def parse(self) -> RemoveFlagAction:
-        return RemoveFlagAction(self.cell)
-
-
-class GameStateRequest(WSRequest):
-    ws_type: Literal["get_state"] = "get_state"
-
-    def parse(self) -> GameStateAction:
-        return GameStateAction()
+from backend.routers.schemas import Response
+from backend.services.dto import *
 
 
 class RevealResponse(Response):
