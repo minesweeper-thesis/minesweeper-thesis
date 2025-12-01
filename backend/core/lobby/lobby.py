@@ -77,31 +77,8 @@ class Lobby:
 
         return GameConfigUpdated(lobby_id=self.id, game_config=new_config)
 
-
-class Invitation:
-    id: uuid.UUID
-    lobby: Lobby
-    inviter: User
-    invitee: User
-
-    def __init__(self, id: uuid.UUID, lobby: Lobby, inviter: User, invitee: User):
-        self.id = id
-        self.lobby = lobby
-        self.inviter = inviter
-        self.invitee = invitee
-
-    def __eq__(self, value: object) -> bool:
-        if not isinstance(value, Invitation):
-            return False
-        return self.id == value.id
+    def reset_ready_for_new_session(self):
+        self._ready_users.clear()
 
 
-@dataclass
-class InvitationAnswer:
-    invitation: Invitation
-    answer: Literal["accepted", "rejected"]
-
-
-@dataclass
-class InvitationsQuery:
-    pass
+__all__ = ["Lobby", "ChatMessage", "UserConnectionUpdated"]

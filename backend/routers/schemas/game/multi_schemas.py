@@ -3,27 +3,8 @@ from typing import Literal, Self
 
 from backend.core.game import *
 from backend.core.multi.round import RoundEnd, RoundStart
-from backend.core.multi.session import (
-    CancelReadyMessage,
-    ReadyMessage,
-    RoundAwaiting,
-    SessionOver,
-)
-from backend.routers.schemas import Response, WSRequest
-
-
-class ReadyRequest(WSRequest):
-    ws_type: Literal["ready"] = "ready"
-
-    def parse(self) -> "ReadyMessage":
-        return ReadyMessage()
-
-
-class CancelReadyRequest(WSRequest):
-    ws_type: Literal["not_ready"] = "not_ready"
-
-    def parse(self) -> "CancelReadyMessage":
-        return CancelReadyMessage()
+from backend.core.multi.session import RoundStartAwaiting, SessionOver
+from backend.routers.schemas import Response
 
 
 class RoundStartResponse(Response):
@@ -76,7 +57,7 @@ class GameReadyResponse(Response):
     start_at: int
 
     @classmethod
-    def build(cls, message: "RoundAwaiting") -> Self:
+    def build(cls, message: "RoundStartAwaiting") -> Self:
         return cls(
             session_id=message.session_id,
             round=message.round,

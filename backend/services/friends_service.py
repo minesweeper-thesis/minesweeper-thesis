@@ -8,9 +8,9 @@ from fastapi_pagination import Params
 import backend.repositories.exceptions as repo_exceptions
 from backend import repositories
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
+from backend.infra.notification_system import NotificationSystem as Notifications
+from backend.infra.notification_system import get_notification_system
 from backend.lib.auth import CurrentUser
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
 from backend.services.exceptions import *
 
 FriendsRepository = Annotated[repositories.FriendsRepository, Depends()]
@@ -131,3 +131,6 @@ class FriendsService:
 
         except repo_exceptions.FriendshipNotFound:
             raise UsersNotFriends() from None
+
+
+__all__ = ["FriendsService"]

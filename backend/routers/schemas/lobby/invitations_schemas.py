@@ -4,6 +4,7 @@ from typing import Literal, Self
 from pydantic import BaseModel
 
 from backend.core.lobby import *
+from backend.core.multi import GameConfig
 from backend.routers.schemas import Response, WSRequest
 
 from ..user_schemas import UserResponse

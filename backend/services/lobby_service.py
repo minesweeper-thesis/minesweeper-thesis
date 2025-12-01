@@ -7,11 +7,13 @@ from fastapi_pagination import Params
 
 from backend import repositories
 from backend.core import lobby
+from backend.core.board import DifficultyLevel
 from backend.core.game import *
 from backend.core.lobby import *
+from backend.core.multi import *
 from backend.core.user import User
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
+from backend.infra.notification_system import NotificationSystem as Notifications
+from backend.infra.notification_system import get_notification_system
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
 
@@ -223,3 +225,6 @@ class LobbyService:
         user: User,
     ) -> list[Invitation]:
         return self.lobby_repo.get_pending_invitations(user)
+
+
+__all__ = ["LobbyService"]

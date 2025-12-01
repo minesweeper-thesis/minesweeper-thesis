@@ -38,3 +38,6 @@ class UserService:
         return await self.singleplayer_repo.get_gameplays(
             self.user.id, pagination_params
         )
+
+
+__all__ = ["UserService"]

@@ -6,9 +6,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from backend.core.game import *
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
+from backend.services.protocols import Scheduler
 
 
-class AsyncScheduler:
+class AsyncScheduler(Scheduler):
     def __init__(self):
         self._scheduler = BackgroundScheduler()
         self._scheduler.start()
@@ -51,3 +52,7 @@ class AsyncScheduler:
 
 
 async_scheduler = AsyncScheduler()
+
+
+def get_scheduler() -> Scheduler:
+    return async_scheduler

@@ -3,7 +3,7 @@ import time
 import uuid
 from typing import Optional
 
-from backend.services.protocols.pending_gameplays_store_protocol import (
+from backend.services.protocols.pending_boards_store_protocol import (
     GameplayOrSessionID,
     PendingBoardsStore,
 )

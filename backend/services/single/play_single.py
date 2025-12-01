@@ -7,23 +7,23 @@ from fastapi_pagination import Params
 from backend import repositories
 from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
+from backend.infra.pending_boards import get_pending_boards_store
 from backend.lib.auth import CurrentUser
 from backend.repositories.exceptions import *
 from backend.services import protocols
 from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.single.game_actions import GameAction, GameActionResult
+from backend.services.single.single_exceptions import GenerationTimeout
 
 SingleplayerRepository = Annotated[repositories.SingleplayerRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
-PendingGameplaysStore = Annotated[protocols.PendingBoardsStore, Depends()]
+PendingGameplaysStore = Annotated[
+    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
+]
 
 
-class GenerationTimeout(Exception):
-    pass
-
-
-class SingleplayerGameplayUseCase:
+class PlaySingleUseCase:
     def __init__(
         self,
         board_repo: BoardRepository,
@@ -107,4 +107,4 @@ class SingleplayerGameplayUseCase:
         await self.game_repo.update_gameplay(self.gameplay)
 
 
-__all__ = ["SingleplayerGameplayUseCase", "GenerationTimeout"]
+__all__ = ["PlaySingleUseCase", "GenerationTimeout"]

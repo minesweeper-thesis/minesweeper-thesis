@@ -20,3 +20,6 @@ class GameConfig:
 class GameConfigUpdated:
     lobby_id: uuid.UUID
     game_config: GameConfig
+
+
+__all__ = ["GameConfig", "GameConfigUpdated"]

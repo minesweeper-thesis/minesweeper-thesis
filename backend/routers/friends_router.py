@@ -4,9 +4,9 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params
 
-import backend.services.exceptions as service_exceptions
 from backend import services
 from backend.lib.auth import CurrentUser
+from backend.services import exceptions
 
 from .schemas.user_schemas import *
 
@@ -14,20 +14,16 @@ PaginationParams = Annotated[Params, Depends()]
 FriendsService = Annotated[services.FriendsService, Depends()]
 
 friends_exceptions = {
-    service_exceptions.UsersNotFriends: HTTPException(400, "Users are not friends"),
-    service_exceptions.FriendRequestNotExists: HTTPException(
-        404, "Friend request not found"
-    ),
-    service_exceptions.UsersAlreadyFriends: HTTPException(
-        400, "Users are already friends"
-    ),
-    service_exceptions.FriendRequestAlreadySent: HTTPException(
+    exceptions.UsersNotFriends: HTTPException(400, "Users are not friends"),
+    exceptions.FriendRequestNotExists: HTTPException(404, "Friend request not found"),
+    exceptions.UsersAlreadyFriends: HTTPException(400, "Users are already friends"),
+    exceptions.FriendRequestAlreadySent: HTTPException(
         400, "Friend request already exists"
     ),
-    service_exceptions.CannotFriendRequestYourself: HTTPException(
+    exceptions.CannotFriendRequestYourself: HTTPException(
         400, "Cannot send friend request to oneself"
     ),
-    service_exceptions.RequestedFriendNotExists: HTTPException(
+    exceptions.RequestedFriendNotExists: HTTPException(
         404, "Requested friend not found"
     ),
 }

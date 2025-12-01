@@ -47,3 +47,17 @@ class GameplayAlreadyFinished(Exception):
 
 class GameplayNotExists(Exception):
     pass
+
+
+__all__ = [
+    "UsersNotFriends",
+    "FriendRequestNotExists",
+    "FriendRequestAlreadySent",
+    "UsersAlreadyFriends",
+    "CannotFriendRequestYourself",
+    "BoardNotExists",
+    "RequestedFriendNotExists",
+    "SolvedAllBoards",
+    "GameplayAlreadyFinished",
+    "GameplayNotExists",
+]

@@ -55,3 +55,6 @@ class StatsService:
         return await self.repo.get_friends_user_ranking(
             user.id, difficulty_level, sort_by, pagination_params
         )
+
+
+__all__ = ["StatsService"]

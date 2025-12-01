@@ -30,7 +30,7 @@ def create_notification(data: Any) -> str:
         Invitation: InvitationResponse,
         InvitationAnswer: InvitationAnswerResponse,
         UserConnectionUpdated: UserConnectionStatusResponse,
-        RoundAwaiting: GameReadyResponse,
+        RoundStartAwaiting: GameReadyResponse,
         ChatMessage: ChatMessageResponse,
         FriendRequest: FriendRequestResponse,
     }
@@ -41,14 +41,14 @@ def create_notification(data: Any) -> str:
     return mapping[type(data)].create(data, include_ws_type=True)
 
 
-type Notifiable = RoundStart | RoundEnd | RoundAwaiting | RoundReadyCanceled | SessionOver | GameActionResult | GameState
+type Notifiable = RoundStart | RoundEnd | RoundStartAwaiting | RoundStartCanceled | SessionOver | GameActionResult | GameState
 
 
 def create_game_notification(
     data: Notifiable,
 ) -> str:
     mapping: dict[type[Notifiable], type[Response]] = {
-        RoundAwaiting: GameReadyResponse,
+        RoundStartAwaiting: GameReadyResponse,
         SessionOver: SessionOverResponse,
         RoundStart: RoundStartResponse,
         RoundEnd: RoundEndResponse,

@@ -1,38 +1,34 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
+from backend.infra.notification_system import create_game_notification
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
-from backend.lib.notification_system import create_game_notification
-from backend.routers.schemas import WSRequest
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
 from backend.routers.websockets.websockets_registry import multi_websockets
-from backend.services import exceptions as service_exceptions
-from backend.services.multiplayer_service import (
-    MultiplayerGameTransport,
-    MultiplayerResult,
-)
+from backend.services import exceptions
 from backend.services.single.game_actions import *
-from backend.services.single.singleplayer_service import GenerationTimeout
+from backend.services.single.single_exceptions import GenerationTimeout
 
 CreateSingleplayerGameplayUseCase = Annotated[
     services.CreateSingleplayerGameplayUseCase, Depends()
 ]
-SingleplayerGameplayUseCase = Annotated[services.SingleplayerGameplayUseCase, Depends()]
-MultiplayerService = Annotated[services.MultiplayerService, Depends()]
+PlaySingleUseCase = Annotated[services.PlaySingleUseCase, Depends()]
+PlayMultiUseCase = Annotated[services.PlayMultiUseCase, Depends()]
+StartRoundUseCase = Annotated[services.StartRoundUseCase, Depends()]
 LobbyService = Annotated[services.LobbyService, Depends()]
 
 game_exceptions = {
-    service_exceptions.BoardNotExists: HTTPException(404, "Board not found"),
-    service_exceptions.SolvedAllBoards: HTTPException(
+    exceptions.BoardNotExists: HTTPException(404, "Board not found"),
+    exceptions.SolvedAllBoards: HTTPException(
         400, "User solved all boards for this difficulty type"
     ),
-    service_exceptions.GameplayAlreadyFinished: HTTPException(
+    exceptions.GameplayAlreadyFinished: HTTPException(
         400, "Gameplay is already finished"
     ),
-    service_exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
+    exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
 }
 
 
@@ -51,7 +47,7 @@ async def start_singleplayer_game(
     return NewGameResponse(gameplay_id=gameplay_id)
 
 
-async def handle(data, service: SingleplayerGameplayUseCase):
+async def handle(data, service: PlaySingleUseCase):
     if data["type"] == "get_game_state":
         return service.get_game_state()
 
@@ -79,7 +75,7 @@ def _create_action_from_data(data) -> GameAction:
 async def play_single(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
-    service: SingleplayerGameplayUseCase,
+    service: PlaySingleUseCase,
 ):
     try:
         await websocket.accept()
@@ -106,39 +102,74 @@ async def play_single(
         await websocket.close(code=1001, reason="Board generation timeout")
 
 
-class MultiplayerWebSocketTransport(MultiplayerGameTransport):
-    def __init__(self, websocket: WebSocket):
-        self.websocket = websocket
+async def handle_multi(
+    user,
+    session_id,
+    data,
+    play: PlayMultiUseCase,
+    start_round: StartRoundUseCase,
+):
+    match data["type"]:
+        case "get_state":
+            play.get_game_state()
+            return [(user.id, play.get_game_state())]
 
-    async def receive(self):
-        data = await self.websocket.receive_json()
-        return WSRequest.from_dict(data)
+        case "ready":
+            await start_round.set_user_ready(session_id, user)
 
-    async def send(self, user_id: uuid.UUID, result: MultiplayerResult):
-        if user_id in multi_websockets._websockets:
-            websocket = multi_websockets.get(user_id)
-            response = create_game_notification(result)
-            await websocket.send_text(response)
+        case _:
+            action = _create_action_from_data_multi(data)
+            await play.execute_action(action)
 
-    async def close(self):
-        await self.websocket.close()
+    return play.collect_messages()
+
+
+def _create_action_from_data_multi(data) -> GameAction:
+    match data["type"]:
+        case "reveal_one":
+            return RevealOneAction(cell=(data["x"], data["y"]))
+        case "reveal_many":
+            return RevealManyAction(cell=(data["x"], data["y"]))
+        case "flag":
+            return FlagAction(cell=(data["x"], data["y"]))
+        case "remove_flag":
+            return RemoveFlagAction(cell=(data["x"], data["y"]))
+        case _:
+            raise ValueError(f"Unknown action type: {data['type']}")
+
+
+async def send(user_id: uuid.UUID, message: Any):
+    if user_id in multi_websockets._websockets:
+        websocket = multi_websockets.get(user_id)
+        response = create_game_notification(message)
+        await websocket.send_text(response)
 
 
 @game_router.websocket("/multi/{session_id}")
 async def play_multi(
     session_id: uuid.UUID,
     websocket: WebSocket,
-    service: MultiplayerService,
+    play: PlayMultiUseCase,
+    start: StartRoundUseCase,
     user: CurrentUserWebSocket,
 ):
     try:
         await websocket.accept()
         multi_websockets.add(user.id, websocket)
-        transport = MultiplayerWebSocketTransport(websocket)
 
-        await service.set_session(session_id, user, transport)
+        await play.set_session(session_id, user)
 
-        await service.session_loop()
+        while True:
+            data = await websocket.receive_json()
+            messages = await handle_multi(user, session_id, data, play, start)
+
+            for user_id, message in messages:
+                await send(user_id, message)
+
+            if play.is_session_over():
+                break
+
+        await websocket.close()
 
     except WebSocketDisconnect:
         multi_websockets.remove(user.id)
