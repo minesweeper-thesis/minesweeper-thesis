@@ -45,7 +45,7 @@ export default function MultiGamePage() {
     }
 
     return (
-        <div className="w-full flex justify-center bg-bg-primary text-text-primary p-6">
+        <div className="w-full flex justify-center text-text-primary p-6">
             <div className="w-full max-w-6xl flex flex-col gap-6">
                 {/* HEADER */}
                 <div className="flex justify-between items-center mb-6 gap-4 flex-wrap">
@@ -63,7 +63,7 @@ export default function MultiGamePage() {
                 <div className="flex flex-col md:flex-row gap-6">
                     {/* BOARD */}
                     <div className="flex-1">
-                        <div className="bg-bg-secondary border border-border-primary rounded-xl shadow p-4 relative">
+                        <div className="rounded-xl p-4 relative">
                             {/* Controls in multi mode */}
                             <Controls
                                 mode={"multi"}

@@ -1,7 +1,6 @@
 .controls-container {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 1.2rem;
     background-color: var(--bg-primary);
     border: 1px solid var(--border-primary);
