@@ -21,6 +21,14 @@ class UserConnectionUpdated:
     status: Literal["connected", "disconnected"]
 
 
+@dataclass
+class ChatMessage:
+    lobby_id: uuid.UUID
+    sender: User
+    content: str
+    timestamp: int
+
+
 class Lobby:
     id: uuid.UUID
     host: User

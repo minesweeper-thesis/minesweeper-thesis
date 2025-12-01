@@ -31,6 +31,7 @@ export const FriendsProvider = ({ children }) => {
         });
         if (!res.ok) {
             const text = await res.text();
+            console.log("text: ", text);
             throw new Error(text || res.statusText);
         }
         return res.json();
@@ -38,9 +39,12 @@ export const FriendsProvider = ({ children }) => {
 
     const loadFriends = useCallback(
         async (page = 1) => {
-            if(!user){
+            if(user != null){
+                console.log("user niezalogowanuweneu")
                 return;
             }
+            console.log("user zalogowanuweneu")
+
             setLoading(true);
             try {
                 const data = await authFetch(`api/friends?page=${page}`);
@@ -58,9 +62,12 @@ export const FriendsProvider = ({ children }) => {
 
     const loadRequests = useCallback(
         async (page = 1) => {
-            if(!user){
+            if(user != null){
+                console.log(user)
+                console.log("user niezalogowanuweneu")
                 return;
             }
+            console.log("user zalogowanuweneu")
             setLoading(true);
             try {
                 const [pending, sent] = await Promise.all([
@@ -87,7 +94,7 @@ export const FriendsProvider = ({ children }) => {
 
     useEffect(() => {
         reload();
-    }, []);
+    }, [user]);
 
     const sendFriendRequest = async (friendId) => {
         await authFetch(`api/friend-requests`, {

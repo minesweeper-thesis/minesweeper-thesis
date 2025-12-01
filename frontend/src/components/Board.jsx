@@ -17,7 +17,9 @@ const Board = forwardRef(function Board(
         setBoard(
             null
         );
-        setMines(boardData.mineCount);
+        if (boardData.mineCount) {
+            setMines(boardData);
+        }
     }, [boardData.rows, boardData.cols, boardData.mineCount, setMines]);
 
 

@@ -29,7 +29,7 @@ const Navbar = ({ children }) => {
 
     const navigation = [
         { path: '/', icon: Play, label: 'Game', requiresAuth: false },
-        { path: '/game', icon: Play, label: 'Multi', requiresAuth: true },
+        { path: '/lobby', icon: Play, label: 'Multi', requiresAuth: true },
         { path: '/friends', icon: Users, label: 'Friends', requiresAuth: true },
         { path: '/stats', icon: BarChart3, label: 'Statistics', requiresAuth: false },
         { path: '/settings', icon: Settings, label: 'Settings', requiresAuth: true },

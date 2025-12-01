@@ -131,8 +131,8 @@ async def get_chat_messages(
     lobby_id: uuid.UUID,
     user: CurrentUser,
     service: LobbyService,
-    params: PaginationParams,
+    pagination_params: PaginationParams,
 ):
     """Retrieves chat messages from the lobby."""
-    messages = await service.get_chat_messages(lobby_id, user, params)
+    messages = await service.get_chat_messages(lobby_id, user, pagination_params)
     return [ChatMessageResponse.build(message) for message in messages]
