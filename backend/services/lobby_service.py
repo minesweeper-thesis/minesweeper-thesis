@@ -117,9 +117,19 @@ class LobbyService:
         invitation_id: uuid.UUID,
         notify: Notify,
     ):
-        user_lobbies = self.lobby_repo.get_user_lobbies(user)
-        if user_lobbies:
-            raise ValueError("User is already in a lobby")
+        user_lobby = self.lobby_repo.get_user_lobbies(user)
+        if user_lobby:
+            lobby_to_leave = user_lobby[0]
+            lobby_to_leave.remove_user(user)
+            if lobby_to_leave.is_empty():
+                self.lobby_repo.delete_lobby(lobby_to_leave.id)
+            else:
+                self.lobby_repo.save_lobby(lobby_to_leave)
+                data = UserConnectionUpdated(
+                    user=user, status="disconnected", lobby_id=lobby_to_leave.id
+                )
+                for lobby_user in lobby_to_leave.users:
+                    await notify(lobby_user.id, data)
 
         invitation = self.lobby_repo.get_invitation(invitation_id)
         lobby = invitation.lobby
