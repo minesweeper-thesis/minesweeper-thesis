@@ -1,54 +1,57 @@
 import os
-from pathlib import Path
+import tempfile
 
 import pytest
+from fastapi.testclient import TestClient
+from sqlalchemy import text
+
+# Use a unique temp file for each test session
+_test_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+_test_db_path = _test_db_file.name
+_test_db_file.close()
+
+# SQLite with check_same_thread=False for async access and timeout
+os.environ["DATABASE_URL"] = (
+    f"sqlite+aiosqlite:///{_test_db_path}?check_same_thread=False&timeout=30"
+)
+
+from backend.db.db import engine
+from backend.main import app
+from backend.repositories.orm import Base
 
 
 @pytest.fixture(scope="session", autouse=True)
 def test_db():
-    """Set DATABASE_URL to a shared test DB file `backend/tests/test.db`.
+    """Database fixture - create tables once for the session."""
+    import asyncio
 
-    This fixture runs once per test session and ensures the env var is set
-    before the app is imported by tests. It also removes the DB file after
-    the session.
-    """
-    db_path = Path(__file__).parent / "test.db"
-    url = f"sqlite+aiosqlite:///{db_path}"
-    prev = os.environ.get("DATABASE_URL")
-    os.environ["DATABASE_URL"] = url
+    async def init():
+        async with engine.begin() as conn:
+            # Enable WAL mode for better concurrency
+            await conn.execute(text("PRAGMA journal_mode=WAL"))
+            await conn.execute(text("PRAGMA busy_timeout=30000"))
+            await conn.run_sync(Base.metadata.drop_all)
+            await conn.run_sync(Base.metadata.create_all)
 
-    # Ensure a clean DB at start
+    asyncio.run(init())
+    yield
+
+    async def cleanup():
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+
+    asyncio.run(cleanup())
+
     try:
-        if db_path.exists():
-            db_path.unlink()
-    except Exception:
+        os.unlink(_test_db_path)
+        # Clean up WAL files too
+        os.unlink(_test_db_path + "-wal")
+        os.unlink(_test_db_path + "-shm")
+    except:
         pass
-
-    yield db_path
-
-    # Cleanup after all tests
-    try:
-        if db_path.exists():
-            db_path.unlink()
-    except Exception:
-        pass
-
-    # restore env
-    if prev is None:
-        os.environ.pop("DATABASE_URL", None)
-    else:
-        os.environ["DATABASE_URL"] = prev
 
 
 @pytest.fixture
 def client(test_db):
-    # Import app after DATABASE_URL is configured by test_db
-    from fastapi.testclient import TestClient
-
-    from backend.main import app
-
-    # Use https base_url so cookies with the `Secure` attribute are sent by
-    # TestClient. fastapi-users sets cookies as Secure, so using http causes
-    # the test client to omit them and authentication fails.
     with TestClient(app, base_url="https://testserver") as c:
         yield c

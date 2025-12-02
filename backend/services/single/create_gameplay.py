@@ -8,6 +8,8 @@ from backend.core.board import Board
 from backend.core.game import *
 from backend.core.single.gameplay import SingleplayerGameplay
 from backend.core.user import User
+from backend.infra.board_generator import LocalBoardGenerator
+from backend.infra.pending_boards import get_pending_boards_store
 from backend.lib.auth import OptionalCurrentUser
 from backend.repositories.exceptions import *
 from backend.services import protocols
@@ -21,8 +23,10 @@ SingleplayerRepository = Annotated[
 BoardRepository = Annotated[
     protocols.BoardRepository, Depends(repositories.BoardRepository)
 ]
-BoardGenerator = Annotated[protocols.BoardGenerator, Depends()]
-PendingGameplaysStore = Annotated[protocols.PendingBoardsStore, Depends()]
+BoardGenerator = Annotated[protocols.BoardGenerator, Depends(LocalBoardGenerator)]
+PendingGameplaysStore = Annotated[
+    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
+]
 
 
 class CreateSingleplayerGameplayUseCase:

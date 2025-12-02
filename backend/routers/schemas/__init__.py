@@ -44,6 +44,11 @@ class WSRequest(ABC, BaseModel):
             for action_cls in cls._registry
         )
 
-        adapter = TypeAdapter(Annotated[Union[union_types], Discriminator("ws_type")])  # type: ignore[var-annotated]
-        request = adapter.validate_python(data)
+        if len(union_types) == 1:
+            actual_cls = cls._registry[0]
+            request = actual_cls.model_validate(data)
+        else:
+            union_type = Union[union_types]  # type: ignore[valid-type]
+            adapter = TypeAdapter(Annotated[union_type, Discriminator("ws_type")])  # type: ignore[var-annotated]
+            request = adapter.validate_python(data)
         return request.parse()

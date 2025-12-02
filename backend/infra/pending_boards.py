@@ -83,9 +83,21 @@ class InMemoryPendingStore(PendingBoardsStore):
             self._expires_at.pop(gid, None)
             self._ready.pop(gid, None)
 
+    def clear_all(self):
+        """Clear all pending data - for testing purposes."""
+        self._store.clear()
+        self._expires_at.clear()
+        self._ready.clear()
+
 
 _pending_store: PendingBoardsStore = InMemoryPendingStore()
 
 
 def get_pending_boards_store() -> PendingBoardsStore:
     return _pending_store
+
+
+def clear_pending_boards_store():
+    """Clear the pending store - for testing purposes."""
+    if hasattr(_pending_store, "clear_all"):
+        _pending_store.clear_all()

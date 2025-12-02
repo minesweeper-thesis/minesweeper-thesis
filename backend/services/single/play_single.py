@@ -1,4 +1,5 @@
 import uuid
+from contextlib import suppress
 from typing import Annotated, Optional
 
 from fastapi import Depends
@@ -79,11 +80,14 @@ class PlaySingleUseCase:
     async def get_gameplays(self, user: CurrentUser, pagination_params: Params):
         return await self.game_repo.get_gameplays(user.id, pagination_params)
 
-    async def execute_action(self, action: GameAction) -> GameActionResult:
+    async def execute_action(self, action: GameAction) -> Optional[GameActionResult]:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
-        return action.execute(self.gameplay)
+        with suppress(InvalidAction):
+            return action.execute(self.gameplay)
+
+        return None
 
     def get_game_state(self) -> GameState:
         if self.gameplay is None:
