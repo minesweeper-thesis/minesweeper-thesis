@@ -40,8 +40,9 @@ async def create_session(
         mode=game_config.game_mode,
         max_round_time=game_config.max_round_time,
         player_ids=player_ids,
-        rounds=rounds,
         clock=clock,
+        rounds_number=game_config.rounds,
+        rounds=rounds,
     )
 
 

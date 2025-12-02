@@ -4,9 +4,9 @@ import threading
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from backend.core.game import *
+from backend.protocols import Scheduler
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
-from backend.services.protocols import Scheduler
 
 
 class AsyncScheduler(Scheduler):

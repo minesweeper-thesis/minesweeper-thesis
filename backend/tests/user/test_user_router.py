@@ -210,8 +210,8 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
             board = Board(
                 id=uuid.uuid4(),
                 difficulty_level=difficulty,
-                minefields=[(0, 0)],
-                start_field=(1, 1),
+                _minefields=[(0, 0)],
+                _start_field=(1, 1),
                 generation_settings=GenerationSettings(
                     type="random", settings=None, difficulty_level=difficulty
                 ),

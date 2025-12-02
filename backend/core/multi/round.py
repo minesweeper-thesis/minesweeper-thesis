@@ -134,7 +134,7 @@ class MultiplayerRound:
             round=self.round_number,
             start_at=self.start_at,
             end_at=self.end_at,
-            start_field=self.board.start_field,
+            start_field=self.board.get_start_field(),
         )
 
     def end(self):

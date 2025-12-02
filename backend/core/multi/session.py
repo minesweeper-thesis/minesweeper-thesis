@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, Awaitable, Callable
+from typing import Any
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
@@ -24,8 +24,6 @@ ROUND_START_DELAY = timedelta(seconds=10)
 
 
 class MultiplayerSession:
-    send_data: Callable[[Any], Awaitable[None]]
-
     def __init__(
         self,
         id: uuid.UUID,
@@ -33,19 +31,24 @@ class MultiplayerSession:
         mode: GameMode,
         max_round_time: int,
         player_ids: list[uuid.UUID],
-        rounds: list[MultiplayerRound],
         clock: Clock,
+        rounds_number: int,
+        rounds: list[MultiplayerRound] = [],
     ):
         self.id = id
         self.difficulty_level = difficulty_level
         self.mode = mode
         self.max_round_time = max_round_time
         self.player_ids = player_ids
-        self.rounds = rounds
+        self.rounds_number = rounds_number
+        self.rounds: list[MultiplayerRound] = rounds
         self.current_round_index = -1
         self.clock = clock
 
         self.events: list[Any] = []
+
+    def add_round(self, round: MultiplayerRound):
+        self.rounds.append(round)
 
     @property
     def _current_round(self) -> MultiplayerRound:

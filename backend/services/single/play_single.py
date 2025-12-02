@@ -5,13 +5,12 @@ from typing import Annotated, Optional
 from fastapi import Depends
 from fastapi_pagination import Params
 
-from backend import repositories
+from backend import protocols, repositories
 from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
-from backend.infra.pending_boards import get_pending_boards_store
 from backend.lib.auth import CurrentUser
+from backend.lib.pending_boards import get_pending_boards_store
 from backend.repositories.exceptions import *
-from backend.services import protocols
 from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.single.game_actions import GameAction, GameActionResult

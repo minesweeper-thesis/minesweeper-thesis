@@ -1,6 +1,6 @@
 import pytest
 
-from backend.infra.pending_boards import clear_pending_boards_store
+from backend.lib.pending_boards import clear_pending_boards_store
 from backend.tests.utils.helpers import AuthFixture
 
 

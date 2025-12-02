@@ -51,8 +51,8 @@ def _create_board_sync(rows=5, columns=5, mine_count=2) -> tuple[str, tuple[int,
                     board = Board(
                         id=uuid.uuid4(),
                         difficulty_level=difficulty,
-                        minefields=minefields,
-                        start_field=start_field,
+                        _minefields=minefields,
+                        _start_field=start_field,
                         generation_settings=GenerationSettings(
                             type="random", settings=None, difficulty_level=difficulty
                         ),

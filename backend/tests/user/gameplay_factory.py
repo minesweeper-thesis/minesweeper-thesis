@@ -5,8 +5,8 @@ from fastapi import BackgroundTasks
 from backend.core.board import DifficultyLevel, GenerationSettings
 from backend.core.user import User
 from backend.db.db import async_session_maker
-from backend.infra.board_generator import LocalBoardGenerator
-from backend.infra.pending_boards import get_pending_boards_store
+from backend.lib.board_generator import LocalBoardGenerator
+from backend.lib.pending_boards import get_pending_boards_store
 from backend.repositories.board_repo import BoardRepository
 from backend.repositories.singleplayer_repo import SingleplayerRepository
 from backend.services.single.create_gameplay import CreateSingleplayerGameplayUseCase

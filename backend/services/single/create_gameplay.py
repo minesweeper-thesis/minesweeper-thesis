@@ -3,16 +3,15 @@ from typing import Annotated, Optional
 
 from fastapi import Depends
 
-from backend import repositories
+from backend import protocols, repositories
 from backend.core.board import Board
 from backend.core.game import *
 from backend.core.single.gameplay import SingleplayerGameplay
 from backend.core.user import User
-from backend.infra.board_generator import LocalBoardGenerator
-from backend.infra.pending_boards import get_pending_boards_store
 from backend.lib.auth import OptionalCurrentUser
+from backend.lib.board_generator import LocalBoardGenerator
+from backend.lib.pending_boards import get_pending_boards_store
 from backend.repositories.exceptions import *
-from backend.services import protocols
 from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.single.pending_boards import PendingBoardMetadata

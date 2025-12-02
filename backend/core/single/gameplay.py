@@ -36,9 +36,9 @@ class SingleplayerGameplay(Gameplay):
         self.grid = Grid(
             rows=board.difficulty_level.rows,
             columns=board.difficulty_level.columns,
-            mined_fields=board.minefields,
+            mined_fields=board.get_minefields(),
         )
-        self.start_field = board.start_field
+        self.start_field = board.get_start_field()
 
         self.status: GameStatus = status
         self.result: Optional[GameResult] = result
@@ -73,6 +73,9 @@ class SingleplayerGameplay(Gameplay):
         return self._get_safe_cells()[0] if self._get_safe_cells() else None
 
     def _start_game_if_not_started(self):
+        if not self.board.is_generated:
+            raise RuntimeError("Board is not generated yet")
+
         if self.status == "not_started":
             self.status = "in_progress"
 

@@ -5,9 +5,11 @@ from typing import Annotated, Any, Awaitable
 
 from fastapi import BackgroundTasks, Depends
 
-from backend import repositories
+from backend import protocols, repositories
+from backend.core.board import GenerationSettings
 from backend.core.game import *
 from backend.core.lobby import create_session
+from backend.core.multi.config import GameConfig
 from backend.core.multi.round import RoundEnd, RoundStart
 from backend.core.multi.session import (
     Clock,
@@ -16,15 +18,17 @@ from backend.core.multi.session import (
     SessionOver,
 )
 from backend.core.user import User
-from backend.infra.notification_system import NotificationSystem as Notifications
-from backend.infra.notification_system import get_notification_system
-from backend.infra.scheduler import get_scheduler
-from backend.infra.websocket_game_transport import WebSocketGameTransport
+from backend.lib.board_generator import LocalBoardGenerator
+from backend.lib.notification_system import NotificationSystem as Notifications
+from backend.lib.notification_system import get_notification_system
+from backend.lib.pending_boards import get_pending_boards_store
+from backend.lib.scheduler import get_scheduler
+from backend.lib.websocket_game_transport import WebSocketGameTransport
 from backend.repositories.exceptions import *
-from backend.services import protocols
 from backend.services.dto import GameActionResult
 from backend.services.exceptions import *
 from backend.services.multi.round_orchiestrator import RoundOrchestrator
+from backend.services.single.pending_boards import PendingBoardMetadata
 
 MultiplayerRepository = Annotated[
     protocols.MultiplayerRepository, Depends(repositories.MultiplayerRepository)
@@ -38,6 +42,10 @@ NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
 Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
 GameTransport = Annotated[
     protocols.GameTransport, Depends(lambda: WebSocketGameTransport())
+]
+BoardGenerator = Annotated[protocols.BoardGenerator, Depends(LocalBoardGenerator)]
+PendingGameplaysStore = Annotated[
+    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
 ]
 
 
@@ -65,6 +73,8 @@ class CreateMultiplayerSessionUseCase:
         notification_system: NotificationSystem,
         scheduler: Scheduler,
         game_transport: GameTransport,
+        board_generator: BoardGenerator,
+        pending_store: PendingGameplaysStore,
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -73,6 +83,8 @@ class CreateMultiplayerSessionUseCase:
         self.notification_system = notification_system
         self.scheduler = scheduler
         self.game_transport = game_transport
+        self.board_generator = board_generator
+        self.pending_store = pending_store
 
     async def set_user_ready_in_lobby(
         self,
@@ -114,6 +126,8 @@ class CreateMultiplayerSessionUseCase:
             lobby.reset_ready_for_new_session()
             self.session = await create_session(session_id, lobby, ClockImpl())
 
+            # for _ in range(self.session.rounds_number):
+
             end_at = start_at + timedelta(seconds=self.session.max_round_time)
             self.session.start_next_round()
 
@@ -136,7 +150,38 @@ class CreateMultiplayerSessionUseCase:
             self.scheduler.schedule(orchestrator.end_round, end_at)
         else:
             pass
-            # pending_sessions_store.remove(session_id)
+            # self.pending_store.remove(session_id)
+
+    async def generate_round(
+        self,
+        session_id: uuid.UUID,
+        game_config: GameConfig,
+        round_index: int,
+    ):
+        async def on_board_generated(generation_id: uuid.UUID, board_id: uuid.UUID):
+            await self.pending_store.mark_ready(generation_id)
+
+        settings = GenerationSettings(
+            type=game_config.generator_type,
+            difficulty_level=game_config.difficulty_level,
+            settings=game_config.generator_settings,
+        )
+
+        generation_id = await self.board_generator.generate_board(
+            settings, on_completed=on_board_generated
+        )
+
+        await self.pending_store.create_pending(
+            generation_id=generation_id,
+            metadata=PendingBoardMetadata(
+                generation_settings=settings,
+                difficulty_level=game_config.difficulty_level,
+                mode=game_config.game_mode,
+                session_id=session_id,
+                round_index=round_index,
+            ),
+            ttl_seconds=180,
+        )
 
 
 __all__ = ["CreateMultiplayerSessionUseCase"]

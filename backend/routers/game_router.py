@@ -4,8 +4,8 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
-from backend.infra.notification_system import create_game_notification
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
+from backend.lib.notification_system import create_game_notification
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
 from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions

@@ -12,8 +12,8 @@ from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
-from backend.infra.notification_system import NotificationSystem as Notifications
-from backend.infra.notification_system import get_notification_system
+from backend.lib.notification_system import NotificationSystem as Notifications
+from backend.lib.notification_system import get_notification_system
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
 

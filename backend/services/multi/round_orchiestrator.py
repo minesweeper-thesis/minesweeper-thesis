@@ -1,8 +1,8 @@
 from datetime import datetime, timedelta
 
 from backend.core.multi import MultiplayerSession
+from backend.protocols import GameTransport, MultiplayerRepository, Scheduler
 from backend.services.dto import GameOverResult
-from backend.services.protocols import GameTransport, MultiplayerRepository, Scheduler
 
 ROUND_START_DELAY = timedelta(seconds=10)
 

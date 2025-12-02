@@ -5,16 +5,15 @@ from typing import Annotated, Any, Awaitable
 
 from fastapi import BackgroundTasks, Depends
 
-from backend import repositories
+from backend import protocols, repositories
 from backend.core.game import *
 from backend.core.multi import *
 from backend.core.user import User
-from backend.infra.notification_system import NotificationSystem as Notifications
-from backend.infra.notification_system import get_notification_system
-from backend.infra.scheduler import get_scheduler
-from backend.infra.websocket_game_transport import WebSocketGameTransport
+from backend.lib.notification_system import NotificationSystem as Notifications
+from backend.lib.notification_system import get_notification_system
+from backend.lib.scheduler import get_scheduler
+from backend.lib.websocket_game_transport import WebSocketGameTransport
 from backend.repositories.exceptions import *
-from backend.services import protocols
 from backend.services.dto import GameActionResult
 from backend.services.exceptions import *
 from backend.services.multi import RoundOrchestrator

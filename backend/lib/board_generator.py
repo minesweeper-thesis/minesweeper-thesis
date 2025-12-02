@@ -7,8 +7,8 @@ from fastapi import BackgroundTasks, Depends
 from backend import repositories
 from backend.core.board import BoardGenerator as CoreBoardGenerator
 from backend.core.board import GenerationSettings
+from backend.protocols.board_generator_protocol import *
 from backend.repositories.exceptions import BoardNotFound
-from backend.services.protocols.board_generator_protocol import *
 
 _generation_statuses: dict[uuid.UUID, GenerationStatus] = {}
 
@@ -42,7 +42,7 @@ class LocalBoardGenerator(BoardGenerator):
 
             try:
                 existing_board = asyncio.run(
-                    self.board_repo.get_board(board.difficulty_level, board.minefields)
+                    self.board_repo.get_board(board.difficulty_level, board._minefields)
                 )
                 board = existing_board
             except BoardNotFound:

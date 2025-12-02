@@ -38,9 +38,25 @@ class GenerationSettings:
 class Board:
     id: uuid.UUID
     difficulty_level: DifficultyLevel
-    minefields: Minefields
-    start_field: tuple[int, int]
+    _minefields: Optional[Minefields]
+    _start_field: Optional[tuple[int, int]]
     generation_settings: GenerationSettings
+
+    @property
+    def is_generated(self) -> bool:
+        return self._minefields is not None and self._start_field is not None
+
+    def get_start_field(self) -> tuple[int, int]:
+        if self._start_field is None:
+            raise RuntimeError("Board is not generated yet")
+
+        return self._start_field
+
+    def get_minefields(self) -> Minefields:
+        if self._minefields is None:
+            raise RuntimeError("Board is not generated yet")
+
+        return self._minefields
 
 
 class BoardGenerator:
@@ -68,8 +84,8 @@ class BoardGenerator:
         return Board(
             id=uuid.uuid4(),
             difficulty_level=self.difficulty_level,
-            minefields=minefields,
-            start_field=start_field,
+            _minefields=minefields,
+            _start_field=start_field,
             generation_settings=GenerationSettings(
                 type=self.type,
                 difficulty_level=self.difficulty_level,
