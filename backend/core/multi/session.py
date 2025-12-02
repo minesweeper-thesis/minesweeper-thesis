@@ -102,7 +102,10 @@ class MultiplayerSession:
         self.events.append(round_start)
 
     def is_session_over(self) -> bool:
-        return self.rounds[-1].all_gameplays_finished()
+        return (
+            len(self.rounds) == self.rounds_number
+            and self.rounds[-1].all_gameplays_finished()
+        )
 
     def get_gameplay_for_user(self, user_id: uuid.UUID) -> MultiplayerGameplay:
         return self._current_round.gameplays[user_id]

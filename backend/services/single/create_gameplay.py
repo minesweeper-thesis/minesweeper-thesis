@@ -145,7 +145,15 @@ class CreateSingleplayerGameplayUseCase:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
 
-        async def on_board_generated(generation_id: uuid.UUID, board_id: uuid.UUID):
+        async def on_board_generated(generation_id: uuid.UUID, board: Board):
+            try:
+                existing_board = await self.board_repo.get_board(
+                    board.difficulty_level, board.minefields
+                )
+                board = existing_board
+            except BoardNotFound:
+                await self.board_repo.add_board(board)
+                
             await self.pending_store.mark_ready(generation_id)
 
         generation_id = await self.board_generator.generate_board(

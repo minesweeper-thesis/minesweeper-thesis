@@ -6,7 +6,7 @@ from typing import Annotated, Any, Awaitable
 from fastapi import BackgroundTasks, Depends
 
 from backend import protocols, repositories
-from backend.core.board import GenerationSettings
+from backend.core.board import Board, GenerationSettings
 from backend.core.game import *
 from backend.core.lobby import create_session
 from backend.core.multi.config import GameConfig
@@ -148,9 +148,6 @@ class CreateMultiplayerSessionUseCase:
 
             self.session_id = session_id
             self.scheduler.schedule(orchestrator.end_round, end_at)
-        else:
-            pass
-            # self.pending_store.remove(session_id)
 
     async def generate_round(
         self,
@@ -158,7 +155,15 @@ class CreateMultiplayerSessionUseCase:
         game_config: GameConfig,
         round_index: int,
     ):
-        async def on_board_generated(generation_id: uuid.UUID, board_id: uuid.UUID):
+        async def on_board_generated(generation_id: uuid.UUID, board: Board):
+            try:
+                existing_board = await self.board_repo.get_board(
+                    board.difficulty_level, board.minefields
+                )
+                board = existing_board
+            except BoardNotFound:
+                await self.board_repo.add_board(board)
+
             await self.pending_store.mark_ready(generation_id)
 
         settings = GenerationSettings(

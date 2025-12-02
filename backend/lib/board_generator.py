@@ -8,7 +8,6 @@ from backend import repositories
 from backend.core.board import BoardGenerator as CoreBoardGenerator
 from backend.core.board import GenerationSettings
 from backend.protocols.board_generator_protocol import *
-from backend.repositories.exceptions import BoardNotFound
 
 _generation_statuses: dict[uuid.UUID, GenerationStatus] = {}
 
@@ -40,15 +39,7 @@ class LocalBoardGenerator(BoardGenerator):
             board = generator.generate_board()
             _generation_statuses[generation_id] = "completed"
 
-            try:
-                existing_board = asyncio.run(
-                    self.board_repo.get_board(board.difficulty_level, board.minefields)
-                )
-                board = existing_board
-            except BoardNotFound:
-                asyncio.run(self.board_repo.add_board(board))
-
-            asyncio.run(on_completed(generation_id, board.id))  # type: ignore
+            asyncio.run(on_completed(generation_id, board))  # type: ignore
 
         self.background_tasks.add_task(task)
 
