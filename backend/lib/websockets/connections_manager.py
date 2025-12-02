@@ -1,6 +1,6 @@
 import uuid
 
-from backend.routers.websockets.websockets_registry import WebsocketsRegistry
+from backend.lib.websockets.websockets_registry import WebsocketsRegistry
 
 
 class ConnectionsManager(WebsocketsRegistry):

@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
+from backend.lib.websockets.websockets_registry import multi_websockets
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
-from backend.routers.websockets.websockets_registry import multi_websockets
 from backend.services import exceptions
 from backend.services.single.game_actions import *
 from backend.services.single.single_exceptions import GenerationTimeout

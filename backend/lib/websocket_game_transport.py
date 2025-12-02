@@ -2,8 +2,8 @@ import uuid
 from typing import Any
 
 from backend.lib.notification_system import create_game_notification
+from backend.lib.websockets.websockets_registry import multi_websockets
 from backend.protocols.game_transport import GameTransport
-from backend.routers.websockets.websockets_registry import multi_websockets
 
 
 class WebSocketGameTransport(GameTransport):
