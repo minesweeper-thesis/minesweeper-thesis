@@ -94,8 +94,8 @@ class BoardORM(Base):
         return Board(
             id=self.id,
             difficulty_level=difficulty_level,
-            _minefields=self.minefields,
-            _start_field=self.start_field,
+            minefields=self.minefields,
+            start_field=self.start_field,
             generation_settings=self.generation_settings,
         )
 
@@ -104,8 +104,8 @@ class BoardORM(Base):
         return BoardORM(
             id=board.id,
             difficulty_level_id=difficulty_level_id,
-            minefields=board._minefields,
-            start_field=board._start_field,
+            minefields=board.minefields,
+            start_field=board.start_field,
             generation_settings=board.generation_settings,
         )
 

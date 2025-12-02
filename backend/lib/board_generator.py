@@ -42,7 +42,7 @@ class LocalBoardGenerator(BoardGenerator):
 
             try:
                 existing_board = asyncio.run(
-                    self.board_repo.get_board(board.difficulty_level, board._minefields)
+                    self.board_repo.get_board(board.difficulty_level, board.minefields)
                 )
                 board = existing_board
             except BoardNotFound:
