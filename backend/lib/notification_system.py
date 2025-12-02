@@ -8,7 +8,7 @@ from backend.core.user import FriendRequest
 from backend.routers.schemas import Response
 from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
-from backend.routers.schemas.user_schemas import FriendRequestResponse
+from backend.routers.schemas.user import FriendRequestResponse
 from backend.routers.websockets.connections_manager import connections_manager
 from backend.services.single.game_actions import *
 

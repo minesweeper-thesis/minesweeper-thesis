@@ -6,7 +6,7 @@ Tests: POST /avatar, DELETE /avatar, GET /search, GET /gameplays
 import io
 import uuid
 
-from backend.routers.schemas.user_schemas import UserResponse
+from backend.routers.schemas.user import UserResponse
 
 # =============================================================================
 # POST /avatar Tests

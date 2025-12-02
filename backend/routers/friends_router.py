@@ -8,7 +8,7 @@ from backend import services
 from backend.lib.auth import CurrentUser
 from backend.services import exceptions
 
-from .schemas.user_schemas import *
+from .schemas.user import *
 
 PaginationParams = Annotated[Params, Depends()]
 FriendsService = Annotated[services.FriendsService, Depends()]

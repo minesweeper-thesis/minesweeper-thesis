@@ -9,7 +9,7 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.routers.schemas import Response
 from backend.routers.schemas.lobby import ChatMessageResponse
-from backend.routers.schemas.user_schemas import UserResponse
+from backend.routers.schemas.user import UserResponse
 
 
 class LobbyResponse(BaseModel):

@@ -1,11 +1,11 @@
 import uuid
-from typing import Literal, Optional
+from typing import Optional
 
 from fastapi_users.schemas import BaseUser, BaseUserCreate, BaseUserUpdate
 from pydantic import BaseModel
 
 from backend.core.single.gameplay import SingleplayerGameplay
-from backend.core.user import FriendRequest, FriendRequestStatus, User
+from backend.core.user import User
 from backend.routers.schemas import Response
 
 
@@ -39,27 +39,6 @@ class UserUpdateRequest(BaseUserUpdate):
     settings: dict
 
 
-class MakeFriendRequest(BaseModel):
-    friend_id: uuid.UUID
-
-
-class FriendRequestResponse(Response):
-    ws_type: Literal["friend_request"] = "friend_request"
-    id: uuid.UUID
-    user: UserResponse
-    friend: UserResponse
-    status: FriendRequestStatus
-
-    @classmethod
-    def build(cls, friend_request: FriendRequest) -> "FriendRequestResponse":
-        return cls(
-            id=friend_request.id,
-            user=UserResponse.build(friend_request.user),
-            friend=UserResponse.build(friend_request.friend),
-            status=friend_request.status,
-        )
-
-
 class UserGameplayResponse(Response):
     id: uuid.UUID
     board_id: uuid.UUID
@@ -80,3 +59,12 @@ class UserGameplayResponse(Response):
             elapsed_time=gameplay.elapsed_time,
             game_mode=gameplay.game_mode,
         )
+
+
+__all__ = [
+    "UserCreateRequest",
+    "UserResponse",
+    "CurrentUserResponse",
+    "UserUpdateRequest",
+    "UserGameplayResponse",
+]

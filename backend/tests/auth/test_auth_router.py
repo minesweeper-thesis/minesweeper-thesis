@@ -5,7 +5,7 @@ Tests: POST /register, POST /login, POST /logout, GET /me, PATCH /me, DELETE /me
 
 import uuid
 
-from backend.routers.schemas.user_schemas import CurrentUserResponse
+from backend.routers.schemas.user import CurrentUserResponse
 
 # =============================================================================
 # POST /register Tests

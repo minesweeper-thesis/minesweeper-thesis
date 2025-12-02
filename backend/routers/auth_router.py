@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from backend.lib.auth import auth_backend, fastapi_users
 
-from .schemas.user_schemas import *
+from .schemas.user import *
 
 auth_router = APIRouter(tags=["auth"])
 

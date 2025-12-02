@@ -11,7 +11,7 @@ import uuid
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.routers.schemas.user_schemas import FriendRequestResponse, UserResponse
+from backend.routers.schemas.user import FriendRequestResponse, UserResponse
 
 
 def _create_second_user(client, email, password, nickname):

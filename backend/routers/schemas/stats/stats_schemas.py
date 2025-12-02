@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from backend.routers.schemas.user_schemas import UserResponse
+from backend.routers.schemas.user import UserResponse
 
 
 class GameplayRankingResponse(BaseModel):
@@ -21,3 +21,6 @@ class UserRankingResponse(BaseModel):
     won_games: int
 
     model_config = ConfigDict(from_attributes=True)
+
+
+__all__ = ["GameplayRankingResponse", "UserRankingResponse"]

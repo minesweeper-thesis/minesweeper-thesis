@@ -7,7 +7,7 @@ from fastapi_pagination import Page, Params
 from backend import services
 from backend.lib.auth import CurrentUser
 
-from .schemas.user_schemas import *
+from .schemas.user import *
 
 PaginationParams = Annotated[Params, Depends()]
 UserService = Annotated[services.UserService, Depends()]
