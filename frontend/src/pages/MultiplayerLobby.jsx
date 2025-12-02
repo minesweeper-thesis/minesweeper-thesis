@@ -14,6 +14,7 @@ export default function MultiplayerLobby() {
     const [inputMessage, setInputMessage] = useState("");
     const [showInvitePopup, setShowInvitePopup] = useState(false);
     const [showSettingsPopup, setShowSettingsPopup] = useState(false);
+    const chatRef = useRef(null);
 
     useEffect(() => {
         if (!lobby) {
@@ -27,6 +28,13 @@ export default function MultiplayerLobby() {
             navigate("/game");
         }
     }, [status]);
+
+    useEffect(() => {
+        if (!chatRef.current) return;
+
+        chatRef.current.scrollTop = chatRef.current.scrollHeight;
+    }, [chatMessages]);
+
 
     if (!lobby) {
         return (
@@ -72,6 +80,30 @@ export default function MultiplayerLobby() {
             addLobbyMessage("Ready request failed.");
         }
     };
+
+    const sendChatMessage = async () => {
+        if (!inputMessage.trim()) return;
+
+        try {
+            const res = await fetch(`api/lobbies/${lobby.id}/chat-messages`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ content: inputMessage }),
+            });
+
+            if (!res.ok) {
+                const txt = await res.text();
+                console.error(txt);
+                return;
+            }
+
+            setInputMessage("");
+        } catch (err) {
+            console.error("Chat send error:", err);
+        }
+    };
+
 
     return (
         <div className="w-full flex justify-center">
@@ -232,12 +264,16 @@ export default function MultiplayerLobby() {
                 </div>
 
                 {/* CHAT */}
-                <div className="w-full md:w-1/3 flex flex-col bg-bg-secondary border border-border-primary rounded-xl shadow overflow-hidden">
-                    <div className="border-b border-border-primary p-4">
+                <div className="w-full md:w-1/3 flex flex-col bg-bg-secondary border border-border-primary rounded-xl shadow overflow-hidden max-h-[60vh]">
+                <div className="border-b border-border-primary p-4">
                         <h2 className="text-lg font-semibold">Chat</h2>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                    <div
+                        ref={chatRef}
+                        className="flex-1 h-0 overflow-y-auto p-4 space-y-3"
+                    >
+
                         {chatMessages.length === 0 ? (
                             <div className="text-center text-xs text-text-secondary italic">
                                 No messages yet
@@ -246,12 +282,18 @@ export default function MultiplayerLobby() {
                             chatMessages.map(m => (
                                 <div key={m.id} className="text-sm">
                                     <span className="text-text-secondary">
-                                        [{new Date(m.timestamp).toLocaleTimeString()}]
+                                        [{m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString() : "--:--"}]
                                     </span>{" "}
-                                    <span className={m.system ? "italic text-text-secondary" : ""}>
-                                        {m.text}
-                                    </span>
+
+                                    {m.nick ? (
+                                        <span>
+                                            <span className="font-bold">{m.nick}</span>: {m.text}
+                                        </span>
+                                    ) : (
+                                        <span className="italic text-text-secondary">{m.text}</span>
+                                    )}
                                 </div>
+
                             ))
                         )}
                     </div>
@@ -262,13 +304,22 @@ export default function MultiplayerLobby() {
                             placeholder="Write a message..."
                             value={inputMessage}
                             onChange={(e) => setInputMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    sendChatMessage();
+                                }
+                            }}
                             className="flex-1 bg-bg-tertiary border border-border-primary rounded-lg px-3 py-1 text-sm outline-none"
                         />
 
-                        <button className="px-4 py-1 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary transition">
+                        <button
+                            onClick={sendChatMessage}
+                            className="px-4 py-1 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary transition"
+                        >
                             Send
                         </button>
                     </div>
+
                 </div>
                 {showInvitePopup && <InvitePopup onClose={() => setShowInvitePopup(false)} />}
                 {showSettingsPopup && (

@@ -103,6 +103,9 @@ export function GameServiceProvider({ children }) {
                     notifyListeners(msg);
                     break;
 
+                case "chat_message":
+                    addLobbyMessage(msg.content, msg.sender.nickname, msg.timestamp);
+                    break;
                 default:
                     break;
             }
@@ -134,17 +137,58 @@ export function GameServiceProvider({ children }) {
         };
     }, [user]);
 
-    const addLobbyMessage = (text) => {
+    useEffect(() => {
+        if (!lobby) return;
+
+        const fetchChatHistory = async () => {
+            try {
+                const res = await fetch(`api/lobbies/${lobby.id}/chat-messages`, {
+                    method: "GET",
+                    credentials: "include",
+                });
+
+                if (!res.ok) {
+                    console.error("Failed to load chat history");
+                    return;
+                }
+
+                const data = await res.json();
+                console.log(data);
+
+                const mapped = data.map(msg => ({
+                    id: crypto.randomUUID(),
+                    system: false,
+                    text: msg.content,
+                    nick: msg.sender?.nickname ?? null,
+                    timestamp: msg.timestamp,
+                }));
+
+                mapped.reverse();
+
+                setChatMessages(mapped);
+
+            } catch (err) {
+                console.error("Chat history error:", err);
+            }
+        };
+
+        fetchChatHistory();
+    }, [lobby]);
+
+
+    const addLobbyMessage = (text, nick = null, timestamp = null) => {
         setChatMessages(prev => [
             ...prev,
             {
                 id: crypto.randomUUID(),
-                system: true,
+                system: nick === null,       // jeśli nie ma nicku → system message
                 text,
-                timestamp: new Date().toISOString(),
+                nick,
+                timestamp
             }
         ]);
     };
+
 
     const leaveLobby = async () => {
         if (!lobby) return;
