@@ -10,11 +10,16 @@ from backend import repositories
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
+from backend.lib import online_users
 from backend.repositories.orm.game_orm import GameResultEnum, GameStatusEnum
 
 from .orm import *
 
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
+
+OnlineUsersStore = Annotated[
+    online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
+]
 
 
 class TimeRankingItem:
@@ -22,6 +27,14 @@ class TimeRankingItem:
         self.gameplay_id = gameplay_id
         self.user = user
         self.time = time
+
+
+async def transform_time_ranking_items(items, is_online_func):
+    result = []
+    for item in items:
+        is_online = await is_online_func(item[1].id)
+        result.append(TimeRankingItem(item[0], item[1].to_user(is_online), item[2]))
+    return result
 
 
 class UserRankingItem:
@@ -40,10 +53,31 @@ class UserRankingItem:
         self.won_games = won_games
 
 
+async def transform_user_ranking_items(items, is_online_func):
+    result = []
+    for item in items:
+        is_online = await is_online_func(item[1].id)
+        result.append(
+            UserRankingItem(
+                item[1].to_user(is_online), item[2], item[3], item[4], item[5]
+            )
+        )
+    return result
+
+
 class StatsRepository:
-    def __init__(self, session: DBSession, board_repo: BoardRepository):
+    def __init__(
+        self,
+        session: DBSession,
+        board_repo: BoardRepository,
+        online_users_store: OnlineUsersStore,
+    ):
         self.session = session
         self.board_repo = board_repo
+        self.online_users_store = online_users_store
+
+    async def is_user_online(self, user_id: uuid.UUID) -> bool:
+        return await self.online_users_store.is_user_online(user_id)
 
     async def get_gameplays_global_ranking(
         self,
@@ -73,9 +107,9 @@ class StatsRepository:
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: [
-                TimeRankingItem(item[0], item[1].to_user(), item[2]) for item in items
-            ],
+            transformer=lambda items: transform_time_ranking_items(
+                items, self.is_user_online
+            ),
         )
 
     async def get_gameplays_friends_ranking(
@@ -113,9 +147,9 @@ class StatsRepository:
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: [
-                TimeRankingItem(item[0], item[1].to_user(), item[2]) for item in items
-            ],
+            transformer=lambda items: transform_time_ranking_items(
+                items, self.is_user_online
+            ),
         )
 
     async def get_global_user_ranking(
@@ -188,16 +222,9 @@ class StatsRepository:
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: [
-                UserRankingItem(
-                    item[0].to_user(),
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4],
-                )
-                for item in items
-            ],
+            transformer=lambda items: transform_user_ranking_items(
+                items, self.is_user_online
+            ),
         )
 
     async def get_friends_user_ranking(
@@ -276,14 +303,7 @@ class StatsRepository:
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: [
-                UserRankingItem(
-                    item[0].to_user(),
-                    item[1],
-                    item[2],
-                    item[3],
-                    item[4],
-                )
-                for item in items
-            ],
+            transformer=lambda items: transform_user_ranking_items(
+                items, self.is_user_online
+            ),
         )

@@ -26,6 +26,9 @@ class FriendsRepository:
         self.session = session
         self.online_users_store = online_users_store
 
+    async def is_user_online(self, user_id: uuid.UUID) -> bool:
+        return await self.online_users_store.is_user_online(user_id)
+
     async def get_friends(self, user_id: uuid.UUID, pagination_params: Params):
         stmt = (
             select(UserORM)
