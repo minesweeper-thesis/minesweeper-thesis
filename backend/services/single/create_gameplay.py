@@ -11,10 +11,10 @@ from backend.core.user import User
 from backend.lib.auth import OptionalCurrentUser
 from backend.lib.board_generator import LocalBoardGenerator
 from backend.lib.pending_boards import get_pending_boards_store
+from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.single.pending_boards import PendingBoardMetadata
 
 SingleplayerRepository = Annotated[
     protocols.SingleplayerRepository, Depends(repositories.SingleplayerRepository)
@@ -71,7 +71,7 @@ class CreateSingleplayerGameplayUseCase:
 
             if game_settings.difficulty_level and not game_settings.generator:
                 board = await self.board_repo.get_unsolved_board(
-                    game_settings.difficulty_level, user=user
+                    game_settings.difficulty_level, user_id=user.id if user else None
                 )
 
             if game_settings.difficulty_level and game_settings.generator:
@@ -124,7 +124,7 @@ class CreateSingleplayerGameplayUseCase:
             return await self.board_repo.get_unsolved_board(
                 game_settings.difficulty_level,
                 generation_settings=game_settings.generator,
-                user=user,
+                user_id=user.id if user else None,
             )
 
         except UnsolvedBoardNotFound:
@@ -153,7 +153,7 @@ class CreateSingleplayerGameplayUseCase:
                 board = existing_board
             except BoardNotFound:
                 await self.board_repo.add_board(board)
-                
+
             await self.pending_store.mark_ready(generation_id)
 
         generation_id = await self.board_generator.generate_board(

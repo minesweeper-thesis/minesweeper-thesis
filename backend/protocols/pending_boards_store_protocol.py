@@ -1,7 +1,7 @@
 import uuid
 from typing import Optional, Protocol
 
-from backend.services.single.pending_boards import PendingBoard, PendingBoardMetadata
+from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
 
 type GameplayOrSessionID = uuid.UUID
 

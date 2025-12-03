@@ -24,11 +24,11 @@ from backend.lib.notification_system import get_notification_system
 from backend.lib.pending_boards import get_pending_boards_store
 from backend.lib.scheduler import get_scheduler
 from backend.lib.websocket_game_transport import WebSocketGameTransport
+from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import GameActionResult
 from backend.services.exceptions import *
 from backend.services.multi.round_orchiestrator import RoundOrchestrator
-from backend.services.single.pending_boards import PendingBoardMetadata
 
 MultiplayerRepository = Annotated[
     protocols.MultiplayerRepository, Depends(repositories.MultiplayerRepository)

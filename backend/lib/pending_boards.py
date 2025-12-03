@@ -3,11 +3,11 @@ import time
 import uuid
 from typing import Optional
 
+from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
 from backend.protocols.pending_boards_store_protocol import (
     GameplayOrSessionID,
     PendingBoardsStore,
 )
-from backend.services.single.pending_boards import PendingBoard, PendingBoardMetadata
 
 
 class InMemoryPendingStore(PendingBoardsStore):
@@ -100,4 +100,4 @@ def get_pending_boards_store() -> PendingBoardsStore:
 def clear_pending_boards_store():
     """Clear the pending store - for testing purposes."""
     if hasattr(_pending_store, "clear_all"):
-        _pending_store.clear_all()
+        _pending_store.clear_all()  # type: ignore

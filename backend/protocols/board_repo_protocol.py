@@ -3,7 +3,6 @@ from typing import Optional, Protocol
 
 from backend.core.board import *
 from backend.core.board import Minefields
-from backend.core.user import User
 
 
 class BoardRepository(Protocol):
@@ -23,7 +22,8 @@ class BoardRepository(Protocol):
         difficulty_level: DifficultyLevel,
         *,
         generation_settings: Optional[GenerationSettings] = None,
-        user: Optional[User] = None,
+        user_id: Optional[uuid.UUID] = None,
+        user_ids: list[uuid.UUID] = None,  # type: ignore
     ) -> Board: ...
 
 

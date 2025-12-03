@@ -7,7 +7,6 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
-from backend.core.user import User
 from backend.db.db import DBSession
 
 from .exceptions import *
@@ -103,8 +102,15 @@ class BoardRepository:
         difficulty_level: DifficultyLevel,
         *,
         generation_settings: Optional[GenerationSettings] = None,
-        user: Optional[User] = None,
+        user_id: Optional[uuid.UUID] = None,
+        user_ids: list[uuid.UUID] = None,  # type: ignore
     ) -> Board:
+        if user_ids is None:
+            user_ids = []
+
+        if user_id:
+            user_ids.append(user_id)
+
         difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
 
         args = [BoardORM.difficulty_level_id == difficulty_level_orm.id]
@@ -121,12 +127,31 @@ class BoardRepository:
                 .limit(1)
             )
 
-            if user is not None:
+            if user_ids:
                 stmt = stmt.outerjoin(
                     SingleplayerGameplayORM,
                     (SingleplayerGameplayORM.board_id == BoardORM.id)
-                    & (SingleplayerGameplayORM.user_id == user.id),
+                    & (SingleplayerGameplayORM.user_id.in_(user_ids)),
                 ).where(SingleplayerGameplayORM.id == None)
+
+                stmt = (
+                    stmt.outerjoin(
+                        MultiplayerRoundORM, MultiplayerRoundORM.board_id == BoardORM.id
+                    )
+                    .outerjoin(
+                        MultiplayerGameplayORM,
+                        (
+                            MultiplayerGameplayORM.session_id
+                            == MultiplayerRoundORM.session_id
+                        )
+                        & (
+                            MultiplayerGameplayORM.round_number
+                            == MultiplayerRoundORM.round_number
+                        )
+                        & (MultiplayerGameplayORM.user_id.in_(user_ids)),
+                    )
+                    .where(MultiplayerGameplayORM.user_id == None)
+                )
 
             result = await self.session.execute(stmt)
             return result.scalar_one().to_board()
