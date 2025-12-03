@@ -23,17 +23,13 @@ class RoundOrchestrator:
     async def end_round(self, session: MultiplayerSession):
         # todo: lock z handle game action
 
-        print("round ended", session._current_round.state)
-
         if session._current_round.state != "playing":
             return
 
-        print("weszlo")
-
         over_gameplays = session.end_current_round()
-        for user_id, gameplay in over_gameplays:
+        for gameplay in over_gameplays:
             await self.game_transport.send(
-                user_id,
+                gameplay.user_id,
                 GameOverResult(
                     result="loss",
                     full_board=gameplay._gameplay.grid.grid,
@@ -53,14 +49,13 @@ class RoundOrchestrator:
                 await self.game_transport.send(
                     user_id, SessionOver(session_id=session.id)
                 )
+            await self.game_transport.close_all()
 
         await self.multi_repo.save_session(session)
 
     async def start_round(
         self, start_at: datetime, session: MultiplayerSession, first_round: bool = False
     ):
-        print("round started")
-
         if not first_round and not session.all_players_ready():
             return
 
@@ -80,7 +75,6 @@ class RoundOrchestrator:
                 ),
             )
 
-        print("no powinno zrobic schedule", end_at)
         self.scheduler.schedule(
             self.end_round, end_at, session=session
         )  # todo: save job id

@@ -73,12 +73,17 @@ class StartRoundUseCase:
             raise PermissionError("User is not part of this session")
 
         session.set_ready(user.id)
+        next_round_index = session.current_round_index + 1
 
         if session.all_players_ready():
             if session.is_next_round_available:
                 round_start_time = datetime.now() + ROUND_START_DELAY
 
-                # todo: notify
+                for user_id in session.player_ids:
+                    await self.game_transport.send(
+                        user_id,
+                        RoundCountdown(session.id, next_round_index, round_start_time),
+                    )
 
                 self.scheduler.schedule(
                     self.orchestrator.start_round,
@@ -91,11 +96,12 @@ class StartRoundUseCase:
                     self.wait_for_generation_and_start_round, session
                 )
 
-        # for event in session.get_events():
-        #     for player_id in session.player_ids:
-        #         self.messages.append((player_id, event))
-
         await self.multi_repo.save_session(session)
+
+        for player_id in session.player_ids:
+            await self.game_transport.send(
+                player_id, UserReady(session.id, next_round_index, user.id)
+            )
 
     async def wait_for_generation_and_start_round(self, session: MultiplayerSession):
         next_round_index = session.current_round_index + 1
@@ -109,6 +115,12 @@ class StartRoundUseCase:
         await self.pending_store.wait_for_ready(pending.generation_id, 24 * 3600)
 
         start_at = datetime.now() + ROUND_START_DELAY
+
+        for user_id in session.player_ids:
+            await self.game_transport.send(
+                user_id,
+                RoundCountdown(session.id, next_round_index, start_at),
+            )
 
         self.scheduler.schedule(
             self.orchestrator.start_round,

@@ -17,5 +17,10 @@ class WebSocketGameTransport(GameTransport):
             websocket = multi_websockets.get(receiver_id)
             await websocket.send_text(create_game_notification(event))
 
+    async def close_all(self, receiver_id: uuid.UUID) -> None:
+        for receiver_id in multi_websockets._websockets:
+            websocket = multi_websockets.get(receiver_id)
+            await websocket.close()
+
 
 __all__ = ["WebSocketGameTransport"]

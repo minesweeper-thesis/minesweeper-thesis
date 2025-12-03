@@ -1,8 +1,9 @@
 from abc import ABC
 from typing import Protocol
 
-from backend.core.game import *
-from backend.services.dto.game_action_results import *
+from backend.core.game.game_action_results import *
+from backend.core.game.gameplay import Gameplay
+from backend.core.game.types import *
 
 
 class GameAction(Protocol):

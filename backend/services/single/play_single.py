@@ -7,13 +7,13 @@ from fastapi_pagination import Params
 
 from backend import protocols, repositories
 from backend.core.game import *
+from backend.core.game.game_actions import GameAction, GameActionResult
 from backend.core.single import SingleplayerGameplay
 from backend.lib.auth import CurrentUser
 from backend.lib.pending_boards import get_pending_boards_store
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.single.game_actions import GameAction, GameActionResult
 from backend.services.single.single_exceptions import GenerationTimeout
 
 SingleplayerRepository = Annotated[repositories.SingleplayerRepository, Depends()]

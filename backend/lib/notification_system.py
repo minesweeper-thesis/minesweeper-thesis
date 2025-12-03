@@ -2,6 +2,7 @@ import uuid
 from typing import Any
 
 from backend.core.game import GameState
+from backend.core.game.game_actions import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import FriendRequest
@@ -11,7 +12,6 @@ from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
 from backend.routers.schemas.user import FriendRequestResponse
 from backend.services.dto import *
-from backend.services.single.game_actions import *
 
 
 class NotificationSystem:
@@ -31,8 +31,8 @@ def create_notification(data: Any) -> str:
         Invitation: InvitationResponse,
         InvitationAnswer: InvitationAnswerResponse,
         UserConnectionUpdated: UserConnectionStatusResponse,
-        RoundStartAwaiting: RoundReadyResponse,
-        AllReady: AllReadyResponse,
+        RoundCountdown: RoundReadyResponse,
+        UserReady: UserReadyResponse,
         ChatMessage: ChatMessageResponse,
         FriendRequest: FriendRequestResponse,
     }
@@ -43,7 +43,7 @@ def create_notification(data: Any) -> str:
     return mapping[type(data)].create(data, include_ws_type=True)
 
 
-type Notifiable = RoundStart | RoundEnd | RoundStartAwaiting | RoundStartCanceled | SessionOver | GameActionResult | GameState | AllReady
+type Notifiable = RoundStart | RoundEnd | RoundCountdown | SessionOver | GameActionResult | GameState | UserReady
 
 
 def create_game_notification(
@@ -51,7 +51,7 @@ def create_game_notification(
 ) -> str:
 
     mapping: dict[type[Any], type[Response]] = {
-        RoundStartAwaiting: RoundReadyResponse,
+        RoundCountdown: RoundReadyResponse,
         SessionOver: SessionOverResponse,
         RoundStart: RoundStartResponse,
         RoundEnd: RoundEndResponse,
@@ -61,6 +61,7 @@ def create_game_notification(
         FlagResult: FlagResponse,
         RemoveFlagResult: RemoveFlagResponse,
         HintResult: HintResponse,
+        UserReady: UserReadyResponse,
     }
 
     if type(data) not in mapping:

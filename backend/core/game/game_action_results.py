@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Literal, Optional
 
-from backend.core.game import *
+from backend.core.game.types import *
 
 
 @dataclass

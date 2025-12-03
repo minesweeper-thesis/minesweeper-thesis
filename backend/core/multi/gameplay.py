@@ -67,6 +67,10 @@ class MultiplayerGameplay(Gameplay):
     def loss_cause(self) -> Optional[LossCause]:
         return self._gameplay.loss_cause
 
+    @property
+    def elapsed_time(self) -> float:
+        return self._gameplay.elapsed_time
+
     def reveal_one(self, cell: Cell):
         if self.status != "in_progress":
             raise RuntimeError("Game is not in progress")

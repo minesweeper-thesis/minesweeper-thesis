@@ -6,6 +6,7 @@ from fastapi import BackgroundTasks, Depends
 
 from backend import protocols, repositories
 from backend.core.game import *
+from backend.core.game.game_actions import GameAction
 from backend.core.multi.round import RoundEnd
 from backend.lib.auth import CurrentUser
 from backend.lib.notification_system import NotificationSystem as Notifications
@@ -14,7 +15,6 @@ from backend.lib.scheduler import get_scheduler
 from backend.repositories.exceptions import *
 from backend.services.dto import GameOverResult
 from backend.services.exceptions import *
-from backend.services.single.game_actions import GameAction
 
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
@@ -73,15 +73,15 @@ class PlayMultiUseCase:
         if self.session.all_gameplays_finished():
             over_gameplays = self.session.end_current_round()
 
-            for user_id, game_over_data in over_gameplays:
+            for gameplay in over_gameplays:
                 self.messages.append(
                     (
-                        user_id,
+                        gameplay.user_id,
                         GameOverResult(
                             result="loss",
-                            full_board=game_over_data._gameplay.grid.grid,
-                            elapsed_time=game_over_data.time,
-                            loss_cause=game_over_data.loss_cause,
+                            full_board=gameplay._gameplay.grid.grid,
+                            elapsed_time=gameplay.time,
+                            loss_cause=gameplay.loss_cause,
                         ),
                     )
                 )

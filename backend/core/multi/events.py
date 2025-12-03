@@ -4,16 +4,17 @@ from datetime import datetime
 
 
 @dataclass
-class AllReady:
+class UserReady:
     session_id: uuid.UUID
     round_index: int
+    user_id: uuid.UUID
 
 
 @dataclass
-class RoundStartAwaiting:
+class RoundCountdown:
     session_id: uuid.UUID
     round_index: int
     start_at: datetime
 
 
-__all__ = ["AllReady", "RoundStartAwaiting"]
+__all__ = ["UserReady", "RoundCountdown"]

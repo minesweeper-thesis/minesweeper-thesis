@@ -10,9 +10,8 @@ from backend.core.board import Board
 from backend.core.game import *
 from backend.core.lobby import create_session
 from backend.core.multi.config import GameConfig
-from backend.core.multi.events import AllReady, RoundStartAwaiting
+from backend.core.multi.events import RoundCountdown, UserReady
 from backend.core.multi.round import create_multiplayer_round
-from backend.core.multi.session import Clock
 from backend.core.user import User
 from backend.lib.board_generator import LocalBoardGenerator
 from backend.lib.notification_system import NotificationSystem as Notifications
@@ -48,11 +47,6 @@ type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
 ROUND_START_DELAY = timedelta(seconds=10)
-
-
-class ClockImpl(Clock):
-    def now(self) -> datetime:
-        return datetime.now()
 
 
 class CreateMultiplayerSessionUseCase:
@@ -109,18 +103,20 @@ class CreateMultiplayerSessionUseCase:
                 else:
                     # todo cancel tasks
                     session_id = uuid.uuid4()
-                    session = await create_session(session_id, lobby, ClockImpl())
+                    session = await create_session(session_id, lobby)
             else:
                 session_id = uuid.uuid4()
-                session = await create_session(session_id, lobby, ClockImpl())
+                session = await create_session(session_id, lobby)
 
             self.session_id = session.id
             await self.multi_repo.save_pending(session)
 
-            for user in lobby.users:
-                await self.notification_system.notify(user.id, AllReady(session.id, 0))
-
             await self.generate_boards()
+
+        for player in lobby.users:
+            await self.notification_system.notify(
+                player.id, UserReady(session.id, 0, user.id)
+            )
 
     async def on_board_generated(
         self, generation_id: Optional[uuid.UUID], board: Board
@@ -132,8 +128,6 @@ class CreateMultiplayerSessionUseCase:
 
         if generation_id is not None:
             await self.pending_store.mark_ready(generation_id)
-
-        print("generated", len(session.rounds))
 
         if len(session.rounds) == 0:
             await self.schedule_frist_round_start(board)
@@ -148,7 +142,7 @@ class CreateMultiplayerSessionUseCase:
 
         for user_id in session.player_ids:
             await self.notification_system.notify(
-                user_id, RoundStartAwaiting(session.id, 0, round_start_time)
+                user_id, RoundCountdown(session.id, 0, round_start_time)
             )
 
         self.scheduler.schedule(
@@ -172,7 +166,6 @@ class CreateMultiplayerSessionUseCase:
             board=board,
             player_ids=session.player_ids,
             mode=lobby.game_config.game_mode,
-            clock=ClockImpl(),
         )
 
         session.add_round(round)
@@ -182,8 +175,6 @@ class CreateMultiplayerSessionUseCase:
         session = await self.multi_repo.get_session(self.session_id)
         lobby = self.lobby_repo.get_lobby(session.lobby_id)
         to_generate = session.rounds_number - len(session.rounds)
-
-        print("to generate", to_generate)
 
         for round_index in range(to_generate):
             game_config = lobby.game_config

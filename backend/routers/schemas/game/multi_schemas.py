@@ -2,7 +2,7 @@ import uuid
 from typing import Literal, Self
 
 from backend.core.game import *
-from backend.core.multi.events import AllReady, RoundStartAwaiting
+from backend.core.multi.events import RoundCountdown, UserReady
 from backend.core.multi.round import RoundEnd, RoundStart
 from backend.core.multi.session import SessionOver
 from backend.routers.schemas import Response
@@ -58,7 +58,7 @@ class RoundReadyResponse(Response):
     start_at: int
 
     @classmethod
-    def build(cls, message: RoundStartAwaiting) -> Self:
+    def build(cls, message: RoundCountdown) -> Self:
         return cls(
             session_id=message.session_id,
             round_index=message.round_index,
@@ -66,16 +66,18 @@ class RoundReadyResponse(Response):
         )
 
 
-class AllReadyResponse(Response):
-    ws_type: Literal["all_ready"] = "all_ready"
+class UserReadyResponse(Response):
+    ws_type: Literal["user_ready"] = "user_ready"
     session_id: uuid.UUID
     round_index: int
+    user_id: uuid.UUID
 
     @classmethod
-    def build(cls, message: "AllReady") -> Self:
+    def build(cls, message: "UserReady") -> Self:
         return cls(
             session_id=message.session_id,
             round_index=message.round_index,
+            user_id=message.user_id,
         )
 
 
@@ -84,5 +86,5 @@ __all__ = [
     "RoundEndResponse",
     "SessionOverResponse",
     "RoundReadyResponse",
-    "AllReadyResponse",
+    "UserReadyResponse",
 ]

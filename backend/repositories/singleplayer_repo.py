@@ -41,14 +41,12 @@ class SingleplayerRepository:
                 SingleplayerGameplayORM.user_id == user_id,
             )
         )
-        res = await apaginate(
+        return await apaginate(
             self.session,
             stmt,
             pagination_params,
             transformer=lambda items: [item.to_gameplay() for item in items],
         )
-        print(res)
-        return res
 
     async def _get_gameplay_orm(
         self, gameplay_id: uuid.UUID

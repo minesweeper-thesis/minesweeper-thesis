@@ -6,7 +6,7 @@ from typing import Any, Callable, Coroutine
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from backend.protocols import Scheduler
+from backend.protocols import JobID, Scheduler
 
 
 class AsyncScheduler(Scheduler):
@@ -60,12 +60,12 @@ class AsyncScheduler(Scheduler):
 
     def schedule(
         self,
-        coro_func: Callable[..., Coroutine],
+        func: Callable[..., Coroutine],
         when: datetime,
         *args,
-        job_id: str | None = None,
+        job_id: JobID | None = None,
         **kwargs,
-    ) -> str:
+    ) -> JobID:
         """
         Schedule an async coroutine to run at a specific time.
 
@@ -93,9 +93,7 @@ class AsyncScheduler(Scheduler):
         def run_in_loop():
             """Run the coroutine in the main event loop."""
             try:
-                future = asyncio.run_coroutine_threadsafe(
-                    coro_func(*args, **kwargs), loop
-                )
+                future = asyncio.run_coroutine_threadsafe(func(*args, **kwargs), loop)
                 # Wait for completion and propagate any exceptions
                 future.result(timeout=300)  # 5 minute timeout
             except Exception as e:

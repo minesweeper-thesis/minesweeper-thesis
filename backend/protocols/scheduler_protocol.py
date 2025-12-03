@@ -10,7 +10,7 @@ class Scheduler(Protocol):
         func: Callable[..., Coroutine],
         when: datetime,
         *args,
-        job_id: str | None = None,
+        job_id: JobID | None = None,
         **kwargs,
     ) -> JobID: ...
 
