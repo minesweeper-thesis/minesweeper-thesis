@@ -10,7 +10,7 @@ from backend.core.board import (
     GeneratorType,
 )
 from backend.core.game import *
-from backend.services.single.play_single import NewGameSettings
+from backend.services.single.play_single_service import NewGameSettings
 
 
 class GenerationRequest(BaseModel):

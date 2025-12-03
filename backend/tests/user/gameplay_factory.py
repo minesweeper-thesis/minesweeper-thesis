@@ -9,8 +9,11 @@ from backend.lib.board_generator import LocalBoardGenerator
 from backend.lib.pending_boards import get_pending_boards_store
 from backend.repositories.board_repo import BoardRepository
 from backend.repositories.singleplayer_repo import SingleplayerRepository
-from backend.services.single.create_gameplay import CreateSingleplayerGameplayUseCase
-from backend.services.single.play_single import NewGameSettings, PlaySingleUseCase
+from backend.services.single import CreateSingleGameplayService
+from backend.services.single.play_single_service import (
+    NewGameSettings,
+    PlaySingleService,
+)
 
 
 async def create_gameplay_via_service(user_id: uuid.UUID) -> uuid.UUID:
@@ -20,10 +23,10 @@ async def create_gameplay_via_service(user_id: uuid.UUID) -> uuid.UUID:
 
         board_generator = LocalBoardGenerator(board_repo, BackgroundTasks())
 
-        create = CreateSingleplayerGameplayUseCase(
+        create = CreateSingleGameplayService(
             board_repo, gp_repo, board_generator, get_pending_boards_store()
         )
-        play = PlaySingleUseCase(board_repo, gp_repo, get_pending_boards_store())
+        play = PlaySingleService(board_repo, gp_repo, get_pending_boards_store())
 
         user = User(
             id=user_id,

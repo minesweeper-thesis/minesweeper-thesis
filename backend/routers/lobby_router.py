@@ -11,9 +11,7 @@ from backend.routers.schemas.lobby import *
 PaginationParams = Annotated[Params, Depends()]
 
 LobbyService = Annotated[services.LobbyService, Depends()]
-CreateMultiplayerSessionUseCase = Annotated[
-    services.CreateMultiplayerSessionUseCase, Depends()
-]
+CreateMultiSessionService = Annotated[services.LobbyReadyService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
 invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
@@ -86,7 +84,7 @@ async def reject_game_invitation(
 @lobby_router.post("/{lobby_id}/ready")
 async def set_user_ready(
     lobby_id: uuid.UUID,
-    service: CreateMultiplayerSessionUseCase,
+    service: CreateMultiSessionService,
     user: CurrentUser,
 ):
     await service.set_user_ready_in_lobby(lobby_id, user)

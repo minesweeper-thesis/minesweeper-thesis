@@ -28,7 +28,7 @@ PendingGameplaysStore = Annotated[
 ]
 
 
-class CreateSingleplayerGameplayUseCase:
+class CreateSingleGameplayService:
     def __init__(
         self,
         board_repo: BoardRepository,
@@ -173,4 +173,4 @@ class CreateSingleplayerGameplayUseCase:
         )
 
 
-__all__ = ["CreateSingleplayerGameplayUseCase"]
+__all__ = ["CreateSingleGameplayService"]

@@ -23,7 +23,7 @@ PendingGameplaysStore = Annotated[
 ]
 
 
-class PlaySingleUseCase:
+class PlaySingleService:
     def __init__(
         self,
         board_repo: BoardRepository,
@@ -127,4 +127,4 @@ class PlaySingleUseCase:
         await self.game_repo.update_gameplay(self.gameplay)
 
 
-__all__ = ["PlaySingleUseCase", "GenerationTimeout"]
+__all__ = ["PlaySingleService", "GenerationTimeout"]

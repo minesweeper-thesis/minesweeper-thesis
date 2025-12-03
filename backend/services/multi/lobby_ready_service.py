@@ -49,7 +49,7 @@ type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 ROUND_START_DELAY = timedelta(seconds=10)
 
 
-class CreateMultiplayerSessionUseCase:
+class LobbyReadyService:
     def __init__(
         self,
         board_repo: BoardRepository,
@@ -111,14 +111,14 @@ class CreateMultiplayerSessionUseCase:
             self.session_id = session.id
             await self.multi_repo.save_pending(session)
 
-            await self.generate_boards()
+            await self._generate_boards()
 
         for player in lobby.users:
             await self.notification_system.notify(
                 player.id, UserReady(session.id, 0, user.id)
             )
 
-    async def on_board_generated(
+    async def _on_board_generated(
         self, generation_id: Optional[uuid.UUID], board: Board
     ):
         session = await self.multi_repo.get_session(self.session_id)
@@ -130,13 +130,13 @@ class CreateMultiplayerSessionUseCase:
             await self.pending_store.mark_ready(generation_id)
 
         if len(session.rounds) == 0:
-            await self.schedule_frist_round_start(board)
+            await self._schedule_frist_round_start(board)
         else:
-            await self.add_round_to_session(board)
+            await self._add_round_to_session(board)
 
-    async def schedule_frist_round_start(self, board: Board):
+    async def _schedule_frist_round_start(self, board: Board):
         session = await self.multi_repo.get_session(self.session_id)
-        await self.add_round_to_session(board)
+        await self._add_round_to_session(board)
 
         round_start_time = datetime.now() + ROUND_START_DELAY
 
@@ -153,7 +153,7 @@ class CreateMultiplayerSessionUseCase:
             first_round=True,
         )  # todo: save job id
 
-    async def add_round_to_session(self, board: Board):
+    async def _add_round_to_session(self, board: Board):
         session = await self.multi_repo.get_session(self.session_id)
 
         lobby = self.lobby_repo.get_lobby(session.lobby_id)
@@ -171,7 +171,7 @@ class CreateMultiplayerSessionUseCase:
         session.add_round(round)
         await self.multi_repo.save_session(session)
 
-    async def generate_boards(self):
+    async def _generate_boards(self):
         session = await self.multi_repo.get_session(self.session_id)
         lobby = self.lobby_repo.get_lobby(session.lobby_id)
         to_generate = session.rounds_number - len(session.rounds)
@@ -189,7 +189,7 @@ class CreateMultiplayerSessionUseCase:
         )
 
         if board is not None:
-            await self.on_board_generated(None, board)
+            await self._on_board_generated(None, board)
 
     async def _get_unsolved_or_generate_board(
         self, game_config: GameConfig, users: list[User], round_index: int
@@ -207,7 +207,7 @@ class CreateMultiplayerSessionUseCase:
 
     async def _generate_board(self, game_config: GameConfig, round_index: int):
         generation_id = await self.board_generator.generate_board(
-            game_config.generation_settings, on_completed=self.on_board_generated
+            game_config.generation_settings, on_completed=self._on_board_generated
         )
 
         await self.pending_store.create_pending(
@@ -223,4 +223,4 @@ class CreateMultiplayerSessionUseCase:
         )
 
 
-__all__ = ["CreateMultiplayerSessionUseCase"]
+__all__ = ["LobbyReadyService"]

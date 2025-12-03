@@ -26,7 +26,7 @@ Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
 type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
-class PlayMultiUseCase:
+class PlayMultiService:
     def __init__(
         self,
         board_repo: BoardRepository,
@@ -105,4 +105,4 @@ class PlayMultiUseCase:
         return msgs
 
 
-__all__ = ["PlayMultiUseCase", "Notify"]
+__all__ = ["PlayMultiService", "Notify"]

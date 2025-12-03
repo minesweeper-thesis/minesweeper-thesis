@@ -37,7 +37,7 @@ type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 ROUND_START_DELAY = timedelta(seconds=10)
 
 
-class StartRoundUseCase:
+class StartRoundService:
     def __init__(
         self,
         board_repo: BoardRepository,
@@ -93,7 +93,7 @@ class StartRoundUseCase:
                 )
             else:
                 self.background_tasks.add_task(
-                    self.wait_for_generation_and_start_round, session
+                    self._wait_for_generation_and_start_round, session
                 )
 
         await self.multi_repo.save_session(session)
@@ -103,7 +103,7 @@ class StartRoundUseCase:
                 player_id, UserReady(session.id, next_round_index, user.id)
             )
 
-    async def wait_for_generation_and_start_round(self, session: MultiplayerSession):
+    async def _wait_for_generation_and_start_round(self, session: MultiplayerSession):
         next_round_index = session.current_round_index + 1
 
         pending = await self.pending_store.get_pending_round(
@@ -135,4 +135,4 @@ class StartRoundUseCase:
         return msgs
 
 
-__all__ = ["StartRoundUseCase"]
+__all__ = ["StartRoundService"]

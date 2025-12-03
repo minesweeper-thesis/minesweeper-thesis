@@ -12,12 +12,10 @@ from backend.routers.schemas.game import NewGameRequest, NewGameResponse
 from backend.services import exceptions
 from backend.services.single.single_exceptions import GenerationTimeout
 
-CreateSingleplayerGameplayUseCase = Annotated[
-    services.CreateSingleplayerGameplayUseCase, Depends()
-]
-PlaySingleUseCase = Annotated[services.PlaySingleUseCase, Depends()]
-PlayMultiUseCase = Annotated[services.PlayMultiUseCase, Depends()]
-StartRoundUseCase = Annotated[services.StartRoundUseCase, Depends()]
+CreateSingleGameplayService = Annotated[services.CreateSingleGameplayService, Depends()]
+PlaySingleService = Annotated[services.PlaySingleService, Depends()]
+PlayMultiService = Annotated[services.PlayMultiService, Depends()]
+StartRoundService = Annotated[services.StartRoundService, Depends()]
 LobbyService = Annotated[services.LobbyService, Depends()]
 
 game_exceptions = {
@@ -39,7 +37,7 @@ game_router = APIRouter(tags=["game"])
 async def start_singleplayer_game(
     new_game_input: NewGameRequest,
     user: OptionalCurrentUser,
-    service: CreateSingleplayerGameplayUseCase,
+    service: CreateSingleGameplayService,
 ) -> NewGameResponse:
     gameplay_id = await service.create_singleplayer_gameplay(
         user, new_game_input.to_game_settings()
@@ -47,7 +45,7 @@ async def start_singleplayer_game(
     return NewGameResponse(gameplay_id=gameplay_id)
 
 
-async def handle(data, service: PlaySingleUseCase):
+async def handle(data, service: PlaySingleService):
     if data["type"] == "get_game_state":
         return service.get_game_state()
 
@@ -75,7 +73,7 @@ def _create_action_from_data(data) -> GameAction:
 async def play_single(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
-    service: PlaySingleUseCase,
+    service: PlaySingleService,
 ):
     try:
         await websocket.accept()
@@ -108,8 +106,8 @@ async def handle_multi(
     user,
     session_id,
     data,
-    play: PlayMultiUseCase,
-    start_round: StartRoundUseCase,
+    play: PlayMultiService,
+    start_round: StartRoundService,
 ):
     match data["type"]:
         case "get_state":
@@ -151,8 +149,8 @@ async def send(user_id: uuid.UUID, message: Any):
 async def play_multi(
     session_id: uuid.UUID,
     websocket: WebSocket,
-    play: PlayMultiUseCase,
-    start: StartRoundUseCase,
+    play: PlayMultiService,
+    start: StartRoundService,
     user: CurrentUserWebSocket,
 ):
     try:
