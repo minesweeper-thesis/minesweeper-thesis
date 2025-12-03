@@ -10,6 +10,7 @@ from backend.routers.schemas import Response
 from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
 from backend.routers.schemas.user import FriendRequestResponse
+from backend.services.dto import *
 from backend.services.single.game_actions import *
 
 
@@ -25,30 +26,32 @@ def get_notification_system() -> NotificationSystem:
 
 
 def create_notification(data: Any) -> str:
-    mapping: dict[type, type[Response]] = {
+    mapping: dict[type, type["Response"]] = {
         GameConfigUpdated: GameConfigUpdatedResponse,
         Invitation: InvitationResponse,
         InvitationAnswer: InvitationAnswerResponse,
         UserConnectionUpdated: UserConnectionStatusResponse,
-        RoundStartAwaiting: GameReadyResponse,
+        RoundStartAwaiting: RoundReadyResponse,
+        AllReady: AllReadyResponse,
         ChatMessage: ChatMessageResponse,
         FriendRequest: FriendRequestResponse,
     }
 
     if type(data) not in mapping:
-        raise ValueError("Unsupported response type")
+        raise ValueError(f"Unsupported response type: {type(data)}")
 
     return mapping[type(data)].create(data, include_ws_type=True)
 
 
-type Notifiable = RoundStart | RoundEnd | RoundStartAwaiting | RoundStartCanceled | SessionOver | GameActionResult | GameState
+type Notifiable = RoundStart | RoundEnd | RoundStartAwaiting | RoundStartCanceled | SessionOver | GameActionResult | GameState | AllReady
 
 
 def create_game_notification(
     data: Notifiable,
 ) -> str:
-    mapping: dict[type[Notifiable], type[Response]] = {
-        RoundStartAwaiting: GameReadyResponse,
+
+    mapping: dict[type[Any], type[Response]] = {
+        RoundStartAwaiting: RoundReadyResponse,
         SessionOver: SessionOverResponse,
         RoundStart: RoundStartResponse,
         RoundEnd: RoundEndResponse,
@@ -61,6 +64,6 @@ def create_game_notification(
     }
 
     if type(data) not in mapping:
-        raise RuntimeError("Unsupported response type")
+        raise RuntimeError(f"Unsupported response type: {type(data)}")
 
     return mapping[type(data)].create(data, include_ws_type=True)

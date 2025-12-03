@@ -1,58 +1,157 @@
 import asyncio
 import threading
+import uuid
+from datetime import datetime
+from typing import Any, Callable, Coroutine
 
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from backend.core.game import *
 from backend.protocols import Scheduler
-from backend.repositories.exceptions import *
-from backend.services.exceptions import *
 
 
 class AsyncScheduler(Scheduler):
+    """
+    Scheduler that runs async coroutines in the main FastAPI event loop.
+
+    Uses BackgroundScheduler (runs in separate thread) but executes
+    coroutines in the main asyncio event loop via run_coroutine_threadsafe.
+    """
+
     def __init__(self):
-        self._scheduler = BackgroundScheduler()
-        self._scheduler.start()
-        # Prefer the running loop when present; otherwise create a dedicated
-        # event loop running in a background thread. This avoids DeprecationWarning
-        # about `asyncio.get_event_loop()` when no loop is running.
-        try:
-            self._loop = asyncio.get_running_loop()
-            self._own_loop_thread = None
-        except RuntimeError:
-            self._loop = asyncio.new_event_loop()
-            self._own_loop_thread = threading.Thread(
-                target=self._run_loop, name="async-scheduler-loop", daemon=True
-            )
-            self._own_loop_thread.start()
-        self._jobs = {}
+        self._scheduler: BackgroundScheduler | None = None
+        self._loop: asyncio.AbstractEventLoop | None = None
+        self._jobs: dict[str, Any] = {}
         self._lock = threading.Lock()
+        self._initialized = False
 
-    def _run_loop(self):
-        asyncio.set_event_loop(self._loop)
-        self._loop.run_forever()
+    def initialize(self, loop: asyncio.AbstractEventLoop | None = None):
+        """
+        Initialize the scheduler with the given event loop.
+        Should be called from FastAPI lifespan when the main loop is running.
+        """
+        if self._initialized:
+            return
 
-    def schedule(self, coro_func, when, *args, job_id=None, **kwargs):
-        def runner():
-            fut = asyncio.run_coroutine_threadsafe(
-                coro_func(*args, **kwargs), self._loop
+        if loop is None:
+            loop = asyncio.get_running_loop()
+
+        self._loop = loop
+        self._scheduler = BackgroundScheduler(
+            job_defaults={
+                "coalesce": False,
+                "max_instances": 10,
+                "misfire_grace_time": 30,  # 30 seconds grace time
+            }
+        )
+        self._scheduler.start()
+        self._initialized = True
+        print(f"[Scheduler] Initialized with event loop: {loop}")
+
+    def shutdown(self):
+        """Shutdown the scheduler gracefully."""
+        if self._scheduler and self._initialized:
+            try:
+                self._scheduler.shutdown(wait=False)
+                print("[Scheduler] Shutdown complete")
+            except Exception as e:
+                print(f"[Scheduler] Shutdown warning: {e}")
+            finally:
+                self._initialized = False
+
+    def schedule(
+        self,
+        coro_func: Callable[..., Coroutine],
+        when: datetime,
+        *args,
+        job_id: str | None = None,
+        **kwargs,
+    ) -> str:
+        """
+        Schedule an async coroutine to run at a specific time.
+
+        Args:
+            coro_func: Async function to call
+            when: When to run the job
+            job_id: Optional job ID (generated if not provided)
+            **kwargs: Arguments to pass to coro_func
+
+        Returns:
+            Job ID
+        """
+        if not self._initialized or self._scheduler is None or self._loop is None:
+            raise RuntimeError(
+                "Scheduler not initialized. Call initialize() first, "
+                "typically in FastAPI lifespan."
             )
-            return fut
 
-        job = self._scheduler.add_job(runner, "date", run_date=when, id=job_id)
+        if job_id is None:
+            job_id = str(uuid.uuid4())
+
+        # Capture loop reference for the closure
+        loop = self._loop
+
+        def run_in_loop():
+            """Run the coroutine in the main event loop."""
+            try:
+                future = asyncio.run_coroutine_threadsafe(
+                    coro_func(*args, **kwargs), loop
+                )
+                # Wait for completion and propagate any exceptions
+                future.result(timeout=300)  # 5 minute timeout
+            except Exception as e:
+                print(f"[Scheduler] Job {job_id} failed: {e}")
+                import traceback
+
+                traceback.print_exc()
+
+        job = self._scheduler.add_job(
+            run_in_loop,
+            trigger="date",
+            run_date=when,
+            id=job_id,
+            replace_existing=True,
+        )
+
         with self._lock:
             self._jobs[job.id] = job
+
+        print(f"[Scheduler] Scheduled job {job_id} for {when}")
         return job.id
 
-    def cancel(self, job_id):
+    def cancel(self, job_id: str) -> None:
+        """Cancel a scheduled job."""
         with self._lock:
-            job = self._jobs.pop(job_id, None)
-        if job:
-            job.remove()
+            self._jobs.pop(job_id, None)
+
+        if self._scheduler:
+            try:
+                self._scheduler.remove_job(job_id)
+                print(f"[Scheduler] Cancelled job {job_id}")
+            except Exception:
+                pass  # Job may have already run or been removed
 
 
-async_scheduler = AsyncScheduler()
+# Global singleton
+_scheduler_instance: AsyncScheduler | None = None
 
 
 def get_scheduler() -> Scheduler:
-    return async_scheduler
+    """Get the global scheduler instance."""
+    global _scheduler_instance
+    if _scheduler_instance is None:
+        _scheduler_instance = AsyncScheduler()
+    return _scheduler_instance
+
+
+def initialize_scheduler(loop: asyncio.AbstractEventLoop | None = None):
+    """Initialize the global scheduler. Call from FastAPI lifespan."""
+    scheduler = get_scheduler()
+    if isinstance(scheduler, AsyncScheduler):
+        scheduler.initialize(loop)
+
+
+def shutdown_scheduler():
+    """Shutdown the global scheduler. Call from FastAPI lifespan."""
+    global _scheduler_instance
+    if _scheduler_instance is not None:
+        _scheduler_instance.shutdown()

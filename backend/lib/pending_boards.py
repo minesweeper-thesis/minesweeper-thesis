@@ -4,10 +4,7 @@ import uuid
 from typing import Optional
 
 from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
-from backend.protocols.pending_boards_store_protocol import (
-    GameplayOrSessionID,
-    PendingBoardsStore,
-)
+from backend.protocols.pending_boards_store_protocol import PendingBoardsStore
 
 
 class InMemoryPendingStore(PendingBoardsStore):
@@ -67,13 +64,26 @@ class InMemoryPendingStore(PendingBoardsStore):
             if timeout is not None and (self._now() - start_time) >= timeout:
                 return None
 
-    async def is_pending(self, id: GameplayOrSessionID) -> bool:
+    async def get_pending_gameplay(self, id: uuid.UUID) -> Optional[PendingBoard]:
         await self._clear_expired()
 
         for pending in self._store.values():
             if pending.metadata.gameplay_id == id:
-                return True
-        return False
+                return pending
+        return None
+
+    async def get_pending_round(
+        self, session_id: uuid.UUID, round_index: int
+    ) -> Optional[PendingBoard]:
+        await self._clear_expired()
+
+        for pending in self._store.values():
+            if (
+                pending.metadata.session_id == session_id
+                and pending.metadata.round_index == round_index
+            ):
+                return pending
+        return None
 
     async def _clear_expired(self) -> None:
         now = self._now()

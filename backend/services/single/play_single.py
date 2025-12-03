@@ -40,7 +40,9 @@ class PlaySingleUseCase:
         gameplay_id: uuid.UUID,
         timeout: float = 120.0,
     ):
-        if await self.pending_store.is_pending(gameplay_id):
+        pending = await self.pending_store.get_pending_gameplay(gameplay_id)
+
+        if pending is not None:
             pending = await self.pending_store.wait_for_ready(
                 gameplay_id, timeout=timeout
             )
@@ -99,6 +101,21 @@ class PlaySingleUseCase:
             raise RuntimeError("Gameplay not loaded")
 
         return self.gameplay.is_game_over()
+
+    async def get_game_over_result(self) -> GameOverResult:
+        if self.gameplay is None:
+            raise RuntimeError("Gameplay not loaded")
+
+        game_state = self.gameplay.get_game_state()
+
+        assert game_state.result is not None
+
+        return GameOverResult(
+            result=game_state.result,
+            full_board=self.gameplay.grid.grid,
+            elapsed_time=self.gameplay.elapsed_time,
+            loss_cause=self.gameplay.loss_cause,
+        )
 
     async def save_gameplay_progress(self):
         if self.gameplay is None:

@@ -5,6 +5,7 @@ from typing import Any
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
+from backend.core.multi.config import GameConfig
 from backend.core.multi.gameplay import *
 from backend.core.multi.round import *
 from backend.core.user import *
@@ -16,7 +17,7 @@ class SessionOver:
 
 
 type MultiplayerSessionActionResult = (
-    RoundStart | RoundEnd | SessionOver | RoundStartAwaiting | RoundStartCanceled | None
+    RoundStart | RoundEnd | SessionOver | RoundStartCanceled | None
 )
 
 
@@ -27,8 +28,9 @@ class MultiplayerSession:
     def __init__(
         self,
         id: uuid.UUID,
+        lobby_id: uuid.UUID,
         difficulty_level: DifficultyLevel,
-        mode: GameMode,
+        game_config: GameConfig,
         max_round_time: int,
         player_ids: list[uuid.UUID],
         clock: Clock,
@@ -36,8 +38,9 @@ class MultiplayerSession:
         rounds: list[MultiplayerRound] = [],
     ):
         self.id = id
+        self.lobby_id = lobby_id
         self.difficulty_level = difficulty_level
-        self.mode = mode
+        self.game_config = game_config
         self.max_round_time = max_round_time
         self.player_ids = player_ids
         self.rounds_number = rounds_number
@@ -46,6 +49,7 @@ class MultiplayerSession:
         self.clock = clock
 
         self.events: list[Any] = []
+        self.ready_players: set[uuid.UUID] = set()
 
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
@@ -62,16 +66,49 @@ class MultiplayerSession:
             raise RuntimeError("No next round available")
         return self.rounds[self.current_round_index + 1]
 
+    @property
+    def is_next_round_available(self) -> bool:
+        return self.current_round_index + 1 < len(self.rounds)
+
     def set_ready(self, user_id: uuid.UUID):
-        self._next_round.set_user_ready(user_id)
-        self.events.extend(self._next_round.get_events())
+        self.ready_players.add(user_id)
+
+        # if self.ready_players == set(self.player_ids):
+        #     self.state = "countdown"
+
+        #     self.start_at = self.clock.now() + ROUND_START_DELAY
+        #     self.end_at = self.start_at + self._next_round.round_time
+
+        #     self.events.append(
+        #         RoundStartAwaiting(
+        #             session_id=self.id,
+        #             round=self._next_round.round_index,
+        #             start_at=self.start_at,
+        #         )
+        #     )
+        # self.events.extend(self._next_round.get_events())
 
     def cancel_ready(self, user_id: uuid.UUID):
-        self._next_round.cancel_user_ready(user_id)
-        self.events.extend(self._next_round.get_events())
+        self.ready_players.discard(user_id)
+
+        # if self.state == "countdown":
+        #     self.state = "not_started"
+        #     self.start_at = None
+        #     self.end_at = None
+
+        #     self.events.append(
+        #         RoundStartCanceled(
+        #             session_id=self.id,
+        #             round=self._next_round.round_index,
+        #         )
+        #     )
+        # self.events.extend(self._next_round.get_events())
 
     def all_players_ready(self) -> bool:
-        return self._next_round.all_players_ready()
+        return self.ready_players == set(self.player_ids)
+
+    def clear_ready_players(self):
+        self.ready_players.clear()
 
     def end_current_round(
         self,
@@ -92,13 +129,14 @@ class MultiplayerSession:
     def all_gameplays_finished(self) -> bool:
         return self._current_round.all_gameplays_finished()
 
-    def start_next_round(self):
+    def start_next_round(self, start_at: datetime):
         if self.current_round_index != -1:
             if not self._current_round.all_gameplays_finished():
                 raise RuntimeError("Previous round is not over yet")
 
         self.current_round_index += 1
-        round_start = self._current_round.start()
+        print("Starting round", self.current_round_index)
+        round_start = self._current_round.start(start_at)
         self.events.append(round_start)
 
     def is_session_over(self) -> bool:

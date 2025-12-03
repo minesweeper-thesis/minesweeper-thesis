@@ -3,11 +3,15 @@ from typing import Optional, Protocol
 
 from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
 
-type GameplayOrSessionID = uuid.UUID
-
 
 class PendingBoardsStore(Protocol):
-    async def is_pending(self, id: GameplayOrSessionID) -> bool: ...
+    async def get_pending_gameplay(
+        self, gameplay_id: uuid.UUID
+    ) -> Optional[PendingBoard]: ...
+
+    async def get_pending_round(
+        self, session_id: uuid.UUID, round_index: int
+    ) -> Optional[PendingBoard]: ...
 
     async def mark_ready(self, generation_id: uuid.UUID) -> None: ...
 
@@ -23,4 +27,4 @@ class PendingBoardsStore(Protocol):
     ) -> PendingBoard: ...
 
 
-__all__ = ["PendingBoardsStore", "GameplayOrSessionID"]
+__all__ = ["PendingBoardsStore"]

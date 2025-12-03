@@ -26,13 +26,6 @@ class RoundEnd:
 
 
 @dataclass
-class RoundStartAwaiting:
-    session_id: uuid.UUID
-    round: int
-    start_at: datetime
-
-
-@dataclass
 class RoundStartCanceled:
     session_id: uuid.UUID
     round: int
@@ -49,18 +42,17 @@ class MultiplayerRound:
     def __init__(
         self,
         session_id: uuid.UUID,
-        round_number: int,
+        round_index: int,
         round_time: timedelta,
         board: Board,
         gameplays: list[MultiplayerGameplay],
         clock: Clock,
     ):
         self.session_id = session_id
-        self.round_number = round_number
+        self.round_index = round_index
         self.round_time = round_time
         self.board = board
         self.gameplays = {gameplay.user_id: gameplay for gameplay in gameplays}
-        self.ready_players: set[uuid.UUID] = set()
         self.clock = clock
 
         self.state: RoundState = "not_started"
@@ -72,56 +64,14 @@ class MultiplayerRound:
 
         self.events: list[Any] = []
 
-    def set_user_ready(self, user_id: uuid.UUID):
-        self.ready_players.add(user_id)
-
-        if self.ready_players == set(self.gameplays.keys()):
-            self.state = "countdown"
-
-            self.start_at = self.clock.now() + ROUND_START_DELAY
-            self.end_at = self.start_at + self.round_time
-
-            self.events.append(
-                RoundStartAwaiting(
-                    session_id=self.session_id,
-                    round=self.round_number,
-                    start_at=self.start_at,
-                )
-            )
-
-    def cancel_user_ready(self, user_id: uuid.UUID):
-        self.ready_players.discard(user_id)
-
-        if self.state == "countdown":
-            self.state = "not_started"
-            self.start_at = None
-            self.end_at = None
-
-            self.events.append(
-                RoundStartCanceled(
-                    session_id=self.session_id,
-                    round=self.round_number,
-                )
-            )
-
     def all_gameplays_finished(self) -> bool:
         return all(gameplay.is_game_over() for gameplay in self.gameplays.values())
 
-    def all_players_ready(self) -> bool:
-        return self.ready_players == set(self.gameplays.keys())
-
-    def should_start(self) -> bool:
-        return (
-            self.state == "countdown"
-            and self.start_at is not None
-            and self.clock.now() >= self.start_at
-        )
-
-    def start(self) -> RoundStart:
+    def start(self, start_at: datetime) -> RoundStart:
         if self.state != "not_started":
             raise RuntimeError("Round is started or ended already")
 
-        self.start_at = self.clock.now()
+        self.start_at = start_at
         self.end_at = self.start_at + self.round_time
 
         self.state = "playing"
@@ -131,7 +81,7 @@ class MultiplayerRound:
 
         return RoundStart(
             session_id=self.session_id,
-            round=self.round_number,
+            round=self.round_index,
             start_at=self.start_at,
             end_at=self.end_at,
             start_field=self.board.start_field,
@@ -148,7 +98,7 @@ class MultiplayerRound:
 
         return RoundEnd(
             session_id=self.session_id,
-            round=self.round_number,
+            round=self.round_index,
         )
 
     def get_events(self) -> list[Any]:
@@ -177,7 +127,7 @@ async def create_multiplayer_round(
 
     return MultiplayerRound(
         session_id=session_id,
-        round_number=round_index,
+        round_index=round_index,
         round_time=round_time,
         board=board,
         gameplays=gameplays,

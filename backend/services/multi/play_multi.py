@@ -6,18 +6,13 @@ from fastapi import BackgroundTasks, Depends
 
 from backend import protocols, repositories
 from backend.core.game import *
-from backend.core.multi.round import RoundEnd, RoundStart
-from backend.core.multi.session import (
-    RoundStartAwaiting,
-    RoundStartCanceled,
-    SessionOver,
-)
+from backend.core.multi.round import RoundEnd
 from backend.lib.auth import CurrentUser
 from backend.lib.notification_system import NotificationSystem as Notifications
 from backend.lib.notification_system import get_notification_system
 from backend.lib.scheduler import get_scheduler
 from backend.repositories.exceptions import *
-from backend.services.dto import GameActionResult, GameOverResult
+from backend.services.dto import GameOverResult
 from backend.services.exceptions import *
 from backend.services.single.game_actions import GameAction
 
@@ -27,9 +22,6 @@ LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
 
 NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
 Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
-
-type MultiplayerResult = RoundStart | RoundEnd | RoundStartAwaiting | RoundStartCanceled | SessionOver | GameActionResult
-
 
 type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
@@ -94,9 +86,16 @@ class PlayMultiUseCase:
                     )
                 )
 
-        for data in self.session.get_events():
-            for user_id in self.session.player_ids:
-                self.messages.append((user_id, data))
+        for user_id in self.session.player_ids:
+            self.messages.append(
+                (
+                    user_id,
+                    RoundEnd(
+                        session_id=self.session.id,
+                        round=self.session.current_round_index,
+                    ),
+                )
+            )
 
         await self.multi_repo.save_session(self.session)
 

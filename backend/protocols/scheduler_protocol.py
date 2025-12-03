@@ -1,13 +1,20 @@
-import uuid
-from typing import Callable, Protocol
+from datetime import datetime
+from typing import Callable, Coroutine, Protocol
 
-type JobID = uuid.UUID
+type JobID = str
 
 
 class Scheduler(Protocol):
-    def schedule(self, func: Callable, when, **kwargs) -> JobID: ...
+    def schedule(
+        self,
+        func: Callable[..., Coroutine],
+        when: datetime,
+        *args,
+        job_id: str | None = None,
+        **kwargs,
+    ) -> JobID: ...
 
     def cancel(self, job_id: JobID) -> None: ...
 
 
-__all__ = ["Scheduler"]
+__all__ = ["Scheduler", "JobID"]

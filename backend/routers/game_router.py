@@ -58,13 +58,13 @@ async def handle(data, service: PlaySingleUseCase):
 def _create_action_from_data(data) -> GameAction:
     match data["type"]:
         case "reveal_one":
-            return RevealOneAction(cell=(data["x"], data["y"]))
+            return RevealOneAction(cell=(data["cell"][0], data["cell"][1]))
         case "reveal_many":
-            return RevealManyAction(cell=(data["x"], data["y"]))
+            return RevealManyAction(cell=(data["cell"][0], data["cell"][1]))
         case "flag":
-            return FlagAction(cell=(data["x"], data["y"]))
+            return FlagAction(cell=(data["cell"][0], data["cell"][1]))
         case "remove_flag":
-            return RemoveFlagAction(cell=(data["x"], data["y"]))
+            return RemoveFlagAction(cell=(data["cell"][0], data["cell"][1]))
         case "use_hint":
             return UseHintAction()
         case _:
@@ -91,6 +91,8 @@ async def play_single(
 
             if await service.is_game_over():
                 await service.save_gameplay_progress()
+                result = await service.get_game_over_result()
+                await websocket.send_text(create_game_notification(result))
                 break
 
         await websocket.close()
@@ -127,13 +129,13 @@ async def handle_multi(
 def _create_action_from_data_multi(data) -> GameAction:
     match data["type"]:
         case "reveal_one":
-            return RevealOneAction(cell=(data["x"], data["y"]))
+            return RevealOneAction(cell=(data["cell"][0], data["cell"][1]))
         case "reveal_many":
-            return RevealManyAction(cell=(data["x"], data["y"]))
+            return RevealManyAction(cell=(data["cell"][0], data["cell"][1]))
         case "flag":
-            return FlagAction(cell=(data["x"], data["y"]))
+            return FlagAction(cell=(data["cell"][0], data["cell"][1]))
         case "remove_flag":
-            return RemoveFlagAction(cell=(data["x"], data["y"]))
+            return RemoveFlagAction(cell=(data["cell"][0], data["cell"][1]))
         case _:
             raise ValueError(f"Unknown action type: {data['type']}")
 
