@@ -10,6 +10,7 @@ from sqlalchemy import (
     event,
     text,
 )
+from sqlalchemy.ext.hybrid import Comparator
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from backend.core.board import (
@@ -20,6 +21,33 @@ from backend.core.board import (
     Minefields,
 )
 from backend.repositories.orm import Base
+
+
+class MinefieldsComparator(Comparator):
+    def __eq__(self, other):
+        if other is None:
+            return super().__eq__(None)
+        normalized = [list(coord) for coord in other]
+        return super().__eq__(normalized)
+
+
+class MinefieldsColumn(TypeDecorator):
+    impl = JSON
+    cache_ok = True
+
+    @property
+    def comparator_factory(self):
+        return MinefieldsComparator
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return [list(coord) for coord in value]
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return [tuple(coord) for coord in value]
 
 
 class GenerationSettingsColumn(TypeDecorator):
@@ -77,7 +105,7 @@ class BoardORM(Base):
     __tablename__ = "boards"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    minefields: Mapped[Minefields] = mapped_column(JSON)
+    minefields: Mapped[Minefields] = mapped_column(MinefieldsColumn)
     start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
     generation_settings: Mapped[GenerationSettings] = mapped_column(
         GenerationSettingsColumn
