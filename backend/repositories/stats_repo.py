@@ -10,7 +10,7 @@ from backend import repositories
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
-from backend.lib import online_users
+from backend.repositories import online_users
 from backend.repositories.orm.game_orm import GameResultEnum, GameStatusEnum
 
 from .orm import *
@@ -103,13 +103,14 @@ class StatsRepository:
             .order_by(SingleplayerGameplayORM.time.asc())
         )
 
+        async def async_transformer(items):
+            return await transform_time_ranking_items(items, self.is_user_online)
+
         return await apaginate(
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: transform_time_ranking_items(
-                items, self.is_user_online
-            ),
+            transformer=async_transformer,
         )
 
     async def get_gameplays_friends_ranking(
@@ -143,13 +144,14 @@ class StatsRepository:
             .order_by(SingleplayerGameplayORM.time.asc())
         )
 
+        async def async_transformer(items):
+            return await transform_time_ranking_items(items, self.is_user_online)
+
         return await apaginate(
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: transform_time_ranking_items(
-                items, self.is_user_online
-            ),
+            transformer=async_transformer,
         )
 
     async def get_global_user_ranking(
@@ -218,13 +220,14 @@ class StatsRepository:
                 ).asc()
             )
 
+        async def async_transformer(items):
+            return await transform_user_ranking_items(items, self.is_user_online)
+
         return await apaginate(
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: transform_user_ranking_items(
-                items, self.is_user_online
-            ),
+            transformer=async_transformer,
         )
 
     async def get_friends_user_ranking(
@@ -299,11 +302,12 @@ class StatsRepository:
                 ).asc()
             )
 
+        async def async_transformer(items):
+            return await transform_user_ranking_items(items, self.is_user_online)
+
         return await apaginate(
             self.session,
             stmt,
             pagination_params,
-            transformer=lambda items: transform_user_ranking_items(
-                items, self.is_user_online
-            ),
+            transformer=async_transformer,
         )

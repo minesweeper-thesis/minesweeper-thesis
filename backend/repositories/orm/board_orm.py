@@ -1,14 +1,51 @@
 import uuid
-from typing import TYPE_CHECKING
+from dataclasses import asdict
 
-from sqlalchemy import JSON, ForeignKey, Index, UniqueConstraint, event, text
+from sqlalchemy import (
+    JSON,
+    ForeignKey,
+    Index,
+    TypeDecorator,
+    UniqueConstraint,
+    event,
+    text,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from backend.core.board import Board, DifficultyLevel, Minefields
+from backend.core.board import (
+    Board,
+    DifficultyLevel,
+    GenerationSettings,
+    GeneratorParams,
+    Minefields,
+)
 from backend.repositories.orm import Base
 
-if TYPE_CHECKING:
-    from .game_orm import MultiplayerGameplayORM, SingleplayerGameplayORM
+
+class GenerationSettingsColumn(TypeDecorator):
+    impl = JSON
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if not isinstance(value, GenerationSettings):
+            return None
+        return asdict(value)
+
+    def process_result_value(self, value, dialect):
+        if not isinstance(value, dict):
+            return None
+        settings_dict = value["settings"]
+        if settings_dict is not None:
+            settings_dict["heuristic_args"] = tuple(settings_dict["heuristic_args"])
+            settings = GeneratorParams(**settings_dict)
+        else:
+            settings = None
+
+        return GenerationSettings(
+            type=value["type"],
+            difficulty_level=DifficultyLevel(**value["difficulty_level"]),
+            settings=settings,
+        )
 
 
 class DifficultyLevelORM(Base):
@@ -42,6 +79,9 @@ class BoardORM(Base):
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     minefields: Mapped[Minefields] = mapped_column(JSON)
     start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
+    generation_settings: Mapped[GenerationSettings] = mapped_column(
+        GenerationSettingsColumn
+    )
 
     difficulty_level_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(DifficultyLevelORM.id), index=True
@@ -50,12 +90,11 @@ class BoardORM(Base):
     difficulty_level: Mapped[DifficultyLevelORM] = relationship(back_populates="boards")
 
     def to_board(self) -> Board:
-        difficulty_level = self.difficulty_level.to_difficulty_level()
         return Board(
             id=self.id,
-            difficulty_level=difficulty_level,
             minefields=self.minefields,
             start_field=self.start_field,
+            generation_settings=self.generation_settings,
         )
 
     @staticmethod
@@ -65,6 +104,7 @@ class BoardORM(Base):
             difficulty_level_id=difficulty_level_id,
             minefields=board.minefields,
             start_field=board.start_field,
+            generation_settings=board.generation_settings,
         )
 
 

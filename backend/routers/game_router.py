@@ -1,48 +1,43 @@
 import uuid
-from contextlib import suppress
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
+from backend.core.game.game_actions import *
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
-from backend.lib.websockets_registry import multi_websockets
-from backend.routers.schemas.serialize import create_response
-from backend.services import exceptions as service_exceptions
-from backend.services.lobby_service import SessionOverMessage
+from backend.lib.notification_system import create_game_notification
+from backend.lib.websockets.websockets_registry import multi_websockets
+from backend.routers.schemas.game import NewGameRequest, NewGameResponse
+from backend.services import exceptions
+from backend.services.single.single_exceptions import GenerationTimeout
 
-from .schemas.game_schemas import *
-
-SingleplayerService = Annotated[services.SingleplayerService, Depends()]
-MultiplayerService = Annotated[services.MultiplayerService, Depends()]
+CreateSingleGameplayService = Annotated[services.CreateSingleGameplayService, Depends()]
+PlaySingleService = Annotated[services.PlaySingleService, Depends()]
+PlayMultiService = Annotated[services.PlayMultiService, Depends()]
+StartRoundService = Annotated[services.StartRoundService, Depends()]
 LobbyService = Annotated[services.LobbyService, Depends()]
 
 game_exceptions = {
-    service_exceptions.BoardNotExists: HTTPException(404, "Board not found"),
-    service_exceptions.SolvedAllBoards: HTTPException(
+    exceptions.BoardNotExists: HTTPException(404, "Board not found"),
+    exceptions.SolvedAllBoards: HTTPException(
         400, "User solved all boards for this difficulty type"
     ),
-    service_exceptions.GameplayAlreadyFinished: HTTPException(
+    exceptions.GameplayAlreadyFinished: HTTPException(
         400, "Gameplay is already finished"
     ),
-    service_exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
+    exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
 }
 
 
 game_router = APIRouter(tags=["game"])
 
 
-async def notify(receiver_id: uuid.UUID, data):
-    if receiver_id in multi_websockets._websockets:
-        websocket = multi_websockets.get(receiver_id)
-        await websocket.send_text(create_response(data))
-
-
 @game_router.post("/single")
 async def start_singleplayer_game(
     new_game_input: NewGameRequest,
     user: OptionalCurrentUser,
-    service: SingleplayerService,
+    service: CreateSingleGameplayService,
 ) -> NewGameResponse:
     gameplay_id = await service.create_singleplayer_gameplay(
         user, new_game_input.to_game_settings()
@@ -50,84 +45,131 @@ async def start_singleplayer_game(
     return NewGameResponse(gameplay_id=gameplay_id)
 
 
+async def handle(data, service: PlaySingleService):
+    if data["type"] == "get_game_state":
+        return service.get_game_state()
+
+    action = _create_action_from_data(data)
+    return await service.execute_action(action)
+
+
+def _create_action_from_data(data) -> GameAction:
+    match data["type"]:
+        case "reveal_one":
+            return RevealOneAction(cell=(data["cell"][0], data["cell"][1]))
+        case "reveal_many":
+            return RevealManyAction(cell=(data["cell"][0], data["cell"][1]))
+        case "flag":
+            return FlagAction(cell=(data["cell"][0], data["cell"][1]))
+        case "remove_flag":
+            return RemoveFlagAction(cell=(data["cell"][0], data["cell"][1]))
+        case "use_hint":
+            return UseHintAction()
+        case _:
+            raise ValueError(f"Unknown action type: {data['type']}")
+
+
 @game_router.websocket("/single/{gameplay_id}")
 async def play_single(
     gameplay_id: uuid.UUID,
     websocket: WebSocket,
-    service: SingleplayerService,
+    service: PlaySingleService,
 ):
-    async def receiver():
+    try:
+        await websocket.accept()
+        game_state = await service.load_gameplay(gameplay_id)
+        await websocket.send_text(create_game_notification(game_state))
+
         while True:
             data = await websocket.receive_json()
-            game_action = parse_game_action(data)
+            result = await handle(data, service)
 
-            action_result = await service.handle_game_action(game_action)
-            if action_result is not None:
-                await websocket.send_text(create_response(action_result))
+            if result is not None:
+                await websocket.send_text(create_game_notification(result))
 
             if await service.is_game_over():
                 await service.save_gameplay_progress()
-                await websocket.close()
-                return
+                result = await service.get_game_over_result()
+                await websocket.send_text(create_game_notification(result))
+                break
 
-    async def on_board_ready():
-        game_state = await service.get_game_state()
-        await websocket.send_text(create_response(game_state))
-
-    service.board_ready_callback = on_board_ready
-    try:
-        await service.load_gameplay(gameplay_id)
-        await websocket.accept()
-        await service.send_board()
-
-        await receiver()
+        await websocket.close()
 
     except WebSocketDisconnect:
         await service.save_gameplay_progress()
-    finally:
-        await service.game_cleanup()
+
+    except GenerationTimeout:
+        await websocket.close(code=1001, reason="Board generation timeout")
+
+
+async def handle_multi(
+    user,
+    session_id,
+    data,
+    play: PlayMultiService,
+    start_round: StartRoundService,
+):
+    match data["type"]:
+        case "get_state":
+            play.get_game_state()
+            return [(user.id, play.get_game_state())]
+
+        case "ready":
+            await start_round.set_user_ready(session_id, user)
+
+        case _:
+            action = _create_action_from_data_multi(data)
+            await play.execute_action(action)
+
+    return play.collect_messages()
+
+
+def _create_action_from_data_multi(data) -> GameAction:
+    match data["type"]:
+        case "reveal_one":
+            return RevealOneAction(cell=(data["cell"][0], data["cell"][1]))
+        case "reveal_many":
+            return RevealManyAction(cell=(data["cell"][0], data["cell"][1]))
+        case "flag":
+            return FlagAction(cell=(data["cell"][0], data["cell"][1]))
+        case "remove_flag":
+            return RemoveFlagAction(cell=(data["cell"][0], data["cell"][1]))
+        case _:
+            raise ValueError(f"Unknown action type: {data['type']}")
+
+
+async def send(user_id: uuid.UUID, message: Any):
+    if user_id in multi_websockets._websockets:
+        websocket = multi_websockets.get(user_id)
+        response = create_game_notification(message)
+        await websocket.send_text(response)
 
 
 @game_router.websocket("/multi/{session_id}")
 async def play_multi(
     session_id: uuid.UUID,
     websocket: WebSocket,
-    service: MultiplayerService,
+    play: PlayMultiService,
+    start: StartRoundService,
     user: CurrentUserWebSocket,
 ):
-
-    async def receiver():
-        while True:
-            data = await websocket.receive_json()
-
-            if data.get("type") == "ready":
-                await service.set_user_ready(session_id, user)
-                continue
-
-            if data.get("type") == "not_ready":
-                # await service.set_user_not_ready(session_id, user, notify)
-                continue
-
-            with suppress(ValueError):
-                msg = parse_game_action(data)
-                action_result = await service.handle_game_action(msg)
-                await websocket.send_text(create_response(action_result))
-
-                if await service.is_session_over():
-                    await websocket.send_text(
-                        create_response(SessionOverMessage(session_id=session_id))
-                    )
-                    await websocket.close()
-                    return
-
-    service.on_session_end_callback = lambda: websocket.close()
-
     try:
-        await service.set_session(session_id, user, notify)
         await websocket.accept()
         multi_websockets.add(user.id, websocket)
 
-        await receiver()
+        await play.set_session(session_id, user)
+
+        while True:
+            data = await websocket.receive_json()
+            messages = await handle_multi(user, session_id, data, play, start)
+
+            for user_id, message in messages:
+                await send(user_id, message)
+
+            if play.is_session_over():
+                break
+
+        await websocket.close()
 
     except WebSocketDisconnect:
         multi_websockets.remove(user.id)

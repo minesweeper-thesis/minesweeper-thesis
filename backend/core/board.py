@@ -21,24 +21,29 @@ class DifficultyLevel:
 
 
 @dataclass
-class GeneratorSettings:
+class GeneratorParams:
     classifier: ClassifierType
     heuristic: HeuristicType
     heuristic_args: tuple[float | int, ...] = tuple()
 
 
 @dataclass
-class Board:
-    id: uuid.UUID
+class GenerationSettings:
+    type: GeneratorType
     difficulty_level: DifficultyLevel
-    minefields: Minefields
-    start_field: tuple[int, int]
+    settings: Optional[GeneratorParams] = None
 
 
 @dataclass
-class GenerationSettings:
-    type: GeneratorType
-    settings: Optional[GeneratorSettings] = None
+class Board:
+    id: uuid.UUID
+    minefields: Minefields
+    start_field: tuple[int, int]
+    generation_settings: GenerationSettings
+
+    @property
+    def difficulty_level(self) -> DifficultyLevel:
+        return self.generation_settings.difficulty_level
 
 
 class BoardGenerator:
@@ -46,13 +51,13 @@ class BoardGenerator:
         self,
         difficulty_level: DifficultyLevel,
         type: GeneratorType,
-        settings: Optional[GeneratorSettings] = None,
+        settings: Optional[GeneratorParams] = None,
     ) -> None:
         self.difficulty_level = difficulty_level
-        self.type = type
+        self.type: GeneratorType = type
         self.settings = settings
 
-    async def generate_board(self) -> Board:
+    def generate_board(self) -> Board:
         rows = self.difficulty_level.rows
         columns = self.difficulty_level.columns
         start_field = (
@@ -65,9 +70,13 @@ class BoardGenerator:
 
         return Board(
             id=uuid.uuid4(),
-            difficulty_level=self.difficulty_level,
             minefields=minefields,
             start_field=start_field,
+            generation_settings=GenerationSettings(
+                type=self.type,
+                difficulty_level=self.difficulty_level,
+                settings=self.settings,
+            ),
         )
 
     def _get_generator(self, start_field):
@@ -92,3 +101,16 @@ class BoardGenerator:
             )
         else:
             raise ValueError(f"Unknown generator type: {self.type}")
+
+
+__all__ = [
+    "Board",
+    "Minefields",
+    "BoardGenerator",
+    "DifficultyLevel",
+    "GenerationSettings",
+    "GeneratorParams",
+    "ClassifierType",
+    "HeuristicType",
+    "GeneratorType",
+]

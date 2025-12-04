@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends
-from fastapi.responses import RedirectResponse
+from fastapi import APIRouter
 
-from backend.lib.auth import auth_backend, fastapi_users, get_current_user
+from backend.lib.auth import auth_backend, fastapi_users
 
-from .schemas.user_schemas import *
+from .schemas.user import *
 
 auth_router = APIRouter(tags=["auth"])
 
@@ -17,12 +16,3 @@ auth_router.include_router(
 auth_router.include_router(
     fastapi_users.get_users_router(CurrentUserResponse, UserUpdateRequest)
 )
-
-
-@auth_router.post(
-    "/logout", response_class=RedirectResponse, dependencies=[Depends(get_current_user)]
-)
-def logout():
-    response = RedirectResponse("/", status_code=302)
-    response.delete_cookie(key="auth")
-    return response

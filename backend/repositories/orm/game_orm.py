@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from backend.core.game import Cell
-from backend.core.singleplayer import SingleplayerGameplay
+from backend.core.single.gameplay import SingleplayerGameplay
 from backend.repositories.orm import Base
 
 from .board_orm import BoardORM, DifficultyLevelORM

@@ -22,7 +22,10 @@ Real-time updates on lobby state, invitations, and player connections.
     },
     users: [{ id: "uuid", nickname: "string", email: "string", avatar_url: "url" | null }],
     game_config: {
-      generator_type: "random" | "ml",
+      generator: {
+        type: "random" | "ml",
+        settings: {} | null
+      },
       difficulty_level: { rows: 10, columns: 10, mine_count: 15 },
       game_mode: "normal" | "hardcore"
     }
@@ -45,7 +48,14 @@ Real-time updates on lobby state, invitations, and player connections.
       lobby: {
         id: "550e8400-e29b-41d4-a716-446655440000",
         host: { id: "uuid", nickname: "alice", email: "alice@example.com", avatar_url: "url" | null },
-        game_config: { generator_type: "random" | "ml", difficulty_level: { rows: 10, columns: 10, mine_count: 15 }, game_mode: "normal" | "hardcore" }
+        game_config: {
+          generator: {
+            type: "random" | "ml",
+            settings: {} | null
+          },
+          difficulty_level: { rows: 10, columns: 10, mine_count: 15 },
+          game_mode: "normal" | "hardcore"
+        }
       }
     }
   ]
@@ -66,7 +76,14 @@ Real-time updates on lobby state, invitations, and player connections.
     lobby: {
       id: "550e8400-e29b-41d4-a716-446655440000",
       host: { id: "uuid", nickname: "alice", email: "alice@example.com", avatar_url: "url" | null },
-      game_config: { generator_type: "random" | "ml", difficulty_level: { rows: 10, columns: 10, mine_count: 15 }, game_mode: "normal" | "hardcore" }
+      game_config: {
+        generator: {
+          type: "random" | "ml",
+          settings: {} | null
+        },
+        difficulty_level: { rows: 10, columns: 10, mine_count: 15 },
+        game_mode: "normal" | "hardcore"
+      }
     }
   },
   response: "accepted" | "rejected"

@@ -22,7 +22,7 @@ python_version = "3.12"
 files = ["backend/"]
 
 [[tool.mypy.overrides]]
-module = ["algorithms.*", "filetype.*"]
+module = ["algorithms.*", "filetype.*", "apscheduler.*"]
 ignore_missing_imports = true
 follow_imports = "skip"
 ignore_errors = true

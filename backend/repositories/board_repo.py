@@ -6,8 +6,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
-from backend.core.board import Board, DifficultyLevel
-from backend.core.user import User
+from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
 from backend.db.db import DBSession
 
 from .exceptions import *
@@ -63,27 +62,96 @@ class BoardRepository:
         except NoResultFound:
             raise BoardNotFound(f"Board with id {board_id} not found") from None
 
-    async def get_unsolved_board(
-        self, difficulty_level: DifficultyLevel, user: Optional[User] = None
+    async def get_board(
+        self,
+        difficulty_level: Optional[DifficultyLevel] = None,
+        minefields: Optional[Minefields] = None,
+        generation_settings: Optional[GenerationSettings] = None,
     ) -> Board:
+        try:
+            args = []
+
+            if difficulty_level is not None:
+                difficulty_level_orm = await self.get_difficulty_level_orm(
+                    difficulty_level
+                )
+                args.append(BoardORM.difficulty_level_id == difficulty_level_orm.id)
+
+            if minefields is not None:
+                args.append(BoardORM.minefields == minefields)
+
+            if generation_settings is not None:
+                args.append(BoardORM.generation_settings == generation_settings)
+
+            stmt = (
+                select(BoardORM)
+                .options(selectinload(BoardORM.difficulty_level))
+                .where(*args)
+            )
+
+            result = await self.session.execute(stmt)
+            return result.scalar_one().to_board()
+
+        except NoResultFound:
+            raise BoardNotFound(
+                "Board with specified difficulty level and minefields not found"
+            ) from None
+
+    async def get_unsolved_board(
+        self,
+        difficulty_level: DifficultyLevel,
+        *,
+        generation_settings: Optional[GenerationSettings] = None,
+        user_id: Optional[uuid.UUID] = None,
+        user_ids: list[uuid.UUID] = None,  # type: ignore
+    ) -> Board:
+        if user_ids is None:
+            user_ids = []
+
+        if user_id:
+            user_ids.append(user_id)
+
         difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
+
+        args = [BoardORM.difficulty_level_id == difficulty_level_orm.id]
+        if generation_settings is not None:
+            args.append(BoardORM.generation_settings == generation_settings)
 
         try:
             stmt = (
                 select(BoardORM)
                 .join(BoardORM.difficulty_level)
-                .where(BoardORM.difficulty_level_id == difficulty_level_orm.id)
+                .where(*args)
                 .options(selectinload(BoardORM.difficulty_level))
                 .order_by(func.random())
                 .limit(1)
             )
 
-            if user is not None:
+            if user_ids:
                 stmt = stmt.outerjoin(
                     SingleplayerGameplayORM,
                     (SingleplayerGameplayORM.board_id == BoardORM.id)
-                    & (SingleplayerGameplayORM.user_id == user.id),
+                    & (SingleplayerGameplayORM.user_id.in_(user_ids)),
                 ).where(SingleplayerGameplayORM.id == None)
+
+                stmt = (
+                    stmt.outerjoin(
+                        MultiplayerRoundORM, MultiplayerRoundORM.board_id == BoardORM.id
+                    )
+                    .outerjoin(
+                        MultiplayerGameplayORM,
+                        (
+                            MultiplayerGameplayORM.session_id
+                            == MultiplayerRoundORM.session_id
+                        )
+                        & (
+                            MultiplayerGameplayORM.round_number
+                            == MultiplayerRoundORM.round_number
+                        )
+                        & (MultiplayerGameplayORM.user_id.in_(user_ids)),
+                    )
+                    .where(MultiplayerGameplayORM.user_id == None)
+                )
 
             result = await self.session.execute(stmt)
             return result.scalar_one().to_board()

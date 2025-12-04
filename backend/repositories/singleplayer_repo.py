@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
-from backend.core.singleplayer import SingleplayerGameplay
+from backend.core.single.gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
 
 from .exceptions import *
@@ -41,14 +41,12 @@ class SingleplayerRepository:
                 SingleplayerGameplayORM.user_id == user_id,
             )
         )
-        res = await apaginate(
+        return await apaginate(
             self.session,
             stmt,
             pagination_params,
             transformer=lambda items: [item.to_gameplay() for item in items],
         )
-        print(res)
-        return res
 
     async def _get_gameplay_orm(
         self, gameplay_id: uuid.UUID

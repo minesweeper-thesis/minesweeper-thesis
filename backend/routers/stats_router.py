@@ -3,11 +3,11 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page, Params
 
-import backend.routers.schemas.stats_schemas as schemas
+import backend.routers.schemas.stats.stats_schemas as schemas
 from backend import services
 from backend.core.board import DifficultyLevel
 from backend.lib.auth import CurrentUser
-from backend.routers.schemas.user_schemas import UserResponse
+from backend.routers.schemas.user import UserResponse
 
 StatsService = Annotated[services.StatsService, Depends()]
 PaginationParams = Annotated[Params, Depends()]
@@ -34,7 +34,7 @@ async def get_gameplays_global_ranking(
     page.items = [
         schemas.GameplayRankingResponse(
             gameplay_id=item.gameplay_id,
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             time=item.time,
         )
         for item in page.items
@@ -61,7 +61,7 @@ async def get_gameplays_friends_ranking(
     page.items = [
         schemas.GameplayRankingResponse(
             gameplay_id=item.gameplay_id,
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             time=item.time,
         )
         for item in page.items
@@ -86,7 +86,7 @@ async def get_users_global_ranking(
     )
     page.items = [
         schemas.UserRankingResponse(
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             win_rate=item.win_rate,
             average_time=item.average_time,
             total_games=item.total_games,
@@ -115,7 +115,7 @@ async def get_users_friends_ranking(
     )
     page.items = [
         schemas.UserRankingResponse(
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             win_rate=item.win_rate,
             average_time=item.average_time,
             total_games=item.total_games,

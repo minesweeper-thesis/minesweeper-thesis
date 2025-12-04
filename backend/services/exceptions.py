@@ -1,4 +1,6 @@
-from backend.core.board import DifficultyLevel
+from typing import Optional
+
+from backend.core.board import DifficultyLevel, GenerationSettings
 
 
 class UsersNotFriends(Exception):
@@ -30,8 +32,13 @@ class RequestedFriendNotExists(Exception):
 
 
 class SolvedAllBoards(Exception):
-    def __init__(self, difficulty_level: DifficultyLevel):
+    def __init__(
+        self,
+        difficulty_level: DifficultyLevel,
+        generation_settings: Optional[GenerationSettings] = None,
+    ):
         self.difficulty_level = difficulty_level
+        self.generation_settings = generation_settings
 
 
 class GameplayAlreadyFinished(Exception):
@@ -40,3 +47,17 @@ class GameplayAlreadyFinished(Exception):
 
 class GameplayNotExists(Exception):
     pass
+
+
+__all__ = [
+    "UsersNotFriends",
+    "FriendRequestNotExists",
+    "FriendRequestAlreadySent",
+    "UsersAlreadyFriends",
+    "CannotFriendRequestYourself",
+    "BoardNotExists",
+    "RequestedFriendNotExists",
+    "SolvedAllBoards",
+    "GameplayAlreadyFinished",
+    "GameplayNotExists",
+]

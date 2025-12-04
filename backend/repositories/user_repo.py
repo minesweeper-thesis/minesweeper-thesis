@@ -8,7 +8,8 @@ from sqlalchemy.exc import NoResultFound
 
 from backend.core.user import User
 from backend.db.db import DBSession
-from backend.lib import online_users
+from backend.repositories import online_users
+from backend.repositories.avatar import storage
 from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
@@ -17,12 +18,19 @@ from .orm import *
 OnlineUsersStore = Annotated[
     online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
 ]
+AvatarStorage = Annotated[storage.AvatarStorage, Depends(storage.get_avatar_storage)]
 
 
 class UserRepository:
-    def __init__(self, session: DBSession, online_users_store: OnlineUsersStore):
+    def __init__(
+        self,
+        session: DBSession,
+        online_users_store: OnlineUsersStore,
+        avatar_storage: AvatarStorage,
+    ):
         self.session = session
         self.online_users_store = online_users_store
+        self.avatar_storage = avatar_storage
 
     async def set_user_online(self, user_id: uuid.UUID):
         await self.online_users_store.set_user_online(user_id)
@@ -42,7 +50,12 @@ class UserRepository:
         except NoResultFound:
             raise UserNotFound() from None
 
-    async def set_avatar_url(self, user_id: uuid.UUID, url: str | None):
+    async def set_avatar(self, user_id: uuid.UUID, content: bytes | None) -> User:
+        if content:
+            url = await self.avatar_storage.save(user_id, content)
+        else:
+            url = None
+
         stmt = select(UserORM).where(UserORM.id == user_id)
         result = await self.session.execute(stmt)
         user = result.scalar_one()
@@ -50,6 +63,8 @@ class UserRepository:
         user.avatar_url = url
         await self.session.commit()
         await self.session.refresh(user)
+
+        return user.to_user(await self.is_user_online(user_id))
 
     async def search_users(self, query: str, params):
         priority = case(
