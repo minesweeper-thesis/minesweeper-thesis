@@ -10,7 +10,7 @@ from backend import repositories
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
-from backend.lib import online_users
+from backend.repositories import online_users
 from backend.repositories.orm.game_orm import GameResultEnum, GameStatusEnum
 
 from .orm import *
