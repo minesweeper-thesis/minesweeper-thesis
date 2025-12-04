@@ -5,9 +5,14 @@ from datetime import datetime
 
 @dataclass
 class UserReady:
+    user_id: uuid.UUID
+    round_index: int
+
+
+@dataclass
+class RoundReady:
     session_id: uuid.UUID
     round_index: int
-    user_id: uuid.UUID
 
 
 @dataclass
@@ -17,4 +22,4 @@ class RoundCountdown:
     start_at: datetime
 
 
-__all__ = ["UserReady", "RoundCountdown"]
+__all__ = ["UserReady", "RoundReady", "RoundCountdown"]

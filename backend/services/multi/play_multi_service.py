@@ -6,14 +6,11 @@ from fastapi import BackgroundTasks, Depends
 
 from backend import protocols, repositories
 from backend.core.game import *
-from backend.core.game.game_actions import GameAction
-from backend.core.multi.round import RoundEnd
 from backend.lib.auth import CurrentUser
 from backend.lib.notification_system import NotificationSystem as Notifications
 from backend.lib.notification_system import get_notification_system
 from backend.lib.scheduler import get_scheduler
 from backend.repositories.exceptions import *
-from backend.services.dto import GameOverResult
 from backend.services.exceptions import *
 
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
@@ -58,44 +55,21 @@ class PlayMultiService:
         if self.user.id not in self.session.player_ids:
             raise ValueError("User is not part of this session")
 
+        if self.session.is_session_over():
+            raise ValueError("Session is already over")
+
     def is_session_over(self) -> bool:
         return self.session.is_session_over()
 
     def get_game_state(self) -> GameState:
-        gameplay = self.session.get_gameplay_for_user(self.user.id)
-        return gameplay.get_game_state()
+        return self.session.get_user_game_state(self.user.id)
 
     async def execute_action(self, action: GameAction):
-        result = action.execute(self.session.get_gameplay_for_user(self.user.id))
+        self.session.execute_action_for_user(self.user.id, action)
 
-        self.messages.append((self.user.id, result))
-
-        if self.session.all_gameplays_finished():
-            over_gameplays = self.session.end_current_round()
-
-            for gameplay in over_gameplays:
-                self.messages.append(
-                    (
-                        gameplay.user_id,
-                        GameOverResult(
-                            result="loss",
-                            full_board=gameplay._gameplay.grid.grid,
-                            elapsed_time=gameplay.time,
-                            loss_cause=gameplay.loss_cause,
-                        ),
-                    )
-                )
-
-        for user_id in self.session.player_ids:
-            self.messages.append(
-                (
-                    user_id,
-                    RoundEnd(
-                        session_id=self.session.id,
-                        round=self.session.current_round_index,
-                    ),
-                )
-            )
+        for user_id, events in self.session.consume_events().items():
+            for event in events:
+                self.messages.append((user_id, event))
 
         await self.multi_repo.save_session(self.session)
 

@@ -15,8 +15,9 @@ from backend.lib.pending_boards import get_pending_boards_store
 from backend.lib.scheduler import get_scheduler
 from backend.lib.websocket_game_transport import WebSocketGameTransport
 from backend.repositories.exceptions import *
+from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.multi import RoundOrchestrator
+from backend.services.multi.round_scheduler import RoundScheduler
 
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
 BoardRepository = Annotated[repositories.BoardRepository, Depends()]
@@ -48,6 +49,7 @@ class StartRoundService:
         scheduler: Scheduler,
         game_transport: GameTransport,
         pending_store: PendingBoardsStore,
+        round_scheduler: Annotated[RoundScheduler, Depends()],
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -57,14 +59,9 @@ class StartRoundService:
         self.scheduler = scheduler
         self.game_transport = game_transport
         self.pending_store = pending_store
+        self.round_scheduler = round_scheduler
 
         self.messages: list[tuple[uuid.UUID, Any]] = []
-
-        self.orchestrator = RoundOrchestrator(
-            multi_repo=self.multi_repo,
-            scheduler=self.scheduler,
-            game_transport=self.game_transport,
-        )
 
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
         session = await self.multi_repo.get_session(session_id)
@@ -72,10 +69,25 @@ class StartRoundService:
         if user.id not in session.player_ids:
             raise PermissionError("User is not part of this session")
 
+        if session.is_session_over():
+            raise ValueError("Session is already over")
+
         session.set_ready(user.id)
+
         next_round_index = session.current_round_index + 1
 
+        for player_id in session.player_ids:
+            await self.game_transport.send(
+                player_id, UserReady(user.id, next_round_index)
+            )
+
         if session.all_players_ready():
+            for user_id in session.player_ids:
+                await self.game_transport.send(
+                    user_id,
+                    RoundReady(session.id, next_round_index),
+                )
+
             if session.is_next_round_available:
                 round_start_time = datetime.now() + ROUND_START_DELAY
 
@@ -86,10 +98,10 @@ class StartRoundService:
                     )
 
                 self.scheduler.schedule(
-                    self.orchestrator.start_round,
+                    self.round_scheduler.start_round,
                     round_start_time,
                     start_at=round_start_time,
-                    session=session,  # todo: zmienic na id
+                    session_id=session.id,
                 )
             else:
                 self.background_tasks.add_task(
@@ -97,11 +109,6 @@ class StartRoundService:
                 )
 
         await self.multi_repo.save_session(session)
-
-        for player_id in session.player_ids:
-            await self.game_transport.send(
-                player_id, UserReady(session.id, next_round_index, user.id)
-            )
 
     async def _wait_for_generation_and_start_round(self, session: MultiplayerSession):
         next_round_index = session.current_round_index + 1
@@ -123,10 +130,10 @@ class StartRoundService:
             )
 
         self.scheduler.schedule(
-            self.orchestrator.start_round,
+            self.round_scheduler.start_round,
             start_at,
+            session_id=session.id,
             start_at=start_at,
-            session=session,  # todo: zmienic na id
         )
 
     def collect_messages(self) -> list[tuple[uuid.UUID, Any]]:

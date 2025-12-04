@@ -4,6 +4,10 @@ from typing import Optional, Protocol
 from backend.core.multi.session import MultiplayerSession
 
 
+class SessionNotFound(Exception):
+    pass
+
+
 class MultiplayerRepository(Protocol):
     async def get_session(self, session_id: uuid.UUID) -> MultiplayerSession: ...
 

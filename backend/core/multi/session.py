@@ -42,7 +42,7 @@ class MultiplayerSession:
         self.rounds: list[MultiplayerRound] = rounds
         self.current_round_index = -1
 
-        self.events: list[Any] = []
+        self.events: dict[uuid.UUID, list[Any]] = defaultdict(list)
         self.ready_players: set[uuid.UUID] = set()
 
     def add_round(self, round: MultiplayerRound):
@@ -76,17 +76,13 @@ class MultiplayerSession:
     def clear_ready_players(self):
         self.ready_players.clear()
 
-    def end_current_round(self) -> list[MultiplayerGameplay]:
+    def end_current_round(self) -> None:
         self._current_round.end()
-        self.events.extend(self._current_round.get_events())
+        self._consume_round_events()
 
         if self.is_session_over():
-            self.events.append(SessionOver(session_id=self.id))
-
-        return self._current_round.time_out_gameplays
-
-    def all_gameplays_finished(self) -> bool:
-        return self._current_round.all_gameplays_finished()
+            for user_id in self.player_ids:
+                self.events[user_id].append(SessionOver(session_id=self.id))
 
     def start_next_round(self, start_at: datetime):
         if self.current_round_index != -1:
@@ -95,7 +91,7 @@ class MultiplayerSession:
 
         self.current_round_index += 1
         self._current_round.start(start_at)
-        self.events.extend(self._current_round.get_events())
+        self._consume_round_events()
 
     def is_session_over(self) -> bool:
         return (
@@ -103,19 +99,25 @@ class MultiplayerSession:
             and self.rounds[-1].all_gameplays_finished()
         )
 
-    def get_gameplay_for_user(self, user_id: uuid.UUID) -> MultiplayerGameplay:
-        return self._current_round.gameplays[user_id]
+    def get_user_game_state(self, user_id: uuid.UUID) -> GameState:
+        gameplay = self._current_round.gameplays[user_id]
+        return gameplay.get_game_state()
 
     def execute_action_for_user(self, user_id: uuid.UUID, action: GameAction) -> None:
         self._current_round.execute_action_for_user(user_id, action)
-        self.events.extend(self._current_round.get_events())
+        self._consume_round_events()
 
-        if self.all_gameplays_finished():
-            self.events.extend(self.end_current_round())
+        if self.is_session_over():
+            for user_id in self.player_ids:
+                self.events[user_id].append(SessionOver(session_id=self.id))
 
-    def get_events(self) -> list[Any]:
+    def _consume_round_events(self) -> None:
+        for user_id, events in self._current_round.consume_events().items():
+            self.events[user_id].extend(events)
+
+    def consume_events(self) -> dict[uuid.UUID, list[Any]]:
         events = self.events
-        self.events = []
+        self.events = defaultdict(list)
         return events
 
 

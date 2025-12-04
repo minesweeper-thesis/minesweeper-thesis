@@ -2,10 +2,9 @@ import uuid
 from typing import Literal, Self
 
 from backend.core.game import *
-from backend.core.multi.events import RoundCountdown, UserReady
-from backend.core.multi.round import RoundEnd, RoundStart
-from backend.core.multi.session import SessionOver
+from backend.core.multi import RoundEnd, RoundStart, SessionOver
 from backend.routers.schemas import Response
+from backend.services.dto import RoundCountdown, RoundReady, UserReady
 
 
 class RoundStartResponse(Response):
@@ -19,10 +18,10 @@ class RoundStartResponse(Response):
     @classmethod
     def build(cls, message: "RoundStart") -> Self:
         return cls(
-            start_at=int(message.start_at.timestamp()),
-            end_at=int(message.end_at.timestamp()),
+            start_at=int(message.start_at.timestamp() * 1000),
+            end_at=int(message.end_at.timestamp() * 1000),
             session_id=message.session_id,
-            round=message.round,
+            round=message.round_index + 1,
             start_field=message.start_field,
         )
 
@@ -36,7 +35,7 @@ class RoundEndResponse(Response):
     def build(cls, message: "RoundEnd") -> Self:
         return cls(
             session_id=message.session_id,
-            round=message.round,
+            round=message.round_index + 1,
         )
 
 
@@ -51,33 +50,42 @@ class SessionOverResponse(Response):
         )
 
 
-class RoundReadyResponse(Response):
-    ws_type: Literal["ready"] = "ready"
-    session_id: uuid.UUID
-    round_index: int
+class RoundCountdownResponse(Response):
+    ws_type: Literal["round_countdown"] = "round_countdown"
+    round: int
     start_at: int
 
     @classmethod
     def build(cls, message: RoundCountdown) -> Self:
         return cls(
-            session_id=message.session_id,
-            round_index=message.round_index,
-            start_at=int(message.start_at.timestamp()),
+            round=message.round_index + 1,
+            start_at=int(message.start_at.timestamp() * 1000),
         )
 
 
 class UserReadyResponse(Response):
     ws_type: Literal["user_ready"] = "user_ready"
-    session_id: uuid.UUID
-    round_index: int
+    round: int
     user_id: uuid.UUID
 
     @classmethod
     def build(cls, message: "UserReady") -> Self:
         return cls(
-            session_id=message.session_id,
-            round_index=message.round_index,
+            round=message.round_index + 1,
             user_id=message.user_id,
+        )
+
+
+class RoundReadyResponse(Response):
+    ws_type: Literal["round_ready"] = "round_ready"
+    session_id: uuid.UUID
+    round: int
+
+    @classmethod
+    def build(cls, message: RoundReady) -> Self:
+        return cls(
+            session_id=message.session_id,
+            round=message.round_index + 1,
         )
 
 
@@ -85,6 +93,7 @@ __all__ = [
     "RoundStartResponse",
     "RoundEndResponse",
     "SessionOverResponse",
+    "RoundCountdownResponse",
     "RoundReadyResponse",
     "UserReadyResponse",
 ]

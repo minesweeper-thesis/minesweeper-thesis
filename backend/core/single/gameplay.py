@@ -1,18 +1,12 @@
 import time
 import uuid
-from typing import Optional, Protocol
+from typing import Optional
 
 from algorithms.boards.functions.moore import moore_neighborhood
 from algorithms.boards.grid import Grid
 from algorithms.checker.hint_generator import HintGenerator
 from backend.core.board import Board
 from backend.core.game import *
-
-
-class Timer(Protocol):
-    def start(self) -> None: ...
-    def stop(self) -> None: ...
-    def get_elapsed_time(self) -> float: ...
 
 
 class SingleplayerGameplay(Gameplay):
