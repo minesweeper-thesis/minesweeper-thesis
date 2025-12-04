@@ -37,10 +37,13 @@ class GenerationSettings:
 @dataclass
 class Board:
     id: uuid.UUID
-    difficulty_level: DifficultyLevel
     minefields: Minefields
     start_field: tuple[int, int]
     generation_settings: GenerationSettings
+
+    @property
+    def difficulty_level(self) -> DifficultyLevel:
+        return self.generation_settings.difficulty_level
 
 
 class BoardGenerator:
@@ -67,7 +70,6 @@ class BoardGenerator:
 
         return Board(
             id=uuid.uuid4(),
-            difficulty_level=self.difficulty_level,
             minefields=minefields,
             start_field=start_field,
             generation_settings=GenerationSettings(

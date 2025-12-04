@@ -12,20 +12,25 @@ from backend.core.game import GameMode
 
 
 @dataclass
+class Generator:
+    generator_type: GeneratorType
+    settings: Optional[GeneratorParams] = None
+
+
+@dataclass
 class GameConfig:
     rounds: int
     max_round_time: int
     difficulty_level: DifficultyLevel
     game_mode: GameMode
-    generator_type: GeneratorType
-    generator_settings: Optional[GeneratorParams] = None
+    generator: Generator
 
     @property
     def generation_settings(self) -> GenerationSettings:
         return GenerationSettings(
-            type=self.generator_type,
+            type=self.generator.generator_type,
             difficulty_level=self.difficulty_level,
-            settings=self.generator_settings,
+            settings=self.generator.settings,
         )
 
 
@@ -35,4 +40,4 @@ class GameConfigUpdated:
     game_config: GameConfig
 
 
-__all__ = ["GameConfig", "GameConfigUpdated"]
+__all__ = ["GameConfig", "GameConfigUpdated", "Generator"]

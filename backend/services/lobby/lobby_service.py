@@ -48,8 +48,10 @@ class LobbyService:
             max_round_time=60,
             difficulty_level=DifficultyLevel(3, 3, 3),
             game_mode="normal",
-            generator_type="random",
-            generator_settings=None,
+            generator=Generator(
+                generator_type="random",
+                settings=None,
+            ),
         )
 
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=default_game_config)

@@ -3,21 +3,24 @@ from typing import Optional, Self
 
 from pydantic import BaseModel, Field, model_validator
 
-from backend.core.board import (
-    DifficultyLevel,
-    GenerationSettings,
-    GeneratorParams,
-    GeneratorType,
-)
+from backend.core.board import DifficultyLevel, GeneratorParams, GeneratorType
 from backend.core.game import *
+from backend.core.multi.config import Generator
 from backend.services.single.play_single_service import NewGameSettings
 
 
-class GenerationRequest(BaseModel):
+class GeneratorSchema(BaseModel):
     type: GeneratorType
     settings: Optional[GeneratorParams] = Field(
-        None, description="Required if generator_type is set to 'ml'"
+        None, description="Required if generator.type is set to 'ml'"
     )
+
+    def to_dto(self) -> Generator:
+        return Generator(self.type, self.settings)
+
+    @classmethod
+    def from_dto(cls, dto: Generator) -> Self:
+        return cls(type=dto.generator_type, settings=dto.settings)
 
 
 class NewGameRequest(BaseModel):
@@ -25,7 +28,7 @@ class NewGameRequest(BaseModel):
         None,
         description="Use existing board (exclusive with generator, difficulty_level)",
     )
-    generator: Optional[GenerationRequest] = Field(
+    generator: Optional[GeneratorSchema] = Field(
         None,
         description="Board generation settings (requires difficulty_level, exclusive with board_id)",
     )
@@ -62,12 +65,11 @@ class NewGameRequest(BaseModel):
         return NewGameSettings(
             board_id=self.board_id,
             generator=(
-                GenerationSettings(
+                Generator(
                     self.generator.type,
-                    self.difficulty_level,
                     self.generator.settings,
                 )
-                if self.generator and self.difficulty_level
+                if self.generator
                 else None
             ),
             difficulty_level=self.difficulty_level,

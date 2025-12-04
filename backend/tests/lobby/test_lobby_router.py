@@ -72,7 +72,7 @@ def test_create_lobby_returns_lobby_response(client, auth):
     assert "max_round_time" in config
     assert "difficulty_level" in config
     assert "game_mode" in config
-    assert "generator_type" in config
+    assert "generator" in config
 
     # Validate DifficultyLevel
     dl = config["difficulty_level"]
@@ -111,8 +111,10 @@ def test_update_lobby_config_success(client, auth):
             "mine_count": 15,
         },
         "game_mode": "hardcore",
-        "generator_type": "random",
-        "generator_settings": None,
+        "generator": {
+            "type": "random",
+            "settings": None,
+        },
     }
 
     resp = client.put(f"/api/lobbies/{lobby_id}", json=new_config)
@@ -128,7 +130,7 @@ def test_update_lobby_config_without_auth_returns_401(client):
             "max_round_time": 120,
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 5},
             "game_mode": "normal",
-            "generator_type": "random",
+            "generator": {"type": "random", "settings": None},
         },
     )
     assert resp.status_code == 401

@@ -26,8 +26,10 @@ export default function LobbySettingsPopup({ onClose, config, onSave }) {
             max_round_time: maxTime,
             difficulty_level: difficultyValue,
             game_mode: gameMode,
-            generator_type: generatorType,
-            generator_settings: config.generator_settings // NIC NIE ZMIENIAMY
+            generator: {
+                type: generatorType,
+                settings: config.generator_settings // NIC NIE ZMIENIAMY
+            }
         };
 
         await onSave(body);

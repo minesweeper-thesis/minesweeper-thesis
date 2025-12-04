@@ -2,7 +2,8 @@ import uuid
 
 from fastapi import BackgroundTasks
 
-from backend.core.board import DifficultyLevel, GenerationSettings
+from backend.core.board import DifficultyLevel
+from backend.core.multi.config import Generator
 from backend.core.user import User
 from backend.db.db import async_session_maker
 from backend.lib.board_generator import LocalBoardGenerator
@@ -39,9 +40,7 @@ async def create_gameplay_via_service(user_id: uuid.UUID) -> uuid.UUID:
         difficulty_level = DifficultyLevel(rows=2, columns=2, mine_count=0)
         settings = NewGameSettings(
             board_id=None,
-            generator=GenerationSettings(
-                type="random", settings=None, difficulty_level=difficulty_level
-            ),
+            generator=Generator(generator_type="random", settings=None),
             difficulty_level=difficulty_level,
             mode="normal",
         )

@@ -16,8 +16,6 @@ export default function GamePageSingle() {
     const [startField, setStartField] = useState(null);
     const boardRef = useRef(null);
 
-    const firstRenderRef = useRef(true);
-
     async function initGameRequest(storedId) {
         if (storedId) return { gameplay_id: storedId };
 
@@ -58,10 +56,6 @@ export default function GamePageSingle() {
     }, []);
 
     useEffect(() => {
-        if (firstRenderRef.current) {
-            firstRenderRef.current = false;
-            return;
-        }
         startNewGame(null);
     }, [boardData]);
 

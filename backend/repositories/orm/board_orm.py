@@ -90,10 +90,8 @@ class BoardORM(Base):
     difficulty_level: Mapped[DifficultyLevelORM] = relationship(back_populates="boards")
 
     def to_board(self) -> Board:
-        difficulty_level = self.difficulty_level.to_difficulty_level()
         return Board(
             id=self.id,
-            difficulty_level=difficulty_level,
             minefields=self.minefields,
             start_field=self.start_field,
             generation_settings=self.generation_settings,

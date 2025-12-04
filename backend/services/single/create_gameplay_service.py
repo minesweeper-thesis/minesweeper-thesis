@@ -4,7 +4,7 @@ from typing import Annotated, Optional
 from fastapi import Depends
 
 from backend import protocols, repositories
-from backend.core.board import Board
+from backend.core.board import Board, GenerationSettings
 from backend.core.game import *
 from backend.core.single.gameplay import SingleplayerGameplay
 from backend.core.user import User
@@ -97,7 +97,16 @@ class CreateSingleGameplayService:
         except UnsolvedBoardNotFound:
             assert game_settings.difficulty_level is not None
             raise SolvedAllBoards(
-                game_settings.difficulty_level, game_settings.generator
+                game_settings.difficulty_level,
+                (
+                    GenerationSettings(
+                        type=game_settings.generator.generator_type,
+                        difficulty_level=game_settings.difficulty_level,
+                        settings=game_settings.generator.settings,
+                    )
+                    if game_settings.generator
+                    else None
+                ),
             ) from None
 
     async def _create_and_save_gameplay(
@@ -119,11 +128,16 @@ class CreateSingleGameplayService:
     ) -> Optional[Board]:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
+        assert game_settings.generator.settings is not None
 
         try:
             return await self.board_repo.get_unsolved_board(
                 game_settings.difficulty_level,
-                generation_settings=game_settings.generator,
+                generation_settings=GenerationSettings(
+                    type=game_settings.generator.generator_type,
+                    difficulty_level=game_settings.difficulty_level,
+                    settings=game_settings.generator.settings,
+                ),
                 user_id=user.id if user else None,
             )
 
@@ -157,14 +171,23 @@ class CreateSingleGameplayService:
             await self.pending_store.mark_ready(generation_id)
 
         generation_id = await self.board_generator.generate_board(
-            game_settings.generator, on_completed=on_board_generated
+            GenerationSettings(
+                type=game_settings.generator.generator_type,
+                difficulty_level=game_settings.difficulty_level,
+                settings=game_settings.generator.settings,
+            ),
+            on_completed=on_board_generated,
         )
 
         await self.pending_store.create_pending(
             generation_id=generation_id,
             metadata=PendingBoardMetadata(
                 gameplay_id=gameplay_id,
-                generation_settings=game_settings.generator,
+                generation_settings=GenerationSettings(
+                    type=game_settings.generator.generator_type,
+                    difficulty_level=game_settings.difficulty_level,
+                    settings=game_settings.generator.settings,
+                ),
                 difficulty_level=game_settings.difficulty_level,
                 mode=game_settings.mode,
                 user_id=user.id if user else None,

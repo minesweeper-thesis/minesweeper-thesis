@@ -4,8 +4,8 @@ from typing import Literal, Self
 from pydantic import BaseModel
 
 from backend.core.lobby import *
-from backend.core.multi import GameConfig
 from backend.routers.schemas import Response, WSRequest
+from backend.routers.schemas.lobby.lobby_schemas import GameConfigResponse
 
 from ..user import UserResponse
 
@@ -28,14 +28,14 @@ class PendingInvitationsRequest(WSRequest):
 class InvitationLobbyResponse(BaseModel):
     id: uuid.UUID
     host: UserResponse
-    game_config: GameConfig
+    game_config: GameConfigResponse
 
     @classmethod
     def build(cls, lobby: Lobby) -> Self:
         return cls(
             id=lobby.id,
             host=UserResponse.build(lobby.host),
-            game_config=lobby.game_config,
+            game_config=GameConfigResponse.build(lobby.game_config),
         )
 
 

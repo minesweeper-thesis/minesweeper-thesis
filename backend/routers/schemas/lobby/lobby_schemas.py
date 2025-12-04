@@ -3,20 +3,39 @@ from typing import Literal, Optional, Self
 
 from pydantic import BaseModel
 
-from backend.core.board import DifficultyLevel, GeneratorParams, GeneratorType
+from backend.core.board import DifficultyLevel
 from backend.core.game import GameMode
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.routers.schemas import Response
+from backend.routers.schemas.game.single_schemas import GeneratorSchema
 from backend.routers.schemas.lobby import ChatMessageResponse
 from backend.routers.schemas.user import UserResponse
+
+
+class GameConfigResponse(BaseModel):
+    rounds: int
+    max_round_time: int
+    difficulty_level: DifficultyLevel
+    game_mode: GameMode
+    generator: GeneratorSchema
+
+    @classmethod
+    def build(cls, config: GameConfig) -> Self:
+        return cls(
+            rounds=config.rounds,
+            max_round_time=config.max_round_time,
+            difficulty_level=config.difficulty_level,
+            game_mode=config.game_mode,
+            generator=GeneratorSchema.from_dto(config.generator),
+        )
 
 
 class LobbyResponse(BaseModel):
     id: uuid.UUID
     host: UserResponse
     users: list[UserResponse]
-    game_config: GameConfig
+    game_config: GameConfigResponse
     messages: list[ChatMessageResponse] = []
 
     @classmethod
@@ -25,7 +44,7 @@ class LobbyResponse(BaseModel):
             id=lobby.id,
             host=UserResponse.build(lobby.host),
             users=[UserResponse.build(user) for user in lobby.users],
-            game_config=lobby.game_config,
+            game_config=GameConfigResponse.build(lobby.game_config),
             messages=[ChatMessageResponse.build(message) for message in messages],
         )
 
@@ -41,8 +60,7 @@ class UpdateGameConfigRequest(BaseModel):
     max_round_time: int
     difficulty_level: DifficultyLevelRequest
     game_mode: GameMode
-    generator_type: GeneratorType
-    generator_settings: Optional[GeneratorParams] = None
+    generator: GeneratorSchema
 
     def to_dto(self) -> GameConfig:
         return GameConfig(
@@ -54,19 +72,21 @@ class UpdateGameConfigRequest(BaseModel):
                 mine_count=self.difficulty_level.mine_count,
             ),
             game_mode=self.game_mode,
-            generator_type=self.generator_type,
-            generator_settings=self.generator_settings,
+            generator=self.generator.to_dto(),
         )
 
 
 class GameConfigUpdatedResponse(Response):
     ws_type: Literal["game_config_updated"] = "game_config_updated"
     lobby_id: uuid.UUID
-    game_config: GameConfig
+    game_config: GameConfigResponse
 
     @classmethod
     def build(cls, data: GameConfigUpdated) -> Self:
-        return cls(lobby_id=data.lobby_id, game_config=data.game_config)
+        return cls(
+            lobby_id=data.lobby_id,
+            game_config=GameConfigResponse.build(data.game_config),
+        )
 
 
 class UserConnectionStatusResponse(Response):
