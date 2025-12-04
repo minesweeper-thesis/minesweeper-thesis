@@ -39,19 +39,15 @@ class InMemoryPendingStore(PendingBoardsStore):
 
         return pending
 
-    async def mark_ready(self, generation_id: uuid.UUID) -> None:
+    async def mark_ready(self, generation_id: uuid.UUID, board_id: uuid.UUID) -> None:
         await self._clear_expired()
         self._ready[generation_id] = True
+        if generation_id in self._store:
+            self._store[generation_id].board_id = board_id
 
     async def wait_for_ready(
         self, generation_id: uuid.UUID, timeout: float | None = None
     ) -> Optional[PendingBoard]:
-        if generation_id not in self._store or self._is_expired(generation_id):
-            self._store.pop(generation_id, None)
-            self._expires_at.pop(generation_id, None)
-            self._ready.pop(generation_id, None)
-            return None
-
         if self._ready.get(generation_id, False):
             return self._store[generation_id]
 

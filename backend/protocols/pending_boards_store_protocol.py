@@ -13,7 +13,9 @@ class PendingBoardsStore(Protocol):
         self, session_id: uuid.UUID, round_index: int
     ) -> Optional[PendingBoard]: ...
 
-    async def mark_ready(self, generation_id: uuid.UUID) -> None: ...
+    async def mark_ready(
+        self, generation_id: uuid.UUID, board_id: uuid.UUID
+    ) -> None: ...
 
     async def wait_for_ready(
         self, generation_id: uuid.UUID, timeout: float

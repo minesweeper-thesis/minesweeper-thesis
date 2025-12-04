@@ -1,4 +1,5 @@
 import uuid
+from dataclasses import asdict
 from typing import Optional
 
 from sqlalchemy import select
@@ -78,10 +79,11 @@ class BoardRepository:
                 args.append(BoardORM.difficulty_level_id == difficulty_level_orm.id)
 
             if minefields is not None:
-                args.append(BoardORM.minefields == minefields)
+                normalized = [list(coord) for coord in minefields]
+                args.append(BoardORM.minefields == normalized)
 
             if generation_settings is not None:
-                args.append(BoardORM.generation_settings == generation_settings)
+                args.append(BoardORM.generation_settings == asdict(generation_settings))
 
             stmt = (
                 select(BoardORM)
@@ -115,7 +117,7 @@ class BoardRepository:
 
         args = [BoardORM.difficulty_level_id == difficulty_level_orm.id]
         if generation_settings is not None:
-            args.append(BoardORM.generation_settings == generation_settings)
+            args.append(BoardORM.generation_settings == asdict(generation_settings))
 
         try:
             stmt = (

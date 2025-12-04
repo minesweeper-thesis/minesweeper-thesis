@@ -167,7 +167,7 @@ class CreateSingleGameplayService:
             except BoardNotFound:
                 await self.board_repo.add_board(board)
 
-            await self.pending_store.mark_ready(generation_id)
+            await self.pending_store.mark_ready(generation_id, board.id)
 
         generation_id = await self.board_generator.generate_board(
             GenerationSettings(

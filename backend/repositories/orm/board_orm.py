@@ -5,13 +5,14 @@ from sqlalchemy import (
     JSON,
     ForeignKey,
     Index,
+    Text,
     TypeDecorator,
     UniqueConstraint,
     event,
     text,
 )
-from sqlalchemy.ext.hybrid import Comparator
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql.expression import func
 
 from backend.core.board import (
     Board,
@@ -23,21 +24,23 @@ from backend.core.board import (
 from backend.repositories.orm import Base
 
 
-class MinefieldsComparator(Comparator):
-    def __eq__(self, other):
-        if other is None:
-            return super().__eq__(None)
-        normalized = [list(coord) for coord in other]
-        return super().__eq__(normalized)
-
-
 class MinefieldsColumn(TypeDecorator):
     impl = JSON
     cache_ok = True
 
     @property
     def comparator_factory(self):
-        return MinefieldsComparator
+        type_self = self
+
+        class Comparator(TypeDecorator.Comparator):
+            def __eq__(self, other):
+                import json
+
+                processed_value = type_self.process_bind_param(other, None)  # type: ignore
+                json_str = json.dumps(processed_value, sort_keys=True)
+                return func.cast(self.expr, Text) == json_str
+
+        return Comparator
 
     def process_bind_param(self, value, dialect):
         if value is None:
@@ -53,6 +56,20 @@ class MinefieldsColumn(TypeDecorator):
 class GenerationSettingsColumn(TypeDecorator):
     impl = JSON
     cache_ok = True
+
+    @property
+    def comparator_factory(self):
+        type_self = self
+
+        class Comparator(TypeDecorator.Comparator):
+            def __eq__(self, other):
+                import json
+
+                processed_value = type_self.process_bind_param(other, None)  # type: ignore
+                json_str = json.dumps(processed_value, sort_keys=True)
+                return func.cast(self.expr, Text) == json_str
+
+        return Comparator
 
     def process_bind_param(self, value, dialect):
         if not isinstance(value, GenerationSettings):

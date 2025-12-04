@@ -46,7 +46,7 @@ async def start_singleplayer_game(
 
 
 async def handle(data, service: PlaySingleService):
-    if data["type"] == "get_game_state":
+    if data["type"] == "get_state":
         return service.get_game_state()
 
     action = _create_action_from_data(data)
