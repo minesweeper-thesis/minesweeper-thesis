@@ -2,6 +2,8 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
+from backend.core.game import Cell
+
 
 @dataclass
 class UserReady:
@@ -19,7 +21,9 @@ class RoundReady:
 class RoundCountdown:
     session_id: uuid.UUID
     round_index: int
+    countdown_to: datetime
     start_at: datetime
+    start_field: Cell
 
 
 __all__ = ["UserReady", "RoundReady", "RoundCountdown"]

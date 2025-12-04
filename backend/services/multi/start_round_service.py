@@ -35,7 +35,7 @@ PendingBoardsStore = Annotated[
 type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
-ROUND_START_DELAY = timedelta(seconds=10)
+ROUND_START_DELAY = timedelta(seconds=5)
 
 
 class StartRoundService:
@@ -89,13 +89,26 @@ class StartRoundService:
                 )
 
             if session.is_next_round_available:
-                round_start_time = datetime.now() + ROUND_START_DELAY
+                countdown_to = datetime.now() + ROUND_START_DELAY
+                round_start_time = countdown_to + ROUND_START_DELAY
 
                 for user_id in session.player_ids:
                     await self.game_transport.send(
                         user_id,
-                        RoundCountdown(session.id, next_round_index, round_start_time),
+                        RoundCountdown(
+                            session.id,
+                            next_round_index,
+                            countdown_to,
+                            round_start_time,
+                            session._next_round.board.start_field,
+                        ),
                     )
+
+                self.scheduler.schedule(
+                    self.round_scheduler.lock_ready,
+                    countdown_to,
+                    session_id=session.id,
+                )
 
                 self.scheduler.schedule(
                     self.round_scheduler.start_round,
@@ -121,13 +134,26 @@ class StartRoundService:
 
         await self.pending_store.wait_for_ready(pending.generation_id, 24 * 3600)
 
-        start_at = datetime.now() + ROUND_START_DELAY
+        countdown_to = datetime.now() + ROUND_START_DELAY
+        start_at = countdown_to + ROUND_START_DELAY
 
         for user_id in session.player_ids:
             await self.game_transport.send(
                 user_id,
-                RoundCountdown(session.id, next_round_index, start_at),
+                RoundCountdown(
+                    session.id,
+                    next_round_index,
+                    countdown_to,
+                    start_at,
+                    session._next_round.board.start_field,
+                ),
             )
+
+        self.scheduler.schedule(
+            self.round_scheduler.lock_ready,
+            countdown_to,
+            session_id=session.id,
+        )
 
         self.scheduler.schedule(
             self.round_scheduler.start_round,

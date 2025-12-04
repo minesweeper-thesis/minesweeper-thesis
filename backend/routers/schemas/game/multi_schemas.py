@@ -9,7 +9,6 @@ from backend.services.dto import RoundCountdown, RoundReady, UserReady
 
 class RoundStartResponse(Response):
     ws_type: Literal["round_start"] = "round_start"
-    session_id: uuid.UUID
     round: int
     start_at: int
     end_at: int
@@ -20,7 +19,6 @@ class RoundStartResponse(Response):
         return cls(
             start_at=int(message.start_at.timestamp() * 1000),
             end_at=int(message.end_at.timestamp() * 1000),
-            session_id=message.session_id,
             round=message.round_index + 1,
             start_field=message.start_field,
         )
@@ -28,38 +26,35 @@ class RoundStartResponse(Response):
 
 class RoundEndResponse(Response):
     ws_type: Literal["round_end"] = "round_end"
-    session_id: uuid.UUID
     round: int
 
     @classmethod
     def build(cls, message: "RoundEnd") -> Self:
-        return cls(
-            session_id=message.session_id,
-            round=message.round_index + 1,
-        )
+        return cls(round=message.round_index + 1)
 
 
 class SessionOverResponse(Response):
     ws_type: Literal["session_over"] = "session_over"
-    session_id: uuid.UUID
 
     @classmethod
     def build(cls, message: "SessionOver") -> Self:
-        return cls(
-            session_id=message.session_id,
-        )
+        return cls()
 
 
 class RoundCountdownResponse(Response):
     ws_type: Literal["round_countdown"] = "round_countdown"
     round: int
+    countdown_to: int
     start_at: int
+    start_field: Cell
 
     @classmethod
     def build(cls, message: RoundCountdown) -> Self:
         return cls(
             round=message.round_index + 1,
+            countdown_to=int(message.countdown_to.timestamp() * 1000),
             start_at=int(message.start_at.timestamp() * 1000),
+            start_field=message.start_field,
         )
 
 

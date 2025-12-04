@@ -1,6 +1,5 @@
 import uuid
 from dataclasses import dataclass
-from datetime import timedelta
 from typing import Any
 
 from backend.core.board import DifficultyLevel
@@ -15,9 +14,6 @@ from backend.core.user import *
 @dataclass
 class SessionOver:
     session_id: uuid.UUID
-
-
-ROUND_START_DELAY = timedelta(seconds=10)
 
 
 class MultiplayerSession:
@@ -45,6 +41,8 @@ class MultiplayerSession:
         self.events: dict[uuid.UUID, list[Any]] = defaultdict(list)
         self.ready_players: set[uuid.UUID] = set()
 
+        self.ready_locked = False
+
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
 
@@ -65,9 +63,13 @@ class MultiplayerSession:
         return self.current_round_index + 1 < len(self.rounds)
 
     def set_ready(self, user_id: uuid.UUID):
+        if self.ready_locked:
+            raise ValueError("Ready state is locked")
         self.ready_players.add(user_id)
 
     def cancel_ready(self, user_id: uuid.UUID):
+        if self.ready_locked:
+            raise ValueError("Ready state is locked")
         self.ready_players.discard(user_id)
 
     def all_players_ready(self) -> bool:
@@ -76,9 +78,14 @@ class MultiplayerSession:
     def clear_ready_players(self):
         self.ready_players.clear()
 
+    def lock_ready(self):
+        self.ready_locked = True
+
     def end_current_round(self) -> None:
         self._current_round.end()
         self._consume_round_events()
+
+        self.ready_locked = False
 
         if self.is_session_over():
             for user_id in self.player_ids:
@@ -106,6 +113,9 @@ class MultiplayerSession:
     def execute_action_for_user(self, user_id: uuid.UUID, action: GameAction) -> None:
         self._current_round.execute_action_for_user(user_id, action)
         self._consume_round_events()
+
+        if self._current_round.all_gameplays_finished():
+            self.ready_locked = False
 
         if self.is_session_over():
             for user_id in self.player_ids:

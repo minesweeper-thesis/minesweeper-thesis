@@ -1,6 +1,5 @@
 import uuid
 from collections.abc import Callable
-from datetime import timedelta
 from typing import Annotated, Any, Awaitable, Optional
 
 from fastapi import Depends
@@ -41,9 +40,6 @@ PendingBoardsStore = Annotated[
 
 
 type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
-
-
-ROUND_START_DELAY = timedelta(seconds=10)
 
 
 class LobbyReadyService:
@@ -87,9 +83,7 @@ class LobbyReadyService:
         self.lobby_repo.save_lobby(lobby)
 
         for player in lobby.users:
-            await self.notification_system.notify(
-                player.id, UserReady(user.id, 0, lobby.id)
-            )
+            await self.notification_system.notify(player.id, UserReady(user.id, 0))
 
         if lobby.all_users_ready():
             lobby_session = await self.multi_repo.get_pending_for_lobby(lobby.id)

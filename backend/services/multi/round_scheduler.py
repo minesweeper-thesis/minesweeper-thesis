@@ -35,7 +35,7 @@ PendingBoardsStore = Annotated[
     protocols.PendingBoardsStore, Depends(get_pending_boards_store)
 ]
 
-ROUND_START_DELAY = timedelta(seconds=10)
+ROUND_START_DELAY = timedelta(seconds=5)
 
 
 class RoundScheduler:
@@ -58,6 +58,11 @@ class RoundScheduler:
         self.notification_system = notification_system
         self.pending_store = pending_store
 
+    async def lock_ready(self, session_id: uuid.UUID):
+        session = await self.multi_repo.get_session(session_id)
+        session.lock_ready()
+        await self.multi_repo.save_session(session)
+
     async def on_board_generated(
         self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
     ):
@@ -79,12 +84,26 @@ class RoundScheduler:
         session = await self.multi_repo.get_session(session_id)
         await self._add_round_to_session(session.id, board)
 
-        round_start_time = datetime.now() + ROUND_START_DELAY
+        countdown_to = datetime.now() + ROUND_START_DELAY
+        round_start_time = countdown_to + ROUND_START_DELAY
 
         for user_id in session.player_ids:
             await self.notification_system.notify(
-                user_id, RoundCountdown(session_id, 0, round_start_time)
+                user_id,
+                RoundCountdown(
+                    session_id,
+                    0,
+                    countdown_to,
+                    round_start_time,
+                    session.rounds[0].board.start_field,
+                ),
             )
+
+        self.scheduler.schedule(
+            self.lock_ready,
+            countdown_to,
+            session_id=session.id,
+        )
 
         self.scheduler.schedule(
             self.start_round,

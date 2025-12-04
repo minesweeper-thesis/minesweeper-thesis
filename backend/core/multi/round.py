@@ -8,8 +8,6 @@ from backend.core.board import Board
 from backend.core.game import *
 from backend.core.multi.gameplay import MultiplayerGameplay
 
-ROUND_START_DELAY = timedelta(seconds=10)
-
 
 @dataclass
 class RoundStart:
