@@ -16,6 +16,8 @@ export default function GamePageSingle() {
     const [startField, setStartField] = useState(null);
     const boardRef = useRef(null);
 
+
+
     async function initGameRequest(storedId) {
         if (storedId) return { gameplay_id: storedId };
 

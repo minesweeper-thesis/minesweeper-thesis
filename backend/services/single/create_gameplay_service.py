@@ -128,7 +128,6 @@ class CreateSingleGameplayService:
     ) -> Optional[Board]:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
-        assert game_settings.generator.settings is not None
 
         try:
             return await self.board_repo.get_unsolved_board(

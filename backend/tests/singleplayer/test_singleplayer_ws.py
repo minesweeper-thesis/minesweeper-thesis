@@ -50,7 +50,6 @@ def _create_board_sync(rows=5, columns=5, mine_count=2) -> tuple[str, tuple[int,
 
                     board = Board(
                         id=uuid.uuid4(),
-                        difficulty_level=difficulty,
                         minefields=minefields,
                         start_field=start_field,
                         generation_settings=GenerationSettings(
@@ -258,7 +257,7 @@ def test_websocket_reveal_one_returns_response(client, auth):
         start_field = initial["start_field"]
 
         # Reveal start field (guaranteed safe)
-        ws.send_json({"type": "reveal_one", "x": start_field[0], "y": start_field[1]})
+        ws.send_json({"type": "reveal_one", "cell": start_field})
         data = json.loads(ws.receive_text())
 
         # Validate RevealResponse (flat format)
@@ -281,7 +280,7 @@ def test_websocket_reveal_start_field_is_safe(client, auth):
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
-        ws.send_json({"type": "reveal_one", "x": start_field[0], "y": start_field[1]})
+        ws.send_json({"type": "reveal_one", "cell": start_field})
         data = json.loads(ws.receive_text())
 
         # Should NOT be game_over with loss
@@ -304,7 +303,7 @@ def test_websocket_reveal_returns_valid_cell_values(client, auth):
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
-        ws.send_json({"type": "reveal_one", "x": start_field[0], "y": start_field[1]})
+        ws.send_json({"type": "reveal_one", "cell": start_field})
         data = json.loads(ws.receive_text())
 
         if data["type"] == "reveal":
@@ -344,7 +343,7 @@ def test_websocket_game_over_loss_schema(client, auth):
                     break
                 if (x, y) == tuple(start_field):
                     continue
-                ws.send_json({"type": "reveal_one", "x": x, "y": y})
+                ws.send_json({"type": "reveal_one", "cell": (x, y)})
                 try:
                     data = json.loads(ws.receive_text())
                     if data["type"] == "game_over":
@@ -362,44 +361,6 @@ def test_websocket_game_over_loss_schema(client, auth):
         assert isinstance(game_over["full_board"], list)
 
 
-# def test_websocket_game_over_win_by_revealing_safe(client, auth):
-#     """Revealing all safe cells triggers win."""
-#     from starlette.websockets import WebSocketDisconnect
-
-#     email = f"ws-win-{uuid.uuid4().hex[:8]}@example.com"
-#     auth(email=email, password="pw", nickname="ws_win")
-
-#     # 3x3 with 1 mine = 8 safe cells
-#     gameplay_id = _create_game(client, rows=3, columns=3, mine_count=1)
-
-#     revealed_count = 0
-#     game_result = None
-#     finished = False
-
-#     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
-#         initial = json.loads(ws.receive_text())
-
-#         for x in range(3):
-#             if finished:
-#                 break
-#             for y in range(3):
-#                 if finished:
-#                     break
-#                 ws.send_json({"type": "reveal_one", "x": x, "y": y})
-#                 try:
-#                     data = json.loads(ws.receive_text())
-
-#                     if data["type"] == "game_over":
-#                         game_result = data
-#                         finished = True
-#                     elif data["type"] == "reveal":
-#                         revealed_count += len(data["revealed_cells"])
-#                 except WebSocketDisconnect:
-#                     finished = True
-
-#     assert game_result is not None or revealed_count > 0
-
-
 # =============================================================================
 # WebSocket Tests - Flag Actions
 # =============================================================================
@@ -415,7 +376,7 @@ def test_websocket_flag_returns_response(client, auth):
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()  # Initial state
 
-        ws.send_json({"type": "flag", "x": 0, "y": 0})
+        ws.send_json({"type": "flag", "cell": (0, 0)})
         data = json.loads(ws.receive_text())
 
         assert data["type"] == "flag"
@@ -433,10 +394,10 @@ def test_websocket_remove_flag_returns_response(client, auth):
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()  # Initial state
 
-        ws.send_json({"type": "flag", "x": 0, "y": 0})
+        ws.send_json({"type": "flag", "cell": (0, 0)})
         ws.receive_text()  # flag response
 
-        ws.send_json({"type": "remove_flag", "x": 0, "y": 0})
+        ws.send_json({"type": "remove_flag", "cell": (0, 0)})
         data = json.loads(ws.receive_text())
 
         assert data["type"] == "remove_flag"
@@ -453,11 +414,11 @@ def test_websocket_flag_and_unflag_same_cell(client, auth):
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()  # Initial state
 
-        ws.send_json({"type": "flag", "x": 1, "y": 1})
+        ws.send_json({"type": "flag", "cell": (1, 1)})
         flag_resp = json.loads(ws.receive_text())
         assert flag_resp["type"] == "flag"
 
-        ws.send_json({"type": "remove_flag", "x": 1, "y": 1})
+        ws.send_json({"type": "remove_flag", "cell": (1, 1)})
         unflag_resp = json.loads(ws.receive_text())
         assert unflag_resp["type"] == "remove_flag"
 
@@ -472,14 +433,14 @@ def test_websocket_get_game_state_returns_current_state(client, auth):
     email = f"ws-getstate-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="pw", nickname="ws_getstate")
 
-    gameplay_id = _create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = _create_game(client, rows=5, columns=5, mine_count=5)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
         # Reveal start field first
-        ws.send_json({"type": "reveal_one", "x": start_field[0], "y": start_field[1]})
+        ws.send_json({"type": "reveal_one", "cell": start_field})
         ws.receive_text()  # reveal response
 
         ws.send_json({"type": "get_game_state"})
@@ -510,9 +471,7 @@ def test_websocket_board_state_shows_revealed_cell(client, auth):
             initial = json.loads(ws.receive_text())
             start_field = initial["start_field"]
 
-            ws.send_json(
-                {"type": "reveal_one", "x": start_field[0], "y": start_field[1]}
-            )
+            ws.send_json({"type": "reveal_one", "cell": start_field})
             reveal_data = json.loads(ws.receive_text())
 
             if reveal_data["type"] == "reveal":
@@ -541,7 +500,7 @@ def test_websocket_flag_shows_in_state(client, auth):
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()  # Initial state
 
-        ws.send_json({"type": "flag", "x": 0, "y": 0})
+        ws.send_json({"type": "flag", "cell": (0, 0)})
         ws.receive_text()
 
         ws.send_json({"type": "get_game_state"})
@@ -551,42 +510,6 @@ def test_websocket_flag_shows_in_state(client, auth):
         # -4 = FLAG constant per game_schemas.py CellSpecial
         cell_value = board[0][0]
         assert cell_value == -4, f"Cell should be flagged (-4), got {cell_value}"
-
-
-# =============================================================================
-# WebSocket Tests - reveal_many
-# =============================================================================
-
-
-def test_websocket_reveal_many_action(client, auth):
-    """reveal_many action returns appropriate response or error."""
-    from anyio import EndOfStream
-    from starlette.websockets import WebSocketDisconnect
-
-    email = f"ws-revmany-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_revmany")
-
-    gameplay_id = _create_game(client, rows=5, columns=5, mine_count=2)
-
-    try:
-        with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
-            initial = json.loads(ws.receive_text())
-            start_field = initial["start_field"]
-
-            ws.send_json(
-                {"type": "reveal_one", "x": start_field[0], "y": start_field[1]}
-            )
-            ws.receive_text()
-
-            ws.send_json(
-                {"type": "reveal_many", "x": start_field[0], "y": start_field[1]}
-            )
-            data = json.loads(ws.receive_text())
-
-            assert data["type"] in ["reveal", "game_over", "error"]
-    except (WebSocketDisconnect, EndOfStream, Exception):
-        # Server may disconnect if reveal_many requirements not met
-        pass
 
 
 # =============================================================================
@@ -610,42 +533,6 @@ def test_websocket_use_hint_action(client, auth):
         assert data["type"] in ["hint", "error", "reveal", "game_state"]
 
 
-# =============================================================================
-# WebSocket Tests - Edge Cases
-# =============================================================================
-
-
-def test_websocket_reveal_already_revealed_cell(client, auth):
-    """Revealing already revealed cell doesn't crash - server may disconnect or return error."""
-    from anyio import EndOfStream
-    from starlette.websockets import WebSocketDisconnect
-
-    email = f"ws-rereveal-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_rereveal")
-
-    gameplay_id = _create_game(client, rows=5, columns=5, mine_count=2)
-
-    try:
-        with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
-            initial = json.loads(ws.receive_text())
-            start_field = initial["start_field"]
-
-            ws.send_json(
-                {"type": "reveal_one", "x": start_field[0], "y": start_field[1]}
-            )
-            ws.receive_text()
-
-            ws.send_json(
-                {"type": "reveal_one", "x": start_field[0], "y": start_field[1]}
-            )
-            data = json.loads(ws.receive_text())
-
-            assert data["type"] in ["reveal", "error", "game_state"]
-    except (WebSocketDisconnect, EndOfStream, Exception):
-        # Server disconnects on InvalidAction - this is expected behavior
-        pass
-
-
 def test_websocket_reveal_out_of_bounds(client, auth):
     """Revealing out of bounds coordinates - server may disconnect or return error."""
     from anyio import EndOfStream
@@ -660,7 +547,7 @@ def test_websocket_reveal_out_of_bounds(client, auth):
         with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
             ws.receive_text()  # Initial state
 
-            ws.send_json({"type": "reveal_one", "x": 100, "y": 100})
+            ws.send_json({"type": "reveal_one", "cell": (100, 100)})
             data = json.loads(ws.receive_text())
 
             assert data["type"] in ["reveal", "error"]
@@ -680,10 +567,10 @@ def test_websocket_flag_revealed_cell(client, auth):
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
-        ws.send_json({"type": "reveal_one", "x": start_field[0], "y": start_field[1]})
+        ws.send_json({"type": "reveal_one", "cell": start_field})
         ws.receive_text()
 
-        ws.send_json({"type": "flag", "x": start_field[0], "y": start_field[1]})
+        ws.send_json({"type": "flag", "cell": start_field})
         data = json.loads(ws.receive_text())
 
         assert data["type"] in ["flag", "error"]

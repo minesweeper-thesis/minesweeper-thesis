@@ -209,7 +209,6 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
             difficulty = DifficultyLevel(rows=3, columns=3, mine_count=1)
             board = Board(
                 id=uuid.uuid4(),
-                difficulty_level=difficulty,
                 minefields=[(0, 0)],
                 start_field=(1, 1),
                 generation_settings=GenerationSettings(
