@@ -1,8 +1,16 @@
 import uuid
-from typing import Literal, Self
+from dataclasses import asdict
+from typing import Literal, Optional, Self
 
 from backend.core.game import *
-from backend.core.multi import RoundEnd, RoundStart, SessionOver
+from backend.core.multi import (
+    RoundEnd,
+    RoundScoreItem,
+    RoundStart,
+    ScoreUpdate,
+    SessionOver,
+    SessionScoreItem,
+)
 from backend.routers.schemas import Response
 from backend.services.dto import *
 
@@ -27,18 +35,23 @@ class RoundStartResponse(Response):
 class RoundEndResponse(Response):
     ws_type: Literal["round_end"] = "round_end"
     round: int
+    scoreboard: list[RoundScoreItem]
 
     @classmethod
     def build(cls, message: "RoundEnd") -> Self:
-        return cls(round=message.round_index + 1)
+        return cls(
+            round=message.round_index + 1,
+            scoreboard=message.scoreboard.items,
+        )
 
 
 class SessionOverResponse(Response):
     ws_type: Literal["session_over"] = "session_over"
+    scoreboard: list[SessionScoreItem]
 
     @classmethod
     def build(cls, message: "SessionOver") -> Self:
-        return cls()
+        return cls(scoreboard=message.scoreboard.items)
 
 
 class RoundCountdownResponse(Response):
@@ -97,6 +110,20 @@ class RoundReadyResponse(Response):
         )
 
 
+class ScoreUpdateResponse(Response):
+    ws_type: Literal["score_update"] = "score_update"
+    user_id: uuid.UUID
+    score: float
+    revealed_count: int
+    status: GameStatus
+    result: Optional[GameResult] = None
+    loss_cause: Optional[LossCause] = None
+
+    @classmethod
+    def build(cls, message: ScoreUpdate) -> Self:
+        return cls(**asdict(message.score))
+
+
 __all__ = [
     "RoundStartResponse",
     "RoundEndResponse",
@@ -105,4 +132,5 @@ __all__ = [
     "RoundReadyResponse",
     "UserReadyResponse",
     "UserNotReadyResponse",
+    "ScoreUpdateResponse",
 ]

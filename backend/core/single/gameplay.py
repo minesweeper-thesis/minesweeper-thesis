@@ -14,14 +14,20 @@ class SingleplayerGameplay(Gameplay):
         self,
         id: uuid.UUID,
         board: Board,
-        revealed_cells: list[Cell] = [],
-        flagged_cells: list[Cell] = [],
+        revealed_cells: list[Cell] = None,  # type: ignore
+        flagged_cells: list[Cell] = None,  # type: ignore
         status: GameStatus = "not_started",
         result: Optional[GameResult] = None,
         used_hints: bool = False,
         elapsed_time: float = 0,
         mode: GameMode = "normal",
     ):
+        if revealed_cells is None:
+            revealed_cells = []
+
+        if flagged_cells is None:
+            flagged_cells = []
+
         self.id = id
         self.board = board
 

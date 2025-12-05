@@ -14,6 +14,7 @@ from backend.core.user import *
 @dataclass
 class SessionOver:
     session_id: uuid.UUID
+    scoreboard: SessionScoreboard
 
 
 class MultiplayerSession:
@@ -26,8 +27,11 @@ class MultiplayerSession:
         max_round_time: int,
         player_ids: list[uuid.UUID],
         rounds_number: int,
-        rounds: list[MultiplayerRound] = [],
+        rounds: list[MultiplayerRound] = None,  # type: ignore
     ):
+        if rounds is None:
+            rounds = []
+
         self.id = id
         self.lobby_id = lobby_id
         self.difficulty_level = difficulty_level
@@ -42,6 +46,12 @@ class MultiplayerSession:
         self.ready_players: set[uuid.UUID] = set()
 
         self.ready_locked = False
+
+        self.scoreboard: SessionScoreboard = SessionScoreboard(
+            items=[
+                SessionScoreItem(user_id=player_id, score=0) for player_id in player_ids
+            ]
+        )
 
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
@@ -88,11 +98,21 @@ class MultiplayerSession:
         self._current_round.end()
         self._consume_round_events()
 
+        self.clear_ready_players()
         self.ready_locked = False
 
+        for item in self._current_round.scoreboard.items:
+            for session_item in self.scoreboard.items:
+                if session_item.user_id == item.user_id:
+                    session_item.score = item.score
+                    break
+
         if self.is_session_over():
+            self.scoreboard.sort()
             for user_id in self.player_ids:
-                self.events[user_id].append(SessionOver(session_id=self.id))
+                self.events[user_id].append(
+                    SessionOver(session_id=self.id, scoreboard=self.scoreboard)
+                )
 
     def start_next_round(self, start_at: datetime):
         if self.current_round_index != -1:
@@ -100,7 +120,8 @@ class MultiplayerSession:
                 raise RuntimeError("Previous round is not over yet")
 
         self.current_round_index += 1
-        self._current_round.start(start_at)
+        session_scores = {item.user_id: item.score for item in self.scoreboard.items}
+        self._current_round.start(start_at, session_scores)
         self._consume_round_events()
 
     def is_session_over(self) -> bool:
@@ -118,11 +139,15 @@ class MultiplayerSession:
         self._consume_round_events()
 
         if self._current_round.all_gameplays_finished():
+            self.clear_ready_players()
             self.ready_locked = False
 
         if self.is_session_over():
+            self.scoreboard.sort()
             for user_id in self.player_ids:
-                self.events[user_id].append(SessionOver(session_id=self.id))
+                self.events[user_id].append(
+                    SessionOver(session_id=self.id, scoreboard=self.scoreboard)
+                )
 
     def _consume_round_events(self) -> None:
         for user_id, events in self._current_round.consume_events().items():
