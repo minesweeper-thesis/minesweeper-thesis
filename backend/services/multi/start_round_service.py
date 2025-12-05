@@ -63,6 +63,33 @@ class StartRoundService:
 
         self.messages: list[tuple[uuid.UUID, Any]] = []
 
+    async def toggle_user_ready(self, session_id: uuid.UUID, user: User):
+        session = await self.multi_repo.get_session(session_id)
+        if session.is_user_ready(user):
+            await self._cancel_user_ready(session, user)
+        else:
+            await self.set_user_ready(session_id, user)
+
+    async def cancel_user_ready(self, session_id: uuid.UUID, user: User):
+        session = await self.multi_repo.get_session(session_id)
+        await self._cancel_user_ready(session, user)
+
+    async def _cancel_user_ready(self, session: MultiplayerSession, user: User):
+        if user.id not in session.player_ids:
+            raise PermissionError("User is not part of this session")
+
+        if session.is_session_over():
+            raise ValueError("Session is already over")
+
+        session.cancel_ready(user.id)
+
+        for player_id in session.player_ids:
+            await self.game_transport.send(
+                player_id, UserNotReady(user.id, session.current_round_index + 1)
+            )
+
+        await self.multi_repo.save_session(session)
+
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
         session = await self.multi_repo.get_session(session_id)
 
@@ -71,6 +98,10 @@ class StartRoundService:
 
         if session.is_session_over():
             raise ValueError("Session is already over")
+
+        if session.ready_locked:
+            print("NO JAK KURWA")
+            return
 
         session.set_ready(user.id)
 

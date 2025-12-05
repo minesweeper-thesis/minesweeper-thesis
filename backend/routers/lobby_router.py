@@ -11,7 +11,7 @@ from backend.routers.schemas.lobby import *
 PaginationParams = Annotated[Params, Depends()]
 
 LobbyService = Annotated[services.LobbyService, Depends()]
-CreateMultiSessionService = Annotated[services.LobbyReadyService, Depends()]
+LobbyReadyService = Annotated[services.LobbyReadyService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
 invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
@@ -81,23 +81,33 @@ async def reject_game_invitation(
     await service.reject_game_invitation(invitation_id, user)
 
 
-@lobby_router.post("/{lobby_id}/ready")
+@lobby_router.post("/{lobby_id}/ready/set")
 async def set_user_ready(
     lobby_id: uuid.UUID,
-    service: CreateMultiSessionService,
+    service: LobbyReadyService,
     user: CurrentUser,
 ):
+    """Sets the user as ready in the lobby."""
     await service.set_user_ready_in_lobby(lobby_id, user)
 
 
-@lobby_router.post("/{lobby_id}/cancel-ready")
-async def set_user_not_ready(
+@lobby_router.post("/{lobby_id}/ready/cancel")
+async def cancel_user_ready(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    # service: LobbyService,
+    service: LobbyReadyService,
 ):
-    """Sets the user as ready in the lobby."""
-    # await service.set_user_not_ready(lobby_id, user)
+    """Sets the user as not ready in the lobby."""
+    await service.cancel_user_ready_in_lobby(lobby_id, user)
+
+
+@lobby_router.post("/{lobby_id}/ready/toggle")
+async def toggle_user_ready(
+    lobby_id: uuid.UUID,
+    user: CurrentUser,
+    service: LobbyReadyService,
+):
+    await service.toggle_user_ready_in_lobby(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/chat-messages")

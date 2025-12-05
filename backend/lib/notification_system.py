@@ -36,6 +36,7 @@ def create_notification(data: Any) -> str:
         UserReady: UserReadyResponse,
         ChatMessage: ChatMessageResponse,
         FriendRequest: FriendRequestResponse,
+        UserNotReady: UserNotReadyResponse,
     }
 
     if type(data) not in mapping:
@@ -64,6 +65,7 @@ def create_game_notification(
         RemoveFlagResult: RemoveFlagResponse,
         HintResult: HintResponse,
         UserReady: UserReadyResponse,
+        UserNotReady: UserNotReadyResponse,
     }
 
     if type(data) not in mapping:

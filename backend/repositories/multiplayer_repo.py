@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 
 from backend import protocols
 from backend.core.multi.session import MultiplayerSession
@@ -30,19 +31,22 @@ class MultiplayerRepository(protocols.MultiplayerRepository):
             )
         return multiplayer_session
 
-    async def save_session(self, multiplayer_session: MultiplayerSession):
-        sessions[multiplayer_session.id] = multiplayer_session
+    async def save_session(self, session: MultiplayerSession):
+        sessions[session.id] = session
 
-    async def save_pending(self, multiplayer_session: MultiplayerSession):
-        pending_sessions[multiplayer_session.id] = multiplayer_session
+    async def save_pending(self, session: MultiplayerSession):
+        pending_sessions[session.id] = session
 
     async def is_pending(self, session_id: uuid.UUID) -> bool:
         return session_id in pending_sessions
 
     async def get_pending_for_lobby(
         self, lobby_id: uuid.UUID
-    ) -> MultiplayerSession | None:
+    ) -> Optional[MultiplayerSession]:
         for session in pending_sessions.values():
             if session.lobby_id == lobby_id:
                 return session
         return None
+
+    async def delete_pending(self, session_id: uuid.UUID):
+        pending_sessions.pop(session_id, None)

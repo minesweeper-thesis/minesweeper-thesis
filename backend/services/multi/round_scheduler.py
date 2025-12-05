@@ -60,8 +60,9 @@ class RoundScheduler:
 
     async def lock_ready(self, session_id: uuid.UUID):
         session = await self.multi_repo.get_session(session_id)
-        session.lock_ready()
-        await self.multi_repo.save_session(session)
+        if session.all_players_ready():
+            session.lock_ready()
+            await self.multi_repo.save_session(session)
 
     async def on_board_generated(
         self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board

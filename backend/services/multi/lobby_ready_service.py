@@ -8,6 +8,7 @@ from backend import protocols, repositories
 from backend.core.board import Board
 from backend.core.game import *
 from backend.core.lobby import create_session
+from backend.core.lobby.lobby import Lobby
 from backend.core.multi.config import GameConfig
 from backend.core.user import User
 from backend.lib.board_generator import LocalBoardGenerator
@@ -18,6 +19,7 @@ from backend.lib.websocket_game_transport import WebSocketGameTransport
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
+from backend.services.dto.round import UserNotReady
 from backend.services.exceptions import *
 from backend.services.multi.round_scheduler import RoundScheduler
 
@@ -64,20 +66,24 @@ class LobbyReadyService:
 
         self.round_scheduler = round_scheduler
 
-    async def cancel_user_ready_in_lobby(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-    ):
+    async def toggle_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
         lobby = self.lobby_repo.get_lobby(lobby_id)
+        if lobby.is_user_ready(user):
+            await self._cancel_user_ready(lobby, user)
+        else:
+            await self.set_user_ready_in_lobby(lobby_id, user)
+
+    async def cancel_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
+        await self._cancel_user_ready(self.lobby_repo.get_lobby(lobby_id), user)
+
+    async def _cancel_user_ready(self, lobby: Lobby, user: User):
         lobby.set_user_not_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-    async def set_user_ready_in_lobby(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-    ):
+        for player in lobby.users:
+            await self.notification_system.notify(player.id, UserNotReady(user.id, 0))
+
+    async def set_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
         lobby = self.lobby_repo.get_lobby(lobby_id)
         lobby.set_user_ready(user)
         self.lobby_repo.save_lobby(lobby)
@@ -92,6 +98,8 @@ class LobbyReadyService:
                 if lobby_session.game_config == lobby.game_config:
                     session = lobby_session
                 else:
+                    await self.multi_repo.delete_pending(lobby_session.id)
+
                     # todo cancel tasks
                     session_id = uuid.uuid4()
                     session = await create_session(session_id, lobby)
