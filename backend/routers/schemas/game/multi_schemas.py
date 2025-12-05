@@ -4,7 +4,7 @@ from typing import Literal, Self
 from backend.core.game import *
 from backend.core.multi import RoundEnd, RoundStart, SessionOver
 from backend.routers.schemas import Response
-from backend.services.dto import RoundCountdown, RoundReady, UserReady
+from backend.services.dto import *
 
 
 class RoundStartResponse(Response):
@@ -71,6 +71,19 @@ class UserReadyResponse(Response):
         )
 
 
+class UserNotReadyResponse(Response):
+    ws_type: Literal["user_not_ready"] = "user_not_ready"
+    round: int
+    user_id: uuid.UUID
+
+    @classmethod
+    def build(cls, message: "UserNotReady") -> Self:
+        return cls(
+            round=message.round_index + 1,
+            user_id=message.user_id,
+        )
+
+
 class RoundReadyResponse(Response):
     ws_type: Literal["round_ready"] = "round_ready"
     session_id: uuid.UUID
@@ -91,4 +104,5 @@ __all__ = [
     "RoundCountdownResponse",
     "RoundReadyResponse",
     "UserReadyResponse",
+    "UserNotReadyResponse",
 ]

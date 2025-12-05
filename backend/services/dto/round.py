@@ -12,6 +12,12 @@ class UserReady:
 
 
 @dataclass
+class UserNotReady:
+    user_id: uuid.UUID
+    round_index: int
+
+
+@dataclass
 class RoundReady:
     session_id: uuid.UUID
     round_index: int
@@ -26,4 +32,4 @@ class RoundCountdown:
     start_field: Cell
 
 
-__all__ = ["UserReady", "RoundReady", "RoundCountdown"]
+__all__ = ["UserReady", "UserNotReady", "RoundReady", "RoundCountdown"]

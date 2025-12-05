@@ -78,6 +78,9 @@ class MultiplayerSession:
     def clear_ready_players(self):
         self.ready_players.clear()
 
+    def is_user_ready(self, user: User) -> bool:
+        return user.id in self.ready_players
+
     def lock_ready(self):
         self.ready_locked = True
 
