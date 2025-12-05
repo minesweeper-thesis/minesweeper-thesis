@@ -37,6 +37,7 @@ def create_notification(data: Any) -> str:
         ChatMessage: ChatMessageResponse,
         FriendRequest: FriendRequestResponse,
         UserNotReady: UserNotReadyResponse,
+        KickedFromLobby: KickedResponse,
     }
 
     if type(data) not in mapping:
