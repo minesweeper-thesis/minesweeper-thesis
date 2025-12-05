@@ -34,7 +34,7 @@ def create_notification(data: Any) -> str:
         RoundReady: RoundReadyResponse,
         RoundCountdown: RoundCountdownResponse,
         UserReady: UserReadyResponse,
-        ChatMessage: ChatMessageResponse,
+        LobbyChatMessage: ChatMessageResponse,
         FriendRequest: FriendRequestResponse,
         UserNotReady: UserNotReadyResponse,
         KickedFromLobby: KickedResponse,

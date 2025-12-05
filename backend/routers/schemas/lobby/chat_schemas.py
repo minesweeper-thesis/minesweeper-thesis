@@ -21,12 +21,12 @@ class ChatMessageResponse(Response):
     timestamp: int
 
     @classmethod
-    def build(cls, message: ChatMessage) -> Self:
+    def build(cls, message: LobbyChatMessage) -> Self:
         return cls(
             sender=UserResponse.build(message.sender),
             lobby_id=message.lobby_id,
             content=message.content,
-            timestamp=message.timestamp,
+            timestamp=int(message.timestamp.timestamp()),
         )
 
 

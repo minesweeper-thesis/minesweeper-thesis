@@ -39,7 +39,7 @@ class LobbyResponse(BaseModel):
     messages: list[ChatMessageResponse] = []
 
     @classmethod
-    def build(cls, lobby: Lobby, messages: list[ChatMessage] = []) -> Self:
+    def build(cls, lobby: Lobby, messages: list[LobbyChatMessage] = []) -> Self:
         return cls(
             id=lobby.id,
             host=UserResponse.build(lobby.host),
