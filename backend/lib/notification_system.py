@@ -66,6 +66,7 @@ def create_game_notification(
         HintResult: HintResponse,
         UserReady: UserReadyResponse,
         UserNotReady: UserNotReadyResponse,
+        ScoreUpdate: ScoreUpdateResponse,
     }
 
     if type(data) not in mapping:

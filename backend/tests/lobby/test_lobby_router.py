@@ -2,7 +2,7 @@
 Comprehensive lobby router tests.
 Tests: POST /lobbies, PUT /lobbies/{id}, POST /lobbies/{id}/invitations,
        POST /lobbies/{id}/join, POST /lobbies/{id}/leave, DELETE /invitations/{id},
-       POST /lobbies/{id}/ready, POST /lobbies/{id}/chat-messages,
+       POST /lobbies/{id}/ready/set, POST /lobbies/{id}/chat-messages,
        GET /lobbies/{id}/chat-messages
 """
 
@@ -290,12 +290,12 @@ def test_reject_invitation_without_auth_returns_401(client):
 
 
 # =============================================================================
-# POST /lobbies/{lobby_id}/ready Tests
+# POST /lobbies/{lobby_id}/ready/set Tests
 # =============================================================================
 
 
 def test_set_ready_in_lobby(client, auth):
-    """POST /lobbies/{id}/ready sets user as ready."""
+    """POST /lobbies/{id}/ready/set sets user as ready."""
     email = f"readylobby-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="readylobbypw", nickname="readylobbyhost")
 
@@ -304,14 +304,14 @@ def test_set_ready_in_lobby(client, auth):
     lobby_id = create_resp.json()["id"]
 
     # Set ready
-    resp = client.post(f"/api/lobbies/{lobby_id}/ready")
+    resp = client.post(f"/api/lobbies/{lobby_id}/ready/set")
     # May succeed or fail depending on game state requirements
     assert resp.status_code in [200, 204, 400]
 
 
 def test_set_ready_without_auth_returns_401(client):
-    """POST /lobbies/{id}/ready without auth returns 401."""
-    resp = client.post(f"/api/lobbies/{uuid.uuid4()}/ready")
+    """POST /lobbies/{id}/ready/set without auth returns 401."""
+    resp = client.post(f"/api/lobbies/{uuid.uuid4()}/ready/set")
     assert resp.status_code == 401
 
 

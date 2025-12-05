@@ -81,6 +81,12 @@ class StartRoundService:
         if session.is_session_over():
             raise ValueError("Session is already over")
 
+        if session.ready_locked:
+            return
+
+        if not session.is_user_ready(user):
+            return
+
         session.cancel_ready(user.id)
 
         for player_id in session.player_ids:
@@ -100,7 +106,9 @@ class StartRoundService:
             raise ValueError("Session is already over")
 
         if session.ready_locked:
-            print("NO JAK KURWA")
+            return
+
+        if session.is_user_ready(user):
             return
 
         session.set_ready(user.id)
