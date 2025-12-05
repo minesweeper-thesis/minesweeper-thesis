@@ -5,12 +5,14 @@ from sqlalchemy import (
     JSON,
     ForeignKey,
     Index,
+    Text,
     TypeDecorator,
     UniqueConstraint,
     event,
     text,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql.expression import func
 
 from backend.core.board import (
     Board,
@@ -22,9 +24,52 @@ from backend.core.board import (
 from backend.repositories.orm import Base
 
 
+class MinefieldsColumn(TypeDecorator):
+    impl = JSON
+    cache_ok = True
+
+    @property
+    def comparator_factory(self):
+        type_self = self
+
+        class Comparator(TypeDecorator.Comparator):
+            def __eq__(self, other):
+                import json
+
+                processed_value = type_self.process_bind_param(other, None)  # type: ignore
+                json_str = json.dumps(processed_value, sort_keys=True)
+                return func.cast(self.expr, Text) == json_str
+
+        return Comparator
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return None
+        return [list(coord) for coord in value]
+
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return None
+        return [tuple(coord) for coord in value]
+
+
 class GenerationSettingsColumn(TypeDecorator):
     impl = JSON
     cache_ok = True
+
+    @property
+    def comparator_factory(self):
+        type_self = self
+
+        class Comparator(TypeDecorator.Comparator):
+            def __eq__(self, other):
+                import json
+
+                processed_value = type_self.process_bind_param(other, None)  # type: ignore
+                json_str = json.dumps(processed_value, sort_keys=True)
+                return func.cast(self.expr, Text) == json_str
+
+        return Comparator
 
     def process_bind_param(self, value, dialect):
         if not isinstance(value, GenerationSettings):
@@ -77,7 +122,7 @@ class BoardORM(Base):
     __tablename__ = "boards"
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
-    minefields: Mapped[Minefields] = mapped_column(JSON)
+    minefields: Mapped[Minefields] = mapped_column(MinefieldsColumn)
     start_field: Mapped[tuple[int, int]] = mapped_column(JSON)
     generation_settings: Mapped[GenerationSettings] = mapped_column(
         GenerationSettingsColumn

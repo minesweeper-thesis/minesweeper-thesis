@@ -443,7 +443,7 @@ def test_websocket_get_game_state_returns_current_state(client, auth):
         ws.send_json({"type": "reveal_one", "cell": start_field})
         ws.receive_text()  # reveal response
 
-        ws.send_json({"type": "get_game_state"})
+        ws.send_json({"type": "get_state"})
         data = json.loads(ws.receive_text())
 
         assert data["type"] == "game_state"
@@ -475,7 +475,7 @@ def test_websocket_board_state_shows_revealed_cell(client, auth):
             reveal_data = json.loads(ws.receive_text())
 
             if reveal_data["type"] == "reveal":
-                ws.send_json({"type": "get_game_state"})
+                ws.send_json({"type": "get_state"})
                 state_data = json.loads(ws.receive_text())
                 board = state_data["board"]
 
@@ -503,7 +503,7 @@ def test_websocket_flag_shows_in_state(client, auth):
         ws.send_json({"type": "flag", "cell": (0, 0)})
         ws.receive_text()
 
-        ws.send_json({"type": "get_game_state"})
+        ws.send_json({"type": "get_state"})
         state_data = json.loads(ws.receive_text())
         board = state_data["board"]
 

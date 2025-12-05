@@ -65,7 +65,7 @@ class RoundScheduler:
 
     async def on_board_generated(
         self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
-    ):
+    ):  # todo: board juz istnieje
         try:
             session = await self.multi_repo.get_session(session_id)
         except SessionNotFound:
@@ -73,7 +73,7 @@ class RoundScheduler:
             return
 
         if generation_id is not None:
-            await self.pending_store.mark_ready(generation_id)
+            await self.pending_store.mark_ready(generation_id, board.id)
 
         if len(session.rounds) == 0:
             await self._schedule_frist_round_start(session_id, board)
