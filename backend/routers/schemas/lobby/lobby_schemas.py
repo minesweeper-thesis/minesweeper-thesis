@@ -115,6 +115,20 @@ class CurrentLobbyResponse(Response):
         )
 
 
+class KickUserRequest(BaseModel):
+    user_id: uuid.UUID
+
+
+class KickedResponse(Response):
+    ws_type: Literal["current_lobby"] = "current_lobby"
+    lobby: None = None
+    reason: Literal["kicked"] = "kicked"
+
+    @classmethod
+    def build(cls, lobby_id: uuid.UUID) -> Self:
+        return cls(lobby=None)
+
+
 __all__ = [
     "UpdateGameConfigRequest",
     "LobbyResponse",
@@ -122,4 +136,6 @@ __all__ = [
     "UserConnectionStatusResponse",
     "CurrentLobbyResponse",
     "GameConfigUpdatedResponse",
+    "KickUserRequest",
+    "KickedResponse",
 ]

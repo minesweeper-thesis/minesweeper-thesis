@@ -71,6 +71,17 @@ async def leave_lobby(
     await service.remove_user_from_lobby(lobby_id, user)
 
 
+@lobby_router.post("/{lobby_id}/kick")
+async def kick_user_from_lobby(
+    lobby_id: uuid.UUID,
+    service: LobbyService,
+    user: CurrentUser,
+    request: KickUserRequest,
+):
+    """Kicks a user from the lobby."""
+    await service.kick_from_lobby(lobby_id, user, request.user_id)
+
+
 @invitations_router.delete("/{invitation_id}")
 async def reject_game_invitation(
     user: CurrentUser,

@@ -1,6 +1,6 @@
 import time
 import uuid
-from typing import Annotated, Any, Awaitable, Callable
+from typing import Annotated
 
 from fastapi import Depends
 from fastapi_pagination import Params
@@ -15,6 +15,7 @@ from backend.core.user import User
 from backend.lib.notification_system import NotificationSystem as Notifications
 from backend.lib.notification_system import get_notification_system
 from backend.repositories.exceptions import *
+from backend.services.dto import KickedFromLobby
 from backend.services.exceptions import *
 
 LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
@@ -23,8 +24,6 @@ BoardRepository = Annotated[repositories.BoardRepository, Depends()]
 MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
 
 NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-
-type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
 class LobbyService:
@@ -227,6 +226,35 @@ class LobbyService:
         user: User,
     ) -> list[Invitation]:
         return self.lobby_repo.get_pending_invitations(user)
+
+    async def kick_from_lobby(
+        self,
+        lobby_id: uuid.UUID,
+        user: User,
+        target_user_id: uuid.UUID,
+    ):
+        lobby = self.lobby_repo.get_lobby(lobby_id)
+        if not lobby:
+            raise ValueError("Lobby not found")
+
+        if lobby.host != user:
+            raise PermissionError("User not authorized to kick from lobby")
+
+        target_user = await self.user_repo.get_user(target_user_id)
+        if not target_user:
+            raise ValueError("Target user not found")
+
+        data = lobby.remove_user(target_user)
+
+        if lobby.is_empty():
+            self.lobby_repo.delete_lobby(lobby_id)
+        else:
+            self.lobby_repo.save_lobby(lobby)
+            for lobby_user in lobby.users:
+                await self.notification_system.notify(lobby_user.id, data)
+
+        kicked_data = KickedFromLobby(lobby_id)
+        await self.notification_system.notify(target_user.id, kicked_data)
 
 
 __all__ = ["LobbyService"]
