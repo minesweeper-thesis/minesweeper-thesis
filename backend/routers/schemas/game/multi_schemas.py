@@ -75,6 +75,7 @@ class UserReadyResponse(Response):
     ws_type: Literal["user_ready"] = "user_ready"
     round: int
     user_id: uuid.UUID
+    value: bool = True
 
     @classmethod
     def build(cls, message: "UserReady") -> Self:
@@ -85,9 +86,10 @@ class UserReadyResponse(Response):
 
 
 class UserNotReadyResponse(Response):
-    ws_type: Literal["user_not_ready"] = "user_not_ready"
+    ws_type: Literal["user_ready"] = "user_ready"
     round: int
     user_id: uuid.UUID
+    value: bool = False
 
     @classmethod
     def build(cls, message: "UserNotReady") -> Self:
