@@ -2,7 +2,7 @@ import uuid
 from collections import defaultdict
 from contextlib import suppress
 
-from fastapi_pagination import Params
+from fastapi_pagination import Page, Params
 
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
 
@@ -64,12 +64,13 @@ class LobbyRepository:
     def add_message(self, message: LobbyChatMessage) -> None:
         messages[message.lobby_id].append(message)
 
-    def get_messages(
-        self, lobby_id: uuid.UUID, pagination_params: Params
-    ) -> list[LobbyChatMessage]:
+    def get_messages(self, lobby_id: uuid.UUID, pagination_params: Params):
         all_messages = messages[lobby_id]
         start = (pagination_params.page - 1) * pagination_params.size
         end = start + pagination_params.size
-        return sorted(all_messages, key=lambda msg: msg.timestamp, reverse=True)[
+        items = sorted(all_messages, key=lambda msg: msg.timestamp, reverse=True)[
             start:end
         ]
+        return Page.create(
+            items=items, total=len(all_messages), params=pagination_params
+        )

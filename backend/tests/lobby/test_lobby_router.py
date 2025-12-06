@@ -396,10 +396,15 @@ def test_get_chat_messages_returns_list(client, auth):
     assert resp.status_code == 200
     data = resp.json()
 
-    assert isinstance(data, list)
+    assert isinstance(data, dict)
+    assert "items" in data
+    assert "total" in data
+    assert "page" in data
+    assert "size" in data
+    assert "pages" in data
 
-    if len(data) > 0:
-        msg = data[0]
+    if len(data["items"]) > 0:
+        msg = data["items"][0]
         # Validate ChatMessageResponse schema - REST API also aliases ws_type to "type"
         assert "type" in msg
         assert msg["type"] == "lobby_chat_message"
