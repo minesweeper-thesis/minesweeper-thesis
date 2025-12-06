@@ -1,4 +1,3 @@
-import time
 import uuid
 from typing import Annotated
 
@@ -194,11 +193,11 @@ class LobbyService:
         if user not in lobby.users:
             raise PermissionError("User not in the lobby")
 
-        message = ChatMessage(
+        message = LobbyChatMessage(
             lobby_id=lobby_id,
             sender=user,
             content=content,
-            timestamp=int(time.time()),
+            timestamp=datetime.now(),
         )
 
         self.lobby_repo.add_message(message)
@@ -211,7 +210,7 @@ class LobbyService:
         lobby_id: uuid.UUID,
         user: User,
         pagination_params: Params,
-    ) -> list[lobby.ChatMessage]:
+    ) -> list[lobby.LobbyChatMessage]:
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if not lobby:
             raise ValueError("Lobby not found")

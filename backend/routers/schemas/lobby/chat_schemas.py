@@ -9,25 +9,25 @@ from backend.routers.schemas import Response
 from ..user import UserResponse
 
 
-class ChatMessageRequest(BaseModel):
+class LobbyChatMessageRequest(BaseModel):
     content: str
 
 
-class ChatMessageResponse(Response):
-    ws_type: Literal["chat_message"] = "chat_message"
+class LobbyChatMessageResponse(Response):
+    ws_type: Literal["lobby_chat_message"] = "lobby_chat_message"
     sender: UserResponse
     lobby_id: uuid.UUID
     content: str
     timestamp: int
 
     @classmethod
-    def build(cls, message: ChatMessage) -> Self:
+    def build(cls, message: LobbyChatMessage) -> Self:
         return cls(
             sender=UserResponse.build(message.sender),
             lobby_id=message.lobby_id,
             content=message.content,
-            timestamp=message.timestamp,
+            timestamp=int(message.timestamp.timestamp()),
         )
 
 
-__all__ = ["ChatMessageRequest", "ChatMessageResponse"]
+__all__ = ["LobbyChatMessageRequest", "LobbyChatMessageResponse"]

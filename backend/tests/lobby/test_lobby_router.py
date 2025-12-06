@@ -402,7 +402,7 @@ def test_get_chat_messages_returns_list(client, auth):
         msg = data[0]
         # Validate ChatMessageResponse schema - REST API also aliases ws_type to "type"
         assert "type" in msg
-        assert msg["type"] == "chat_message"
+        assert msg["type"] == "lobby_chat_message"
         assert "sender" in msg
         assert "lobby_id" in msg
         assert "content" in msg

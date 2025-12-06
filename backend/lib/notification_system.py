@@ -6,11 +6,12 @@ from backend.core.game.game_actions import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import FriendRequest
+from backend.core.user.chat import UserChatMessage
 from backend.lib.websockets.connections_manager import connections_manager
 from backend.routers.schemas import Response
 from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
-from backend.routers.schemas.user import FriendRequestResponse
+from backend.routers.schemas.user import FriendRequestResponse, UserChatMessageResponse
 from backend.services.dto import *
 
 
@@ -34,10 +35,11 @@ def create_notification(data: Any) -> str:
         RoundReady: RoundReadyResponse,
         RoundCountdown: RoundCountdownResponse,
         UserReady: UserReadyResponse,
-        ChatMessage: ChatMessageResponse,
+        LobbyChatMessage: LobbyChatMessageResponse,
         FriendRequest: FriendRequestResponse,
         UserNotReady: UserNotReadyResponse,
         KickedFromLobby: KickedResponse,
+        UserChatMessage: UserChatMessageResponse,
     }
 
     if type(data) not in mapping:

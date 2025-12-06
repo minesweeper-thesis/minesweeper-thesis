@@ -5,8 +5,7 @@ from pydantic import BaseModel
 
 from backend.core.user import FriendRequest, FriendRequestStatus
 from backend.routers.schemas import Response
-
-from .user_schemas import UserResponse
+from backend.routers.schemas.user.user_schemas import UserResponse
 
 
 class MakeFriendRequest(BaseModel):

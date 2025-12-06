@@ -103,7 +103,7 @@ export function GameServiceProvider({ children }) {
                     notifyListeners(msg);
                     break;
 
-                case "chat_message":
+                case "lobby_chat_message":
                     addLobbyMessage(msg.content, msg.sender.nickname, msg.timestamp);
                     break;
                 default:

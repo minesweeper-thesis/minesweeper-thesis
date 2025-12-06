@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Literal
 
 from backend.core.multi.config import GameConfig, GameConfigUpdated
@@ -7,11 +8,11 @@ from backend.core.user import User
 
 
 @dataclass
-class ChatMessage:
+class LobbyChatMessage:
     lobby_id: uuid.UUID
     sender: User
     content: str
-    timestamp: int
+    timestamp: datetime
 
 
 @dataclass
@@ -81,4 +82,4 @@ class Lobby:
         self._ready_users.clear()
 
 
-__all__ = ["Lobby", "ChatMessage", "UserConnectionUpdated"]
+__all__ = ["Lobby", "LobbyChatMessage", "UserConnectionUpdated"]

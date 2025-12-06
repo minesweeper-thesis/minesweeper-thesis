@@ -4,12 +4,12 @@ from contextlib import suppress
 
 from fastapi_pagination import Params
 
-from backend.core.lobby import ChatMessage, Invitation, Lobby
+from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
 
 lobbies: dict[uuid.UUID, Lobby] = {}
 invitations: dict[uuid.UUID, Invitation] = {}
 
-messages: dict[uuid.UUID, list[ChatMessage]] = defaultdict(list)
+messages: dict[uuid.UUID, list[LobbyChatMessage]] = defaultdict(list)
 
 
 class LobbyNotFound(Exception):
@@ -61,12 +61,12 @@ class LobbyRepository:
     def get_user_lobbies(self, user) -> list[Lobby]:
         return [lobby for lobby in lobbies.values() if user in lobby.users]
 
-    def add_message(self, message: ChatMessage) -> None:
+    def add_message(self, message: LobbyChatMessage) -> None:
         messages[message.lobby_id].append(message)
 
     def get_messages(
         self, lobby_id: uuid.UUID, pagination_params: Params
-    ) -> list[ChatMessage]:
+    ) -> list[LobbyChatMessage]:
         all_messages = messages[lobby_id]
         start = (pagination_params.page - 1) * pagination_params.size
         end = start + pagination_params.size
