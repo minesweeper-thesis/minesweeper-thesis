@@ -48,10 +48,9 @@ class Generator:
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        classifier_iterations: int = -1,
+        version: str,
     ) -> None:
-        iter_str = classifier_iterations if classifier_iterations > -1 else ""
-        classifier_model_file = f"algorithms/models/{rows},{columns},{mine_count}_{classifier}{iter_str}.model"
+        classifier_model_file = f"algorithms/models/{rows},{columns},{mine_count}_{classifier}{version}.model"
         self.classifier = _classifiers[classifier].load(classifier_model_file)
 
         self.heuristic = _heuristics[heuristic](

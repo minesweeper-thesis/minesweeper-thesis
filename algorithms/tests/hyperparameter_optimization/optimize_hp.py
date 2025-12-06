@@ -11,7 +11,7 @@ from algorithms.tests.hyperparameter_optimization.hyperparameter_optimizer impor
 TRIES = 20
 ALL_ITERATIONS = 100
 
-heuristics = ["GA", "PSO", "SA", "naive"]  # to add: mcts
+heuristics = ["GA", "PSO", "SA", "naive"]
 
 param_spaces = {
     "GA": [
@@ -53,18 +53,21 @@ def constraint_func(params):
 
 
 hyperparameters = [  # to add: gradientboosting, mlp
-    (10, 10, 15, "lightgbm", (100, 800, 12800), 100),
-    (16, 16, 40, "lightgbm", (100, 800, 12800), 10),
-    (16, 30, 99, "lightgbm", (100, 200, 400), 1),
-    (10, 10, 15, "catboost", (100, 800, 6400), 100),
-    (16, 16, 40, "catboost", (100, 400, 3200), 10),
-    (16, 30, 99, "catboost", (100, 400, 1600), 1),
-    (10, 10, 15, "xgboost", (100, 800, 6400), 100),
-    (16, 16, 40, "xgboost", (100, 800, 6400), 10),
-    (16, 30, 99, "xgboost", (100, 400, 3200), 1),
-    (10, 10, 15, "gaussiannb", (-1,), 100),
-    (16, 16, 40, "gaussiannb", (-1,), 10),
-    (16, 30, 99, "gaussiannb", (-1,), 1),
+    (10, 10, 15, "lightgbm", ("100", "800", "12800"), 100),
+    (16, 16, 40, "lightgbm", ("100", "800", "12800"), 10),
+    (16, 30, 99, "lightgbm", ("100", "200", "400"), 1),
+    (10, 10, 15, "catboost", ("100", "800", "6400"), 100),
+    (16, 16, 40, "catboost", ("100", "400", "3200"), 10),
+    (16, 30, 99, "catboost", ("100", "400", "1600"), 1),
+    (10, 10, 15, "xgboost", ("100", "800", "6400"), 100),
+    (16, 16, 40, "xgboost", ("100", "800", "6400"), 10),
+    (16, 30, 99, "xgboost", ("100", "400", "3200"), 1),
+    (10, 10, 15, "gaussiannb", ("",), 100),
+    (16, 16, 40, "gaussiannb", ("",), 10),
+    (16, 30, 99, "gaussiannb", ("",), 1),
+    (10, 10, 15, "mlp", ("(16,)", "(32, 16)", "(256, 16)"), 100),
+    (16, 16, 40, "mlp", ("(16,)", "(256,)", "(64, 64)"), 10),
+    (16, 30, 99, "mlp", ("(16,)", "(64,)", "(256,)"), 1),
 ]
 
 
@@ -78,12 +81,11 @@ def optimize(params):
         columns,
         mine_count,
         classifier,
-        classifier_iterations,
+        version,
         search_size,
     ) = params
 
-    iter_str = classifier_iterations if classifier_iterations > -1 else ""
-    filename = f"algorithms/tests/hyperparameter_optimization/hyperparameters/{rows},{columns},{mine_count}_{classifier}{iter_str}_{heuristic.lower()}_{TRIES}.hyperparameters"
+    filename = f"algorithms/tests/hyperparameter_optimization/hyperparameters/{rows},{columns},{mine_count}_{classifier}{version}_{heuristic.lower()}_{TRIES}.hyperparameters"
 
     global_heuristic = heuristic
 
@@ -96,7 +98,7 @@ def optimize(params):
         tries=TRIES,
         param_space=param_spaces[heuristic],
         constraint=constraint_func,
-        classifier_iterations=classifier_iterations,
+        version=version,
     )
 
     if Path(filename).exists():
@@ -111,11 +113,9 @@ to_optimize = []
 
 for heuristic in heuristics:
     for parameter_set in hyperparameters:
-        rows, cols, mine_count, classifier, classifier_iterations, search_size = (
-            parameter_set
-        )
+        rows, cols, mine_count, classifier, versions, search_size = parameter_set
 
-        for iterations in classifier_iterations:
+        for version in versions:
             for _ in range(ALL_ITERATIONS // search_size):
                 to_optimize.append(
                     (
@@ -124,7 +124,7 @@ for heuristic in heuristics:
                         cols,
                         mine_count,
                         classifier,
-                        iterations,
+                        version,
                         search_size,
                     )
                 )
