@@ -2,7 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
-from fastapi_pagination import Params
+from fastapi_pagination import Page, Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
@@ -57,8 +57,8 @@ async def join_lobby(
     request: JoinLobbyRequest,
 ):
     """Joins a lobby using an invitation."""
-    lobby, messages = await service.join_lobby(user, request.invitation_id)
-    return LobbyResponse.build(lobby, messages)
+    lobby = await service.join_lobby(user, request.invitation_id)
+    return LobbyResponse.build(lobby)
 
 
 @lobby_router.post("/{lobby_id}/leave")
@@ -132,7 +132,10 @@ async def send_chat_message(
     await service.send_chat_message(lobby_id, user, request.content)
 
 
-@lobby_router.get("/{lobby_id}/chat-messages")
+@lobby_router.get(
+    "/{lobby_id}/chat-messages",
+    responses={200: {"model": Page[LobbyChatMessageResponse]}},
+)
 async def get_chat_messages(
     lobby_id: uuid.UUID,
     user: CurrentUser,
@@ -140,5 +143,6 @@ async def get_chat_messages(
     pagination_params: PaginationParams,
 ):
     """Retrieves chat messages from the lobby."""
-    messages = await service.get_chat_messages(lobby_id, user, pagination_params)
-    return [LobbyChatMessageResponse.build(message) for message in messages]
+    page = await service.get_chat_messages(lobby_id, user, pagination_params)
+    page.items = [LobbyChatMessageResponse.build(message) for message in page.items]
+    return page

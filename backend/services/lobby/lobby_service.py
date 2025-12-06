@@ -5,7 +5,6 @@ from fastapi import Depends
 from fastapi_pagination import Params
 
 from backend import repositories
-from backend.core import lobby
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
 from backend.core.lobby import *
@@ -96,9 +95,7 @@ class LobbyService:
         for lobby_user in lobby.users:
             await self.notification_system.notify(lobby_user.id, data)
 
-        messages = self.lobby_repo.get_messages(lobby.id, Params(page=1, size=10))
-
-        return lobby, messages
+        return lobby
 
     async def update_lobby(
         self,
@@ -210,7 +207,7 @@ class LobbyService:
         lobby_id: uuid.UUID,
         user: User,
         pagination_params: Params,
-    ) -> list[lobby.LobbyChatMessage]:
+    ):
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if not lobby:
             raise ValueError("Lobby not found")

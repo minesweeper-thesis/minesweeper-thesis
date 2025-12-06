@@ -155,7 +155,7 @@ export function GameServiceProvider({ children }) {
                 const data = await res.json();
                 console.log(data);
 
-                const mapped = data.map(msg => ({
+                const mapped = data.items.map(msg => ({
                     id: crypto.randomUUID(),
                     system: false,
                     text: msg.content,
