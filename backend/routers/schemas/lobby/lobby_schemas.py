@@ -9,7 +9,7 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.routers.schemas import Response
 from backend.routers.schemas.game.single_schemas import GeneratorSchema
-from backend.routers.schemas.lobby import ChatMessageResponse
+from backend.routers.schemas.lobby import LobbyChatMessageResponse
 from backend.routers.schemas.user import UserResponse
 
 
@@ -36,7 +36,7 @@ class LobbyResponse(BaseModel):
     host: UserResponse
     users: list[UserResponse]
     game_config: GameConfigResponse
-    messages: list[ChatMessageResponse] = []
+    messages: list[LobbyChatMessageResponse] = []
 
     @classmethod
     def build(cls, lobby: Lobby, messages: list[LobbyChatMessage] = []) -> Self:
@@ -45,7 +45,7 @@ class LobbyResponse(BaseModel):
             host=UserResponse.build(lobby.host),
             users=[UserResponse.build(user) for user in lobby.users],
             game_config=GameConfigResponse.build(lobby.game_config),
-            messages=[ChatMessageResponse.build(message) for message in messages],
+            messages=[LobbyChatMessageResponse.build(message) for message in messages],
         )
 
 

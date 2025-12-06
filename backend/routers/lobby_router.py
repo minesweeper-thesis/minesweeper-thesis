@@ -126,7 +126,7 @@ async def send_chat_message(
     lobby_id: uuid.UUID,
     user: CurrentUser,
     service: LobbyService,
-    request: ChatMessageRequest,
+    request: LobbyChatMessageRequest,
 ):
     """Sends a chat message in the lobby."""
     await service.send_chat_message(lobby_id, user, request.content)
@@ -141,4 +141,4 @@ async def get_chat_messages(
 ):
     """Retrieves chat messages from the lobby."""
     messages = await service.get_chat_messages(lobby_id, user, pagination_params)
-    return [ChatMessageResponse.build(message) for message in messages]
+    return [LobbyChatMessageResponse.build(message) for message in messages]

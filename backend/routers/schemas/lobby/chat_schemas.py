@@ -9,12 +9,12 @@ from backend.routers.schemas import Response
 from ..user import UserResponse
 
 
-class ChatMessageRequest(BaseModel):
+class LobbyChatMessageRequest(BaseModel):
     content: str
 
 
-class ChatMessageResponse(Response):
-    ws_type: Literal["chat_message"] = "chat_message"
+class LobbyChatMessageResponse(Response):
+    ws_type: Literal["lobby_chat_message"] = "lobby_chat_message"
     sender: UserResponse
     lobby_id: uuid.UUID
     content: str
@@ -30,4 +30,4 @@ class ChatMessageResponse(Response):
         )
 
 
-__all__ = ["ChatMessageRequest", "ChatMessageResponse"]
+__all__ = ["LobbyChatMessageRequest", "LobbyChatMessageResponse"]

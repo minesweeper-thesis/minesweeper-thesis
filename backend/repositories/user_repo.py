@@ -2,11 +2,13 @@ import uuid
 from typing import Annotated
 
 from fastapi import Depends
+from fastapi_pagination import Page, Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
 
 from backend.core.user import User
+from backend.core.user.chat import UserChatMessage
 from backend.db.db import DBSession
 from backend.repositories import online_users
 from backend.repositories.avatar import storage
@@ -95,4 +97,40 @@ class UserRepository:
             stmt,
             params,
             transformer=get_users_transformer(self),
+        )
+
+    async def add_message(self, message: UserChatMessage):
+        orm_message = UserChatMessageORM.from_chat_message(message)
+        self.session.add(orm_message)
+        await self.session.commit()
+
+    async def get_messages(
+        self, from_user_id: uuid.UUID, to_user_id: uuid.UUID, pagination_params: Params
+    ) -> Page[UserChatMessage]:
+        stmt = (
+            select(UserChatMessageORM)
+            .where(
+                UserChatMessageORM.from_user_id == from_user_id,
+                UserChatMessageORM.to_user_id == to_user_id,
+            )
+            .order_by(UserChatMessageORM.timestamp.desc())
+        )
+
+        async def async_transformer(items):
+            messages = []
+            for orm_message in items:
+                orm_message: UserChatMessageORM
+                from_user = await self.get_user(orm_message.from_user_id)
+                to_user = await self.get_user(orm_message.to_user_id)
+                message = UserChatMessage(
+                    from_user=from_user,
+                    to=to_user,
+                    content=orm_message.content,
+                    timestamp=orm_message.timestamp,
+                )
+                messages.append(message)
+            return messages
+
+        return await apaginate(
+            self.session, stmt, pagination_params, transformer=async_transformer
         )

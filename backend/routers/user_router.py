@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 import filetype
@@ -11,6 +12,7 @@ from .schemas.user import *
 
 PaginationParams = Annotated[Params, Depends()]
 UserService = Annotated[services.UserService, Depends()]
+UserChatService = Annotated[services.UserChatService, Depends()]
 
 user_exceptions: dict[type[Exception], HTTPException] = {}
 
@@ -62,4 +64,29 @@ async def get_gameplays(
 ):
     page = await service.get_gameplays(pagination_params)
     page.items = [UserGameplayResponse.build(gp) for gp in page.items]
+    return page
+
+
+@user_router.post("/chat-messages")
+async def send_chat_message(
+    user: CurrentUser,
+    service: UserChatService,
+    request: UserChatMessageRequest,
+):
+    """Sends a chat message in the lobby."""
+    await service.send_chat_message(user, request.user_id, request.content)
+
+
+@user_router.get(
+    "/chat-messages", responses={200: {"model": Page[UserChatMessageResponse]}}
+)
+async def get_chat_messages(
+    user: CurrentUser,
+    user_id: uuid.UUID,
+    service: UserChatService,
+    pagination_params: PaginationParams,
+):
+    """Retrieves chat messages from the lobby."""
+    page = await service.get_chat_messages(user, user_id, pagination_params)
+    page.items = [UserChatMessageResponse.build(message) for message in page.items]  # type: ignore
     return page
