@@ -8,7 +8,7 @@ from backend.core.game import GameMode
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.routers.schemas import Response
-from backend.routers.schemas.game.single_schemas import GeneratorSchema
+from backend.routers.schemas.common import GeneratorSchema
 from backend.routers.schemas.user import UserResponse
 
 
@@ -26,7 +26,7 @@ class GameConfigResponse(BaseModel):
             max_round_time=config.max_round_time,
             difficulty_level=config.difficulty_level,
             game_mode=config.game_mode,
-            generator=GeneratorSchema.from_dto(config.generator),
+            generator=GeneratorSchema.from_generator(config.generator),
         )
 
 
@@ -69,7 +69,7 @@ class UpdateGameConfigRequest(BaseModel):
                 mine_count=self.difficulty_level.mine_count,
             ),
             game_mode=self.game_mode,
-            generator=self.generator.to_dto(),
+            generator=self.generator.to_generator(),
         )
 
 
