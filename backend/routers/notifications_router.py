@@ -13,6 +13,7 @@ from backend.routers.schemas.lobby import (
 )
 
 LobbyService = Annotated[services.LobbyService, Depends()]
+LobbyInvitationService = Annotated[services.LobbyInvitationService, Depends()]
 
 notifications_router = APIRouter(tags=["notifications"])
 
@@ -22,6 +23,7 @@ async def send_notifications(
     websocket: WebSocket,
     user: CurrentUserWebSocket,
     lobby_service: LobbyService,
+    lobby_invitation_service: LobbyInvitationService,
 ):
     connections_manager.add(user.id, websocket)
 
@@ -30,7 +32,9 @@ async def send_notifications(
             data = await websocket.receive_json()
             with suppress(ValueError):
                 _ = WSRequest.from_dict(data)
-                invitations = await lobby_service.get_pending_invitations(user)
+                invitations = await lobby_invitation_service.get_pending_invitations(
+                    user
+                )
                 response = PendingInvitationsResponse.create(invitations)
                 await websocket.send_text(response)
 
