@@ -17,3 +17,12 @@ dependencies = [
     "torch>=2.8.0",
     "xgboost>=3.0.4",
 ]
+[tool.mypy]
+python_version = "3.12"
+files = ["backend/"]
+
+[[tool.mypy.overrides]]
+module = ["algorithms.*", "filetype.*", "apscheduler.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
+ignore_errors = true

@@ -7,8 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
-from backend.core.game import GameResult, GameStatus
-from backend.core.singleplayer import SingleplayerGameplay
+from backend.core.single.gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
 
 from .exceptions import *
@@ -30,10 +29,24 @@ class SingleplayerRepository:
         await self.session.commit()
 
     async def get_gameplays(self, user_id: uuid.UUID, pagination_params: Params):
-        stmt = select(SingleplayerGameplayORM).where(
-            SingleplayerGameplayORM.user_id == user_id,
+        stmt = (
+            select(SingleplayerGameplayORM)
+            .options(
+                selectinload(SingleplayerGameplayORM.board).selectinload(
+                    BoardORM.difficulty_level
+                ),
+                selectinload(SingleplayerGameplayORM.user),
+            )
+            .where(
+                SingleplayerGameplayORM.user_id == user_id,
+            )
         )
-        return await apaginate(self.session, stmt, pagination_params)
+        return await apaginate(
+            self.session,
+            stmt,
+            pagination_params,
+            transformer=lambda items: [item.to_gameplay() for item in items],
+        )
 
     async def _get_gameplay_orm(
         self, gameplay_id: uuid.UUID
@@ -59,27 +72,15 @@ class SingleplayerRepository:
         return (await self._get_gameplay_orm(gameplay_id)).to_gameplay()
 
     async def update_gameplay(
-        self,
-        gameplay_id: uuid.UUID,
-        status: Optional[GameStatus] = None,
-        result: Optional[GameResult] = None,
-        time: Optional[float] = None,
-        used_prompts: Optional[bool] = None,
-        revealed_cells: Optional[list[tuple[int, int]]] = None,
-    ) -> SingleplayerGameplayORM:
-        gameplay = await self._get_gameplay_orm(gameplay_id)
+        self, gameplay: SingleplayerGameplay
+    ) -> SingleplayerGameplay:
+        existing = await self._get_gameplay_orm(gameplay.id)
+        user_id = existing.user_id
+        self.session.expunge(existing)
 
-        if status is not None:
-            gameplay.status = GameStatusEnum(status)
-        if result is not None:
-            gameplay.result = GameResultEnum(result)
-        if time is not None:
-            gameplay.time = time
-        if used_prompts is not None:
-            gameplay.used_hints = used_prompts
-        if revealed_cells is not None:
-            gameplay.revealed_cells = revealed_cells
-
+        updated_orm = SingleplayerGameplayORM.from_gameplay(
+            gameplay, gameplay.board.id, user_id
+        )
+        await self.session.merge(updated_orm)
         await self.session.commit()
-        await self.session.refresh(gameplay)
         return gameplay

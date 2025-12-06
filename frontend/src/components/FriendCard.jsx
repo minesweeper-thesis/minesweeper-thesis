@@ -83,7 +83,7 @@ export default function FriendCard({
             </div>
 
             <div className="flex items-center gap-1 ml-1">
-                {onChallenge && (
+                {onChallenge && type !== "incoming" && type !== "sent" && (
                     <button
                         onClick={onChallenge}
                         className="flex-shrink-0 px-3 py-1.5 text-sm rounded-md bg-accent-primary text-bg-primary font-medium hover:opacity-90"

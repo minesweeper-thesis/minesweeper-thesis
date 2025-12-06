@@ -1,13 +1,16 @@
-import asyncio
+from contextlib import suppress
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
-from backend.lib.connections_manager import ConnectionsManager
-
-from .schemas.lobby_schemas import *
+from backend.lib.websockets.connections_manager import connections_manager
+from backend.routers.schemas import WSRequest
+from backend.routers.schemas.lobby import (
+    CurrentLobbyResponse,
+    PendingInvitationsResponse,
+)
 
 LobbyService = Annotated[services.LobbyService, Depends()]
 
@@ -18,13 +21,27 @@ notifications_router = APIRouter(tags=["notifications"])
 async def send_notifications(
     websocket: WebSocket,
     user: CurrentUserWebSocket,
+    lobby_service: LobbyService,
 ):
-    """WebSocket endpoint for receiving game invitations."""
-    ConnectionsManager.add_user(user.id, websocket)
+    connections_manager.add(user.id, websocket)
+
+    async def receiver():
+        while True:
+            data = await websocket.receive_json()
+            with suppress(ValueError):
+                _ = WSRequest.from_dict(data)
+                invitations = await lobby_service.get_pending_invitations(user)
+                response = PendingInvitationsResponse.create(invitations)
+                await websocket.send_text(response)
 
     try:
         await websocket.accept()
-        while True:
-            await asyncio.sleep(5)
+
+        lobby = await lobby_service.get_user_lobby(user)
+        response = CurrentLobbyResponse.create(lobby)
+        await websocket.send_text(response)
+
+        await receiver()
+
     except WebSocketDisconnect:
-        ConnectionsManager.remove_user(user.id)
+        connections_manager.remove(user.id)

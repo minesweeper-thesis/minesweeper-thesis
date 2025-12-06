@@ -10,15 +10,22 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
 from backend import routers
+from backend.lib.scheduler import initialize_scheduler, shutdown_scheduler
 
 from .db import *
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    # Initialize scheduler with the main event loop
+    initialize_scheduler()
+
     await init_db()
     yield
     await engine.dispose()
+
+    # Shutdown scheduler
+    shutdown_scheduler()
 
 
 api = FastAPI()

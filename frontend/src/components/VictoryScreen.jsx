@@ -7,7 +7,7 @@ export default function VictoryScreen({ onPlayAgain }) {
             <div className="victory-content">
                 <h2>You Win!</h2>
                 <h4>tu bedzie coś jeszcze</h4>
-                <button className="menu-button" onClick={onPlayAgain}>
+                <button className="menu-button" onClick={_ => onPlayAgain()}>
                     Play Again
                 </button>
             </div>

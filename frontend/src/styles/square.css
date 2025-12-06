@@ -8,6 +8,7 @@
     border: 1px solid #ffffff;
     font-weight: bold;
     width: 34px;
+    color: black;
     /*height: 34px;*/
     cursor: pointer;
     transition: background-color 0.4s ease;

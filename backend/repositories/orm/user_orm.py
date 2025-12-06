@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import TYPE_CHECKING, Optional
 
 from fastapi_users.db import SQLAlchemyBaseUserTable
@@ -11,6 +12,7 @@ from backend.core.user import (
     FriendRequestStatus,
     Friendship,
     User,
+    UserChatMessage,
 )
 from backend.repositories.orm import Base
 
@@ -46,13 +48,14 @@ class UserORM(SQLAlchemyBaseUserTable[uuid.UUID], Base):
         back_populates="friend",
     )
 
-    def to_user(self) -> User:
+    def to_user(self, is_online) -> User:
         return User(
             id=self.id,
             email=self.email,
             nickname=self.nickname,
             settings=self.settings,
             avatar=Avatar(url=self.avatar_url) if self.avatar_url else None,
+            is_online=is_online,
         )
 
 
@@ -73,8 +76,11 @@ class FriendshipORM(Base):
         CheckConstraint("user_id != friend_id", name="check_not_self_friend"),
     )
 
-    def to_friendship(self) -> "Friendship":
-        return Friendship(user=self.user, friend=self.friend)
+    def to_friendship(self, is_user_online, is_friend_online) -> "Friendship":
+        return Friendship(
+            user=self.user.to_user(is_online=is_user_online),
+            friend=self.friend.to_user(is_online=is_friend_online),
+        )
 
     @staticmethod
     def from_friendship(friendship: "Friendship") -> "FriendshipORM":
@@ -108,11 +114,11 @@ class FriendRequestORM(Base):
         CheckConstraint("user_id != friend_id", name="check_not_self_request"),
     )
 
-    def to_friend_request(self) -> "FriendRequest":
+    def to_friend_request(self, is_user_online, is_friend_online) -> "FriendRequest":
         return FriendRequest(
             id=self.id,
-            user=self.user.to_user(),
-            friend=self.friend.to_user(),
+            user=self.user.to_user(is_user_online),
+            friend=self.friend.to_user(is_friend_online),
             status=self.status,
         )
 
@@ -126,4 +132,26 @@ class FriendRequestORM(Base):
         )
 
 
-__all__ = ["UserORM", "FriendshipORM", "FriendRequestORM"]
+class UserChatMessageORM(Base):
+    __tablename__ = "user_chat_messages"
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+
+    from_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(UserORM.id))
+    to_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(UserORM.id))
+    content: Mapped[str] = mapped_column()
+    timestamp: Mapped[datetime] = mapped_column()
+
+    from_user: Mapped[UserORM] = relationship(foreign_keys=from_user_id)
+    to_user: Mapped[UserORM] = relationship(foreign_keys=to_user_id)
+
+    @staticmethod
+    def from_chat_message(message: "UserChatMessage") -> "UserChatMessageORM":
+        return UserChatMessageORM(
+            from_user_id=message.from_user.id,
+            to_user_id=message.to.id,
+            content=message.content,
+            timestamp=message.timestamp,
+        )
+
+
+__all__ = ["UserORM", "FriendshipORM", "FriendRequestORM", "UserChatMessageORM"]

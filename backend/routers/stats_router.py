@@ -3,10 +3,11 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page, Params
 
-import backend.routers.schemas.stats_schemas as schemas
+import backend.routers.schemas.stats.stats_schemas as schemas
 from backend import services
+from backend.core.board import DifficultyLevel
 from backend.lib.auth import CurrentUser
-from backend.routers.schemas.user_schemas import UserResponse
+from backend.routers.schemas.user import UserResponse
 
 StatsService = Annotated[services.StatsService, Depends()]
 PaginationParams = Annotated[Params, Depends()]
@@ -28,12 +29,12 @@ async def get_gameplays_global_ranking(
 ):
     """Get global gameplays ranking sorted by time."""
     page = await service.get_gameplays_global_ranking(
-        rows, cols, mine_count, pagination_params
+        DifficultyLevel(rows, cols, mine_count), pagination_params
     )
     page.items = [
         schemas.GameplayRankingResponse(
             gameplay_id=item.gameplay_id,
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             time=item.time,
         )
         for item in page.items
@@ -55,12 +56,12 @@ async def get_gameplays_friends_ranking(
 ):
     """Get friends gameplays ranking sorted by time."""
     page = await service.get_gameplays_friends_ranking(
-        user, rows, cols, mine_count, pagination_params
+        user, DifficultyLevel(rows, cols, mine_count), pagination_params
     )
     page.items = [
         schemas.GameplayRankingResponse(
             gameplay_id=item.gameplay_id,
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             time=item.time,
         )
         for item in page.items
@@ -81,11 +82,11 @@ async def get_users_global_ranking(
 ):
     """Get global users ranking sorted by win rate or average time."""
     page = await service.get_users_global_ranking(
-        rows, cols, mine_count, compare_by, pagination_params
+        DifficultyLevel(rows, cols, mine_count), compare_by, pagination_params
     )
     page.items = [
         schemas.UserRankingResponse(
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             win_rate=item.win_rate,
             average_time=item.average_time,
             total_games=item.total_games,
@@ -110,11 +111,11 @@ async def get_users_friends_ranking(
 ):
     """Get friends users ranking sorted by win rate or average time."""
     page = await service.get_users_friends_ranking(
-        user, rows, cols, mine_count, compare_by, pagination_params
+        user, DifficultyLevel(rows, cols, mine_count), compare_by, pagination_params
     )
     page.items = [
         schemas.UserRankingResponse(
-            user=UserResponse.from_user(item.user),
+            user=UserResponse.build(item.user),
             win_rate=item.win_rate,
             average_time=item.average_time,
             total_games=item.total_games,

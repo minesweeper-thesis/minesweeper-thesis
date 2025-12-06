@@ -4,31 +4,26 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params
 
-import backend.services.exceptions as service_exceptions
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.lib.connections_manager import ConnectionsManager
+from backend.services import exceptions
 
-from .schemas.user_schemas import *
+from .schemas.user import *
 
 PaginationParams = Annotated[Params, Depends()]
 FriendsService = Annotated[services.FriendsService, Depends()]
 
 friends_exceptions = {
-    service_exceptions.UsersNotFriends: HTTPException(400, "Users are not friends"),
-    service_exceptions.FriendRequestNotExists: HTTPException(
-        404, "Friend request not found"
-    ),
-    service_exceptions.UsersAlreadyFriends: HTTPException(
-        400, "Users are already friends"
-    ),
-    service_exceptions.FriendRequestAlreadySent: HTTPException(
+    exceptions.UsersNotFriends: HTTPException(400, "Users are not friends"),
+    exceptions.FriendRequestNotExists: HTTPException(404, "Friend request not found"),
+    exceptions.UsersAlreadyFriends: HTTPException(400, "Users are already friends"),
+    exceptions.FriendRequestAlreadySent: HTTPException(
         400, "Friend request already exists"
     ),
-    service_exceptions.CannotFriendRequestYourself: HTTPException(
+    exceptions.CannotFriendRequestYourself: HTTPException(
         400, "Cannot send friend request to oneself"
     ),
-    service_exceptions.RequestedFriendNotExists: HTTPException(
+    exceptions.RequestedFriendNotExists: HTTPException(
         404, "Requested friend not found"
     ),
 }
@@ -37,19 +32,9 @@ friends_router = APIRouter(prefix="/friends", tags=["friends"])
 friend_requests_router = APIRouter(prefix="/friend-requests", tags=["friend-requests"])
 
 
-async def notify(receiver_id: uuid.UUID, data: FriendRequest):
-    if ConnectionsManager.is_user_online(receiver_id):
-        websocket = ConnectionsManager.get_user_websocket(receiver_id)
-        await websocket.send_text(
-            FriendRequestNotificationResponse.from_friend_request(data).model_dump_json(
-                exclude_none=True
-            )
-        )
-
-
 @friends_router.get(
     "",
-    responses={200: {"model": Page[FriendResponse]}},
+    responses={200: {"model": Page[UserResponse]}},
 )
 async def get_friends(
     user: CurrentUser,
@@ -58,7 +43,7 @@ async def get_friends(
 ):
     """Gets a list of friends for current user"""
     page = await service.get_friends(pagination_params)
-    page.items = [FriendResponse.from_user(friend) for friend in page.items]
+    page.items = [UserResponse.build(friend) for friend in page.items]
     return page
 
 
@@ -83,7 +68,7 @@ async def get_pending_friend_requests(
 ):
     """Lists pending friend requests for current user"""
     page = await service.get_pending_friend_requests(pagination_params)
-    page.items = [FriendRequestResponse.from_friend_request(req) for req in page.items]
+    page.items = [FriendRequestResponse.build(req) for req in page.items]
     return page
 
 
@@ -98,7 +83,7 @@ async def get_sent_friend_requests(
 ):
     """Lists sent friend requests for current user"""
     page = await service.get_sent_friend_requests(pagination_params)
-    page.items = [FriendRequestResponse.from_friend_request(req) for req in page.items]
+    page.items = [FriendRequestResponse.build(req) for req in page.items]
     return page
 
 
@@ -109,8 +94,8 @@ async def make_friend_request(
     service: FriendsService,
 ):
     """Makes a friend request to user with given id"""
-    friend_request = await service.make_friend_request(body.friend_id, notify)
-    return FriendRequestResponse.from_friend_request(friend_request)
+    friend_request = await service.make_friend_request(body.friend_id)
+    return FriendRequestResponse.build(friend_request)
 
 
 @friend_requests_router.post("/{friend_request_id}/accept")
