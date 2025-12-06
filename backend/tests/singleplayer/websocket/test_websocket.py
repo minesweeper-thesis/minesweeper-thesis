@@ -1,94 +1,14 @@
-import asyncio
 import json
-import random
 import uuid
 
-from backend.core.board import Board, DifficultyLevel, GenerationSettings
-from backend.db.db import async_session_maker
-from backend.repositories.board_repo import BoardRepository
-from backend.routers.schemas.game.single_schemas import NewGameResponse
+from backend.tests.singleplayer.helpers import create_game
 
-def _create_board_sync(rows=5, columns=5, mine_count=2) -> tuple[str, tuple[int, int]]:
-
-    async def create():
-        from sqlalchemy import text
-        from sqlalchemy.exc import IntegrityError
-
-        max_attempts = 5
-        for attempt in range(max_attempts):
-            try:
-                async with async_session_maker() as session:
-
-                    await session.execute(text("PRAGMA busy_timeout=30000"))
-
-                    repo = BoardRepository(session)
-                    difficulty = DifficultyLevel(
-                        rows=rows, columns=columns, mine_count=mine_count
-                    )
-
-                    start_row = random.randint(0, rows - 1)
-                    start_col = random.randint(0, columns - 1)
-                    start_field = (start_row, start_col)
-
-                    all_cells = [
-                        (r, c)
-                        for r in range(rows)
-                        for c in range(columns)
-                        if (r, c) != start_field
-                    ]
-                    random.shuffle(all_cells)
-                    minefields = sorted(all_cells[:mine_count])
-
-                    board = Board(
-                        id=uuid.uuid4(),
-                        minefields=minefields,
-                        start_field=start_field,
-                        generation_settings=GenerationSettings(
-                            type="random", settings=None, difficulty_level=difficulty
-                        ),
-                    )
-                    await repo.add_board(board)
-                    return str(board.id), start_field
-            except IntegrityError:
-                if attempt == max_attempts - 1:
-                    raise
-                continue
-        raise RuntimeError("Failed to create unique board after max attempts")
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-
-    if loop and loop.is_running():
-
-        import concurrent.futures
-
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            result = pool.submit(asyncio.run, create()).result()
-    else:
-        result = asyncio.run(create())
-
-    return result
-
-def _create_game(client, rows=5, columns=5, mine_count=2) -> str:
-    board_id, _ = _create_board_sync(rows=rows, columns=columns, mine_count=mine_count)
-
-    resp = client.post(
-        "/api/game/single",
-        json={
-            "board_id": board_id,
-            "mode": "normal",
-        },
-    )
-    assert resp.status_code == 200, f"Failed to create game: {resp.text}"
-    return resp.json()["gameplay_id"]
 
 def test_websocket_initial_game_state_schema(client, auth):
     email = f"ws-init-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="pw", nickname="ws_init")
 
-    gameplay_id = _create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         data = json.loads(ws.receive_text())
@@ -113,13 +33,14 @@ def test_websocket_initial_game_state_schema(client, auth):
 
         assert data.get("result") is None
 
+
 def test_websocket_game_over_loss_schema(client, auth):
     from starlette.websockets import WebSocketDisconnect
 
     email = f"ws-loss-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="pw", nickname="ws_loss")
 
-    gameplay_id = _create_game(client, rows=3, columns=3, mine_count=7)
+    gameplay_id = create_game(client, rows=3, columns=3, mine_count=7)
 
     game_over = None
     finished = False
@@ -151,11 +72,12 @@ def test_websocket_game_over_loss_schema(client, auth):
         assert isinstance(game_over["elapsed_time"], (int, float))
         assert isinstance(game_over["full_board"], list)
 
+
 def test_websocket_get_game_state_returns_current_state(client, auth):
     email = f"ws-getstate-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="pw", nickname="ws_getstate")
 
-    gameplay_id = _create_game(client, rows=5, columns=5, mine_count=5)
+    gameplay_id = create_game(client, rows=5, columns=5, mine_count=5)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -176,13 +98,14 @@ def test_websocket_get_game_state_returns_current_state(client, auth):
         for row in data["board"]:
             assert len(row) == 5
 
+
 def test_websocket_board_state_shows_revealed_cell(client, auth):
     from starlette.websockets import WebSocketDisconnect
 
     email = f"ws-verify-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="pw", nickname="ws_verify")
 
-    gameplay_id = _create_game(client, rows=5, columns=5, mine_count=3)
+    gameplay_id = create_game(client, rows=5, columns=5, mine_count=3)
 
     try:
         with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:

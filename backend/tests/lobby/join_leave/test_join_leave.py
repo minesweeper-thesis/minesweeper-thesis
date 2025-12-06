@@ -1,29 +1,7 @@
-
 import uuid
 
-from fastapi.testclient import TestClient
+from backend.tests.utils.test_helpers import create_second_user_and_login
 
-from backend.main import app
-
-def _create_second_user_and_login(email, password, nickname):
-    client = TestClient(app, base_url="https://testserver")
-    client.post(
-        "/api/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "nickname": nickname,
-            "settings": {},
-        },
-    )
-    client.post(
-        "/api/auth/login",
-        data={
-            "username": email,
-            "password": password,
-        },
-    )
-    return client
 
 def test_join_lobby_returns_lobby_response(client, auth):
     host_email = f"joinhost-{uuid.uuid4().hex[:8]}@example.com"
@@ -33,13 +11,12 @@ def test_join_lobby_returns_lobby_response(client, auth):
     create_resp = client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_client = _create_second_user_and_login(
-        guest_email, "joinguestpw", "joinguest"
-    )
+    guest_client = create_second_user_and_login(guest_email, "joinguestpw", "joinguest")
     guest_me = guest_client.get("/api/auth/me")
     guest_id = guest_me.json()["id"]
 
     client.post(f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id})
+
 
 def test_join_lobby_without_auth_returns_401(client):
     resp = client.post(
@@ -50,6 +27,7 @@ def test_join_lobby_without_auth_returns_401(client):
     )
     assert resp.status_code == 401
 
+
 def test_leave_lobby_success(client, auth):
     email = f"leavelobby-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="leavelobbypw", nickname="leavelobbyhost")
@@ -59,6 +37,7 @@ def test_leave_lobby_success(client, auth):
 
     resp = client.post(f"/api/lobbies/{lobby_id}/leave")
     assert resp.status_code in [200, 204]
+
 
 def test_leave_lobby_without_auth_returns_401(client):
     resp = client.post(f"/api/lobbies/{uuid.uuid4()}/leave")

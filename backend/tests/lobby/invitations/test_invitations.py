@@ -1,29 +1,10 @@
-
 import uuid
 
 from fastapi.testclient import TestClient
 
 from backend.main import app
+from backend.tests.utils.test_helpers import create_second_user_and_login
 
-def _create_second_user_and_login(email, password, nickname):
-    client = TestClient(app, base_url="https://testserver")
-    client.post(
-        "/api/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "nickname": nickname,
-            "settings": {},
-        },
-    )
-    client.post(
-        "/api/auth/login",
-        data={
-            "username": email,
-            "password": password,
-        },
-    )
-    return client
 
 def test_invite_user_to_lobby_success(client, auth):
     host_email = f"invitehost-{uuid.uuid4().hex[:8]}@example.com"
@@ -54,6 +35,7 @@ def test_invite_user_to_lobby_success(client, auth):
         )
         assert resp.status_code in [200, 204]
 
+
 def test_invite_user_without_auth_returns_401(client):
     resp = client.post(
         f"/api/lobbies/{uuid.uuid4()}/invitations",
@@ -63,6 +45,7 @@ def test_invite_user_without_auth_returns_401(client):
     )
     assert resp.status_code == 401
 
+
 def test_reject_invitation_success(client, auth):
     host_email = f"rejecthost-{uuid.uuid4().hex[:8]}@example.com"
     guest_email = f"rejectguest-{uuid.uuid4().hex[:8]}@example.com"
@@ -71,13 +54,14 @@ def test_reject_invitation_success(client, auth):
     create_resp = client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_client = _create_second_user_and_login(
+    guest_client = create_second_user_and_login(
         guest_email, "rejectguestpw", "rejectguest"
     )
     guest_me = guest_client.get("/api/auth/me")
     guest_id = guest_me.json()["id"]
 
     client.post(f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id})
+
 
 def test_reject_invitation_without_auth_returns_401(client):
     resp = client.delete(f"/api/invitations/{uuid.uuid4()}")

@@ -1,30 +1,7 @@
 import json
 import uuid
 
-from fastapi.testclient import TestClient
-
-from backend.main import app
-
-
-def _create_second_user_and_login(email, password, nickname):
-    client = TestClient(app, base_url="https://testserver")
-    client.post(
-        "/api/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "nickname": nickname,
-            "settings": {},
-        },
-    )
-    client.post(
-        "/api/auth/login",
-        data={
-            "username": email,
-            "password": password,
-        },
-    )
-    return client
+from backend.tests.utils.test_helpers import create_second_user_and_login
 
 
 def test_notifications_websocket_pending_invitations_request(client, auth):
@@ -51,7 +28,7 @@ def test_notifications_websocket_pending_invitations_has_invitation(client, auth
     create_resp = client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_client = _create_second_user_and_login(
+    guest_client = create_second_user_and_login(
         guest_email, "notifguestpw", "notifguest"
     )
     guest_me = guest_client.get("/api/auth/me")

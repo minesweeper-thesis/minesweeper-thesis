@@ -49,5 +49,3 @@ async def create_gameplay_via_service(user_id: uuid.UUID) -> uuid.UUID:
         await play.load_gameplay(gameplay_id, timeout=5.0)
 
         return gameplay_id
-
-        return gameplay_id
