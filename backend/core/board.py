@@ -46,6 +46,37 @@ class Board:
         return self.generation_settings.difficulty_level
 
 
+def get_classifier_version(
+    classifier: ClassifierType, difficulty_level: DifficultyLevel
+) -> str:
+    rows = difficulty_level.rows
+    columns = difficulty_level.columns
+    mine_count = difficulty_level.mine_count
+    mapping = {
+        (10, 10, 15, "lightgbm"): "12800",
+        (16, 16, 40, "lightgbm"): "12800",
+        (16, 30, 99, "lightgbm"): "400",
+        (10, 10, 15, "catboost"): "6400",
+        (16, 16, 40, "catboost"): "3200",
+        (16, 30, 99, "catboost"): "1600",
+        (10, 10, 15, "xgboost"): "6400",
+        (16, 16, 40, "xgboost"): "6400",
+        (16, 30, 99, "xgboost"): "3200",
+        (10, 10, 15, "gaussiannb"): "",
+        (16, 16, 40, "gaussiannb"): "",
+        (16, 30, 99, "gaussiannb"): "",
+    }
+
+    key = (rows, columns, mine_count, classifier)
+
+    if key not in mapping:
+        raise ValueError(
+            f"No classifier version found for {classifier} with difficulty {rows}x{columns} and {mine_count} mines"
+        )
+
+    return mapping[key]
+
+
 class BoardGenerator:
     def __init__(
         self,
@@ -97,7 +128,9 @@ class BoardGenerator:
                 **asdict(generator_settings),
                 **asdict(self.difficulty_level),
                 start_field=start_field,
-                classifier_iterations=6400,
+                version=get_classifier_version(
+                    generator_settings.classifier, self.difficulty_level
+                ),
             )
         else:
             raise ValueError(f"Unknown generator type: {self.type}")
