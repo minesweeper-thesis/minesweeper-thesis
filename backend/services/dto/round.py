@@ -2,6 +2,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
+from backend.core.board import DifficultyLevel
 from backend.core.game import Cell
 
 
@@ -21,6 +22,7 @@ class UserNotReady:
 class RoundReady:
     session_id: uuid.UUID
     round_index: int
+    difficulty_level: DifficultyLevel
 
 
 @dataclass

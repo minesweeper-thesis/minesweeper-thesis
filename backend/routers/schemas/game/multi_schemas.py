@@ -2,6 +2,7 @@ import uuid
 from dataclasses import asdict
 from typing import Literal, Optional, Self
 
+from backend.core.board import DifficultyLevel
 from backend.core.game import *
 from backend.core.multi import (
     RoundEnd,
@@ -103,12 +104,14 @@ class RoundReadyResponse(Response):
     ws_type: Literal["round_ready"] = "round_ready"
     session_id: uuid.UUID
     round: int
+    difficulty_level: DifficultyLevel
 
     @classmethod
     def build(cls, message: RoundReady) -> Self:
         return cls(
             session_id=message.session_id,
             round=message.round_index + 1,
+            difficulty_level=message.difficulty_level,
         )
 
 

@@ -139,7 +139,8 @@ class LobbyReadyService:
 
             for user_id in session.player_ids:
                 await self.notification_system.notify(
-                    user_id, RoundReady(session.id, 0)
+                    user_id,
+                    RoundReady(session.id, 0, session.game_config.difficulty_level),
                 )
 
             self.lobby = lobby
