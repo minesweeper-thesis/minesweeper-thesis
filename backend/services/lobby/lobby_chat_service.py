@@ -1,28 +1,20 @@
 import uuid
-from typing import Annotated
 
-from fastapi import Depends
 from fastapi_pagination import Params
 
-from backend import repositories
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
+from backend.di.dependencies import *
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
 
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-
 
 class LobbyChatService:
     def __init__(
-        self, lobby_repo: LobbyRepository, notification_system: NotificationSystem
+        self, lobby_repo: LobbyRepositoryDep, notification_system: NotificationSystemDep
     ):
         self.lobby_repo = lobby_repo
         self.notification_system = notification_system

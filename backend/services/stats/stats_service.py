@@ -1,18 +1,14 @@
-from typing import Annotated, Literal
+from typing import Literal
 
-from fastapi import Depends
 from fastapi_pagination import Params
 
-from backend import repositories
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
-
-StatsRepository = Annotated[repositories.StatsRepository, Depends()]
-BoardRepository = Annotated[repositories.BoardRepository, Depends()]
+from backend.di.dependencies import *
 
 
 class StatsService:
-    def __init__(self, stats_repo: StatsRepository, board_repo: BoardRepository):
+    def __init__(self, stats_repo: StatsRepositoryDep, board_repo: BoardRepositoryDep):
         self.repo = stats_repo
         self.board_repo = board_repo
 

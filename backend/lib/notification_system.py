@@ -8,6 +8,7 @@ from backend.core.multi import *
 from backend.core.user import FriendRequest
 from backend.core.user.chat import UserChatMessage
 from backend.lib.websockets.connections_manager import connections_manager
+from backend.protocols import NotificationSystem
 from backend.routers.schemas import Response
 from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
@@ -15,15 +16,11 @@ from backend.routers.schemas.user import FriendRequestResponse, UserChatMessageR
 from backend.services.dto import *
 
 
-class NotificationSystem:
+class WSNotificationSystem(NotificationSystem):
     async def notify(self, receiver_id: uuid.UUID, data):
         if connections_manager.is_user_online(receiver_id):
             websocket = connections_manager.get(receiver_id)
             await websocket.send_text(create_notification(data))
-
-
-def get_notification_system() -> NotificationSystem:
-    return NotificationSystem()
 
 
 def create_notification(data: Any) -> str:

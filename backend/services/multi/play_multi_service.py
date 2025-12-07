@@ -1,37 +1,24 @@
 import uuid
-from collections.abc import Callable
-from typing import Annotated, Any, Awaitable
+from typing import Any
 
-from fastapi import BackgroundTasks, Depends
+from fastapi import BackgroundTasks
 
-from backend import protocols, repositories
 from backend.core.game import *
+from backend.di.dependencies import *
 from backend.lib.auth import CurrentUser
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.scheduler import get_scheduler
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
-
-MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
-BoardRepository = Annotated[repositories.BoardRepository, Depends()]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
-
-type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
 class PlayMultiService:
     def __init__(
         self,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        multi_repo: MultiplayerRepository,
+        board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
-        notification_system: NotificationSystem,
-        scheduler: Scheduler,
+        notification_system: NotificationSystemDep,
+        scheduler: SchedulerDep,
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -79,4 +66,4 @@ class PlayMultiService:
         return msgs
 
 
-__all__ = ["PlayMultiService", "Notify"]
+__all__ = ["PlayMultiService"]

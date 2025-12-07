@@ -1,26 +1,18 @@
 import uuid
 from datetime import datetime
-from typing import Annotated
 
-from fastapi import Depends
 from fastapi_pagination import Params
 
-from backend import repositories
 from backend.core.user import User, UserChatMessage
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
+from backend.di.dependencies import *
 from backend.services.exceptions import *
-
-UserRepository = Annotated[repositories.UserRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
 
 
 class UserChatService:
     def __init__(
         self,
-        user_repo: UserRepository,
-        notification_system: NotificationSystem,
+        user_repo: UserRepositoryDep,
+        notification_system: NotificationSystemDep,
     ):
         self.user_repo = user_repo
         self.notification_system = notification_system

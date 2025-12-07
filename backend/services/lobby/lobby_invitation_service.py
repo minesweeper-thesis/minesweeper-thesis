@@ -1,31 +1,21 @@
 import uuid
-from typing import Annotated
 
-from fastapi import Depends
-
-from backend import repositories
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
+from backend.di.dependencies import *
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
-
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-UserRepository = Annotated[repositories.UserRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
 
 
 class LobbyInvitationService:
     def __init__(
         self,
-        lobby_repo: LobbyRepository,
-        user_repo: UserRepository,
-        notification_system: NotificationSystem,
+        lobby_repo: LobbyRepositoryDep,
+        user_repo: UserRepositoryDep,
+        notification_system: NotificationSystemDep,
     ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo

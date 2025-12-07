@@ -1,25 +1,17 @@
 import uuid
-from typing import Annotated, Literal
+from typing import Literal
 
-from fastapi import Depends
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import Float, func, select
 
-from backend import repositories
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
-from backend.repositories import online_users
-from backend.repositories.orm.game_orm import GameResultEnum, GameStatusEnum
+from backend.lib.online_users import get_online_users_store
+from backend.repositories.orm import GameResultEnum, GameStatusEnum
 
 from .orm import *
-
-BoardRepository = Annotated[repositories.BoardRepository, Depends()]
-
-OnlineUsersStore = Annotated[
-    online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
-]
 
 
 class TimeRankingItem:
@@ -66,27 +58,42 @@ async def transform_user_ranking_items(items, is_online_func):
 
 
 class StatsRepository:
-    def __init__(
-        self,
-        session: DBSession,
-        board_repo: BoardRepository,
-        online_users_store: OnlineUsersStore,
-    ):
+    def __init__(self, session: DBSession):
         self.session = session
-        self.board_repo = board_repo
-        self.online_users_store = online_users_store
+        self.online_users_store = get_online_users_store()
 
     async def is_user_online(self, user_id: uuid.UUID) -> bool:
         return await self.online_users_store.is_user_online(user_id)
+
+    async def get_difficulty_level_orm(
+        self, difficulty_level: DifficultyLevel
+    ) -> DifficultyLevelORM:
+        stmt = select(DifficultyLevelORM).where(
+            DifficultyLevelORM.rows == difficulty_level.rows,
+            DifficultyLevelORM.columns == difficulty_level.columns,
+            DifficultyLevelORM.mine_count == difficulty_level.mine_count,
+        )
+        result = await self.session.execute(stmt)
+        difficulty_level_orm = result.scalar_one_or_none()
+
+        if difficulty_level_orm is None:
+            difficulty_level_orm = DifficultyLevelORM(
+                rows=difficulty_level.rows,
+                columns=difficulty_level.columns,
+                mine_count=difficulty_level.mine_count,
+            )
+            self.session.add(difficulty_level_orm)
+            await self.session.commit()
+            await self.session.refresh(difficulty_level_orm)
+
+        return difficulty_level_orm
 
     async def get_gameplays_global_ranking(
         self,
         difficulty_level: DifficultyLevel,
         pagination_params: Params,
     ):
-        difficulty_level_orm = await self.board_repo.get_difficulty_level_orm(
-            difficulty_level
-        )
+        difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
 
         stmt = (
             select(
@@ -119,9 +126,7 @@ class StatsRepository:
         difficulty_level: DifficultyLevel,
         pagination_params: Params,
     ):
-        difficulty_level_orm = await self.board_repo.get_difficulty_level_orm(
-            difficulty_level
-        )
+        difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
 
         stmt = (
             select(
@@ -160,9 +165,7 @@ class StatsRepository:
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
-        difficulty_level_orm = await self.board_repo.get_difficulty_level_orm(
-            difficulty_level
-        )
+        difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
 
         stmt = (
             select(
@@ -237,9 +240,7 @@ class StatsRepository:
         sort_by: Literal["win_rate", "average_time"],
         pagination_params: Params,
     ):
-        difficulty_level_orm = await self.board_repo.get_difficulty_level_orm(
-            difficulty_level
-        )
+        difficulty_level_orm = await self.get_difficulty_level_orm(difficulty_level)
 
         stmt = (
             select(

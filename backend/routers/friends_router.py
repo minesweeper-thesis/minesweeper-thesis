@@ -42,7 +42,7 @@ async def get_friends(
     pagination_params: PaginationParams,
 ):
     """Gets a list of friends for current user"""
-    page = await service.get_friends(pagination_params)
+    page = await service.get_friends(user, pagination_params)
     page.items = [UserResponse.build(friend) for friend in page.items]
     return page
 
@@ -54,7 +54,7 @@ async def remove_friend(
     service: FriendsService,
 ):
     """Removes a friend from friends list"""
-    return await service.remove_friend(friend_id)
+    return await service.remove_friend(user, friend_id)
 
 
 @friend_requests_router.get(
@@ -67,7 +67,7 @@ async def get_pending_friend_requests(
     pagination_params: PaginationParams,
 ):
     """Lists pending friend requests for current user"""
-    page = await service.get_pending_friend_requests(pagination_params)
+    page = await service.get_pending_friend_requests(user, pagination_params)
     page.items = [FriendRequestResponse.build(req) for req in page.items]
     return page
 
@@ -82,7 +82,7 @@ async def get_sent_friend_requests(
     pagination_params: PaginationParams,
 ):
     """Lists sent friend requests for current user"""
-    page = await service.get_sent_friend_requests(pagination_params)
+    page = await service.get_sent_friend_requests(user, pagination_params)
     page.items = [FriendRequestResponse.build(req) for req in page.items]
     return page
 
@@ -94,7 +94,7 @@ async def make_friend_request(
     service: FriendsService,
 ):
     """Makes a friend request to user with given id"""
-    friend_request = await service.make_friend_request(body.friend_id)
+    friend_request = await service.make_friend_request(user, body.friend_id)
     return FriendRequestResponse.build(friend_request)
 
 
@@ -105,7 +105,7 @@ async def accept_friend_request(
     service: FriendsService,
 ):
     """Accepts friend request with given id"""
-    await service.accept_friend_request(friend_request_id)
+    await service.accept_friend_request(user, friend_request_id)
 
 
 @friend_requests_router.post("/{friend_request_id}/reject")
@@ -115,4 +115,4 @@ async def reject_friend_request(
     service: FriendsService,
 ):
     """Rejects friend request with given id"""
-    await service.reject_friend_request(friend_request_id)
+    await service.reject_friend_request(user, friend_request_id)

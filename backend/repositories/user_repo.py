@@ -1,8 +1,6 @@
 import uuid
-from typing import Annotated
 
-from fastapi import Depends
-from fastapi_pagination import Page, Params
+from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
@@ -10,29 +8,19 @@ from sqlalchemy.exc import NoResultFound
 from backend.core.user import User
 from backend.core.user.chat import UserChatMessage
 from backend.db.db import DBSession
-from backend.repositories import online_users
-from backend.repositories.avatar import storage
+from backend.lib.avatar.storage import get_avatar_storage
+from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
 from .orm import *
 
-OnlineUsersStore = Annotated[
-    online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
-]
-AvatarStorage = Annotated[storage.AvatarStorage, Depends(storage.get_avatar_storage)]
-
 
 class UserRepository:
-    def __init__(
-        self,
-        session: DBSession,
-        online_users_store: OnlineUsersStore,
-        avatar_storage: AvatarStorage,
-    ):
+    def __init__(self, session: DBSession):
         self.session = session
-        self.online_users_store = online_users_store
-        self.avatar_storage = avatar_storage
+        self.online_users_store = get_online_users_store()
+        self.avatar_storage = get_avatar_storage()
 
     async def set_user_online(self, user_id: uuid.UUID):
         await self.online_users_store.set_user_online(user_id)
@@ -106,7 +94,7 @@ class UserRepository:
 
     async def get_messages(
         self, from_user_id: uuid.UUID, to_user_id: uuid.UUID, pagination_params: Params
-    ) -> Page[UserChatMessage]:
+    ):
         stmt = (
             select(UserChatMessageORM)
             .where(

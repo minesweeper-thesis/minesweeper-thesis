@@ -1,22 +1,14 @@
 import uuid
-from collections.abc import Callable
-from typing import Annotated, Any, Awaitable, Optional
+from typing import Annotated, Optional
 
 from fastapi import Depends
 
-from backend import protocols, repositories
 from backend.core.board import Board
 from backend.core.game import *
-from backend.core.lobby import create_session
-from backend.core.lobby.lobby import Lobby
-from backend.core.multi.config import GameConfig
-from backend.core.multi.session import MultiplayerSession
+from backend.core.lobby import Lobby, create_session
+from backend.core.multi import GameConfig, MultiplayerSession
 from backend.core.user import User
-from backend.lib.board_generator import LocalBoardGenerator
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.pending_boards import get_pending_boards_store
-from backend.lib.websocket_game_transport import WebSocketGameTransport
+from backend.di.dependencies import *
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
@@ -24,37 +16,17 @@ from backend.services.dto.round import UserNotReady
 from backend.services.exceptions import *
 from backend.services.multi.round_scheduler import RoundScheduler
 
-MultiplayerRepository = Annotated[
-    protocols.MultiplayerRepository, Depends(repositories.MultiplayerRepository)
-]
-BoardRepository = Annotated[
-    protocols.BoardRepository, Depends(repositories.BoardRepository)
-]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-GameTransport = Annotated[
-    protocols.GameTransport, Depends(lambda: WebSocketGameTransport())
-]
-BoardGenerator = Annotated[protocols.BoardGenerator, Depends(LocalBoardGenerator)]
-PendingBoardsStore = Annotated[
-    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
-]
-
-
-type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
-
 
 class LobbyReadyService:
     def __init__(
         self,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        multi_repo: MultiplayerRepository,
-        notification_system: NotificationSystem,
-        game_transport: GameTransport,
-        board_generator: BoardGenerator,
-        pending_store: PendingBoardsStore,
+        board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
+        notification_system: NotificationSystemDep,
+        game_transport: GameTransportDep,
+        board_generator: BoardGeneratorDep,
+        pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
     ):
         self.multi_repo = multi_repo

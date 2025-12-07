@@ -1,39 +1,15 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Annotated, Optional
+from typing import Optional
 
-from fastapi import Depends
-
-from backend import protocols, repositories
 from backend.core.board import Board
 from backend.core.game import *
 from backend.core.multi import create_multiplayer_round
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.pending_boards import get_pending_boards_store
-from backend.lib.scheduler import get_scheduler
-from backend.lib.websocket_game_transport import WebSocketGameTransport
+from backend.di.dependencies import *
 from backend.protocols.multiplayer_repo_protocol import SessionNotFound
 from backend.repositories.exceptions import *
 from backend.services.dto import RoundCountdown
 from backend.services.exceptions import *
-
-MultiplayerRepository = Annotated[
-    protocols.MultiplayerRepository, Depends(repositories.MultiplayerRepository)
-]
-BoardRepository = Annotated[
-    protocols.BoardRepository, Depends(repositories.BoardRepository)
-]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
-GameTransport = Annotated[
-    protocols.GameTransport, Depends(lambda: WebSocketGameTransport())
-]
-PendingBoardsStore = Annotated[
-    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
-]
 
 ROUND_START_DELAY = timedelta(seconds=5)
 
@@ -41,13 +17,13 @@ ROUND_START_DELAY = timedelta(seconds=5)
 class RoundScheduler:
     def __init__(
         self,
-        multi_repo: MultiplayerRepository,
-        scheduler: Scheduler,
-        game_transport: GameTransport,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        notification_system: NotificationSystem,
-        pending_store: PendingBoardsStore,
+        multi_repo: MultiplayerRepositoryDep,
+        scheduler: SchedulerDep,
+        game_transport: GameTransportDep,
+        board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        notification_system: NotificationSystemDep,
+        pending_store: PendingBoardsStoreDep,
     ):
         self.multi_repo = multi_repo
         self.scheduler = scheduler

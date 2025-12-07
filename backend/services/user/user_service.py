@@ -1,21 +1,15 @@
-from typing import Annotated
-
-from fastapi import Depends
 from fastapi_pagination import Params
 
-from backend import repositories
+from backend.di.dependencies import *
 from backend.lib.auth import CurrentUser
 from backend.services.exceptions import *
-
-UserRepository = Annotated[repositories.UserRepository, Depends()]
-GameRepository = Annotated[repositories.SingleplayerRepository, Depends()]
 
 
 class UserService:
     def __init__(
         self,
-        user_repo: UserRepository,
-        singleplayer_repo: GameRepository,
+        user_repo: UserRepositoryDep,
+        singleplayer_repo: SingleplayerRepositoryDep,
         user: CurrentUser,
     ):
         self.user_repo = user_repo

@@ -1,10 +1,8 @@
 import asyncio
 import uuid
-from typing import Annotated
 
-from fastapi import BackgroundTasks, Depends
+from fastapi import BackgroundTasks
 
-from backend import repositories
 from backend.core.board import BoardGenerator as CoreBoardGenerator
 from backend.core.board import GenerationSettings
 from backend.protocols.board_generator_protocol import *
@@ -13,12 +11,7 @@ _generation_statuses: dict[uuid.UUID, GenerationStatus] = {}
 
 
 class LocalBoardGenerator(BoardGenerator):
-    def __init__(
-        self,
-        board_repo: Annotated[repositories.BoardRepository, Depends()],
-        background_tasks: BackgroundTasks,
-    ):
-        self.board_repo = board_repo
+    def __init__(self, background_tasks: BackgroundTasks):
         self.background_tasks = background_tasks
 
     async def generate_board(

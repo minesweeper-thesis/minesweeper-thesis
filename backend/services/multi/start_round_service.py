@@ -5,32 +5,14 @@ from typing import Annotated, Any, Awaitable
 
 from fastapi import BackgroundTasks, Depends
 
-from backend import protocols, repositories
 from backend.core.game import *
 from backend.core.multi import *
 from backend.core.user import User
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.pending_boards import get_pending_boards_store
-from backend.lib.scheduler import get_scheduler
-from backend.lib.websocket_game_transport import WebSocketGameTransport
+from backend.di.dependencies import *
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.multi.round_scheduler import RoundScheduler
-
-MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
-BoardRepository = Annotated[repositories.BoardRepository, Depends()]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
-GameTransport = Annotated[
-    protocols.GameTransport, Depends(lambda: WebSocketGameTransport())
-]
-PendingBoardsStore = Annotated[
-    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
-]
 
 type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
@@ -41,14 +23,14 @@ ROUND_START_DELAY = timedelta(seconds=5)
 class StartRoundService:
     def __init__(
         self,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        multi_repo: MultiplayerRepository,
+        board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
-        notification_system: NotificationSystem,
-        scheduler: Scheduler,
-        game_transport: GameTransport,
-        pending_store: PendingBoardsStore,
+        notification_system: NotificationSystemDep,
+        scheduler: SchedulerDep,
+        game_transport: GameTransportDep,
+        pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
     ):
         self.multi_repo = multi_repo
