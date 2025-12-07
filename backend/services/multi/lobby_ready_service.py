@@ -12,8 +12,12 @@ from backend.di.dependencies import *
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
-from backend.services.dto.round import UserNotReady
 from backend.services.exceptions import *
+from backend.services.multi.helpers import (
+    send_round_ready,
+    send_user_not_ready,
+    send_user_ready_in_lobby,
+)
 from backend.services.multi.round_scheduler import RoundScheduler
 
 
@@ -75,8 +79,8 @@ class LobbyReadyService:
         lobby.set_user_not_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-        for player in lobby.users:
-            await self.notification_system.notify(player.id, UserNotReady(user.id, 0))
+        assert lobby_session is not None
+        await send_user_not_ready(self.notification_system.notify, lobby_session, user)
 
     async def set_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
         lobby = self.lobby_repo.get_lobby(lobby_id)
@@ -90,34 +94,35 @@ class LobbyReadyService:
         lobby.set_user_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-        for player in lobby.users:
-            await self.notification_system.notify(player.id, UserReady(user.id, 0))
+        await send_user_ready_in_lobby(self.notification_system.notify, lobby, user)
 
         if lobby.all_users_ready():
-            if lobby_session is not None:
-                if lobby_session.game_config == lobby.game_config:
-                    session = lobby_session
-                else:
-                    await self.multi_repo.delete_pending(lobby_session.id)
-
-                    # todo cancel tasks
-                    session_id = uuid.uuid4()
-                    session = await create_session(session_id, lobby)
-            else:
-                session_id = uuid.uuid4()
-                session = await create_session(session_id, lobby)
-
+            session = await self._get_session(lobby, lobby_session)
             await self.multi_repo.save_pending(session)
 
-            for user_id in session.player_ids:
-                await self.notification_system.notify(
-                    user_id,
-                    RoundReady(session.id, 0, session.game_config.difficulty_level),
-                )
+            await send_round_ready(self.notification_system.notify, session)
 
             self.lobby = lobby
             self.session = session
             await self._prepare_boards()
+
+    async def _get_session(
+        self, lobby: Lobby, lobby_session: Optional[MultiplayerSession]
+    ) -> MultiplayerSession:
+        if lobby_session is not None:
+            if lobby_session.game_config == lobby.game_config:
+                session = lobby_session
+            else:
+                await self.multi_repo.delete_pending(lobby_session.id)
+
+                # todo cancel tasks
+                session_id = uuid.uuid4()
+                session = await create_session(session_id, lobby)
+        else:
+            session_id = uuid.uuid4()
+            session = await create_session(session_id, lobby)
+
+        return session
 
     async def _prepare_boards(self):
         to_generate = self.session.rounds_number - len(self.session.rounds)
