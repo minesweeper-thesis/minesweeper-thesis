@@ -106,7 +106,11 @@ class StartRoundService:
             for user_id in session.player_ids:
                 await self.game_transport.send(
                     user_id,
-                    RoundReady(session.id, next_round_index),
+                    RoundReady(
+                        session.id,
+                        next_round_index,
+                        session.game_config.difficulty_level,
+                    ),
                 )
 
             if session.is_next_round_available:
