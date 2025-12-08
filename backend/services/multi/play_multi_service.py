@@ -1,6 +1,9 @@
+import logging
 import uuid
 
 from fastapi import BackgroundTasks
+
+logger = logging.getLogger(__name__)
 
 from backend.core.game import *
 from backend.di.dependencies import *
@@ -36,27 +39,42 @@ class PlayMultiService:
         session_id: uuid.UUID,
         user: CurrentUser,
     ):
+        logger.debug(f"set_session(session_id={session_id}, user_id={user.id})")
+        logger.debug(f"Setting multiplayer session {session_id} for user {user.id}")
         self.session_id = session_id
         self.user = user
 
         self.session = await self.multi_repo.get_session(session_id)
 
         if self.user.id not in self.session.player_ids:
+            logger.warning(f"User {user.id} is not part of session {session_id}")
             raise ValueError("User is not part of this session")
 
         if self.session.is_session_over():
+            logger.warning(f"Attempted to join already finished session {session_id}")
             raise ValueError("Session is already over")
 
         self.transport = self.game_transport_factory.create(session_id)
+        logger.info(f"User {user.id} set for multiplayer session {session_id}")
 
     def is_session_over(self) -> bool:
+        logger.debug(f"is_session_over(session_id={self.session_id})")
         return self.session.is_session_over()
 
     async def get_game_state(self):
+        logger.debug(
+            f"get_game_state(session_id={self.session_id}, user_id={self.user.id})"
+        )
         game_state = self.session.get_user_game_state(self.user.id)
         await self.transport.send(self.user.id, game_state)
 
     async def execute_action(self, action: GameAction):
+        logger.debug(
+            f"execute_action(session_id={self.session_id}, user_id={self.user.id}, action={type(action).__name__})"
+        )
+        logger.debug(
+            f"User {self.user.id} executing action in session {self.session_id}: {type(action).__name__}"
+        )
         self.session.execute_action_for_user(self.user.id, action)
 
         for user_id, events in self.session.consume_events().items():

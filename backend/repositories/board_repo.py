@@ -1,3 +1,4 @@
+import logging
 import uuid
 from dataclasses import asdict
 from typing import Optional
@@ -6,6 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
+
+logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
@@ -20,6 +23,9 @@ class BoardRepository(protocols.BoardRepository):
         self.session = session
 
     async def add_board(self, board: Board) -> None:
+        logger.debug(
+            f"add_board(board_id={board.id}, difficulty={board.difficulty_level.rows}x{board.difficulty_level.columns})"
+        )
         difficulty_level_orm = await self.get_difficulty_level_orm(
             board.difficulty_level
         )
@@ -27,6 +33,9 @@ class BoardRepository(protocols.BoardRepository):
 
         self.session.add(board_orm)
         await self.session.commit()
+        logger.info(
+            f"Board {board.id} added with difficulty {board.difficulty_level.rows}x{board.difficulty_level.columns}"
+        )
 
     async def get_difficulty_level_orm(
         self, difficulty_level: DifficultyLevel
@@ -52,6 +61,7 @@ class BoardRepository(protocols.BoardRepository):
         return difficulty_level_orm
 
     async def get_board_by_id(self, board_id: uuid.UUID) -> Board:
+        logger.debug(f"get_board_by_id(board_id={board_id})")
         try:
             stmt = (
                 select(BoardORM)
@@ -59,9 +69,12 @@ class BoardRepository(protocols.BoardRepository):
                 .options(selectinload(BoardORM.difficulty_level))
             )
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_board()
+            board = result.scalar_one().to_board()
+            logger.debug(f"Retrieved board {board_id}")
+            return board
 
         except NoResultFound:
+            logger.warning(f"Board {board_id} not found")
             raise BoardNotFound(f"Board with id {board_id} not found") from None
 
     async def get_board(
@@ -70,6 +83,9 @@ class BoardRepository(protocols.BoardRepository):
         minefields: Optional[Minefields] = None,
         generation_settings: Optional[GenerationSettings] = None,
     ) -> Board:
+        logger.debug(
+            f"get_board(difficulty_level={difficulty_level}, has_minefields={minefields is not None}, has_settings={generation_settings is not None})"
+        )
         try:
             args = []
 

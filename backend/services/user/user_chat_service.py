@@ -1,7 +1,10 @@
+import logging
 import uuid
 from datetime import datetime
 
 from fastapi_pagination import Params
+
+logger = logging.getLogger(__name__)
 
 from backend.core.user import User, UserChatMessage
 from backend.di.dependencies import *
@@ -23,6 +26,9 @@ class UserChatService:
         to_id: uuid.UUID,
         content: str,
     ):
+        logger.debug(
+            f"send_chat_message(from_user={user.id}, to_id={to_id}, content_len={len(content)})"
+        )
         to_user = await self.user_repo.get_user(to_id)
 
         message = UserChatMessage(
@@ -35,6 +41,7 @@ class UserChatService:
         await self.user_repo.add_message(message)
 
         await self.notification_system.notify(to_user.id, message)
+        logger.info(f"Chat message sent from {user.id} to {to_id}")
 
     async def get_chat_messages(
         self,
@@ -42,6 +49,7 @@ class UserChatService:
         to_id: uuid.UUID,
         pagination_params: Params,
     ):
+        logger.debug(f"get_chat_messages(user_id={user.id}, to_id={to_id})")
         to_user = await self.user_repo.get_user(to_id)
         if not to_user:
             raise ValueError("User not found")

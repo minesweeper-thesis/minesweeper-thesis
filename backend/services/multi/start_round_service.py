@@ -1,7 +1,10 @@
+import logging
 import uuid
 from typing import Annotated, Any
 
 from fastapi import BackgroundTasks, Depends
+
+logger = logging.getLogger(__name__)
 
 from backend.core.game import *
 from backend.core.multi import *
@@ -51,6 +54,7 @@ class StartRoundService:
             raise ValueError("Session is already over")
 
     async def toggle_user_ready(self, session_id: uuid.UUID, user: User):
+        logger.debug(f"User {user.id} toggling ready status in session {session_id}")
         session = await self.multi_repo.get_session(session_id)
         self._ensure_user_in_session(session, user)
         if session.is_user_ready(user):
@@ -96,6 +100,7 @@ class StartRoundService:
         await send_user_ready(transport.send, session, user)
 
         if session.all_players_ready():
+            logger.info(f"All players ready in session {session_id}, starting round")
             await send_round_ready(transport.send, session)
 
             if session.is_next_round_available:

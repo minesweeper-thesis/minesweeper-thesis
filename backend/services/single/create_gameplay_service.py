@@ -1,5 +1,8 @@
+import logging
 import uuid
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from backend.core.board import Board, GenerationSettings
 from backend.core.game import *
@@ -36,6 +39,9 @@ class CreateSingleGameplayService:
         user: OptionalCurrentUser,
         game_settings: NewGameSettings,
     ) -> uuid.UUID:
+        logger.info(
+            f"Creating singleplayer gameplay for user {user.id if user else 'anonymous'}"
+        )
         gameplay_id = uuid.uuid4()
 
         board = await self._get_board(gameplay_id, game_settings, user)
@@ -45,6 +51,7 @@ class CreateSingleGameplayService:
                 gameplay_id, board, game_settings.mode, user
             )
 
+        logger.info(f"Singleplayer gameplay {gameplay_id} created")
         return gameplay_id
 
     async def _get_board(

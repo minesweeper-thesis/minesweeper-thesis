@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from typing import AsyncIterator
@@ -13,6 +14,16 @@ from backend import routers
 from backend.lib.scheduler import initialize_scheduler, shutdown_scheduler
 
 from .db import *
+
+handler = logging.StreamHandler()
+handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+)
+
+backend_logger = logging.getLogger("backend")
+backend_logger.setLevel(logging.DEBUG)
+backend_logger.addHandler(handler)
+backend_logger.propagate = False
 
 
 @asynccontextmanager

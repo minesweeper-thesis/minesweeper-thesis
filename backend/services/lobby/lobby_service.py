@@ -1,4 +1,7 @@
+import logging
 import uuid
+
+logger = logging.getLogger(__name__)
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
@@ -32,14 +35,17 @@ class LobbyService:
         self.notification_system = notification_system
 
     async def create_lobby(self, user: User) -> Lobby:
+        logger.debug(f"create_lobby(user_id={user.id})")
         lobby_to_leave = self.lobby_repo.get_user_lobby(user)
         if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         self.lobby_repo.save_lobby(lobby)
+        logger.info(f"Lobby {lobby.id} created by user {user.id}")
         return lobby
 
     async def join_lobby(self, user: User, invitation_id: uuid.UUID):
+        logger.debug(f"join_lobby(user_id={user.id}, invitation_id={invitation_id})")
         lobby_to_leave = self.lobby_repo.get_user_lobby(user)
         if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
@@ -48,6 +54,9 @@ class LobbyService:
         lobby = invitation.lobby
 
         if invitation.invitee != user or invitation.lobby != lobby:
+            logger.warning(
+                f"User {user.id} not authorized to join lobby via invitation {invitation_id}"
+            )
             raise PermissionError("User not authorized to join this lobby")
 
         data = lobby.add_user(user)
@@ -60,11 +69,13 @@ class LobbyService:
         for lobby_user in lobby.users:
             await self.notification_system.notify(lobby_user.id, data)
 
+        logger.info(f"User {user.id} joined lobby {lobby.id}")
         return lobby
 
     async def update_lobby(
         self, lobby_id: uuid.UUID, user: User, game_config: GameConfig
     ):
+        logger.debug(f"update_lobby(lobby_id={lobby_id}, user_id={user.id})")
         lobby = self.lobby_repo.get_lobby(lobby_id)
 
         ensure_lobby_exists(lobby)
@@ -77,7 +88,10 @@ class LobbyService:
         for lobby_user in lobby.users:
             await self.notification_system.notify(lobby_user.id, event)
 
+        logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
+
     async def remove_user_from_lobby(self, lobby_id: uuid.UUID, user: User):
+        logger.debug(f"remove_user_from_lobby(lobby_id={lobby_id}, user_id={user.id})")
         lobby = self.lobby_repo.get_lobby(lobby_id)
 
         ensure_lobby_exists(lobby)
@@ -88,6 +102,9 @@ class LobbyService:
     async def kick_from_lobby(
         self, lobby_id: uuid.UUID, user: User, target_user_id: uuid.UUID
     ):
+        logger.debug(
+            f"kick_from_lobby(lobby_id={lobby_id}, user_id={user.id}, target_user_id={target_user_id})"
+        )
         lobby = self.lobby_repo.get_lobby(lobby_id)
 
         ensure_lobby_exists(lobby)
@@ -103,8 +120,10 @@ class LobbyService:
 
         kicked_data = KickedFromLobby(lobby_id)
         await self.notification_system.notify(target_user.id, kicked_data)
+        logger.info(f"User {target_user_id} kicked from lobby {lobby_id} by {user.id}")
 
     async def _remove_user(self, lobby: Lobby, user: User):
+        logger.debug(f"_remove_user(lobby_id={lobby.id}, user_id={user.id})")
         data = lobby.remove_user(user)
 
         if lobby.is_empty():

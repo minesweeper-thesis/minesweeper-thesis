@@ -1,6 +1,9 @@
+import logging
 from typing import Literal
 
 from fastapi_pagination import Params
+
+logger = logging.getLogger(__name__)
 
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
@@ -17,6 +20,9 @@ class StatsService:
         difficulty_level: DifficultyLevel,
         pagination_params: Params,
     ):
+        logger.debug(
+            f"Getting global gameplays ranking for difficulty {difficulty_level.rows}x{difficulty_level.columns}"
+        )
         return await self.repo.get_gameplays_global_ranking(
             difficulty_level, pagination_params
         )

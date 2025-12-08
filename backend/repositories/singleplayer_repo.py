@@ -1,3 +1,4 @@
+import logging
 import uuid
 from typing import Optional
 
@@ -6,6 +7,8 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
+
+logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.single.gameplay import SingleplayerGameplay
@@ -25,11 +28,18 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
         board_id: uuid.UUID,
         user_id: Optional[uuid.UUID] = None,
     ) -> None:
+        logger.debug(
+            f"add_gameplay(gameplay_id={gameplay.id}, board_id={board_id}, user_id={user_id})"
+        )
         orm = SingleplayerGameplayORM.from_gameplay(gameplay, board_id, user_id)
         self.session.add(orm)
         await self.session.commit()
+        logger.info(
+            f"Singleplayer gameplay {gameplay.id} added for user {user_id} with board {board_id}"
+        )
 
     async def get_gameplays(self, user_id: uuid.UUID, pagination_params: Params):
+        logger.debug(f"get_gameplays(user_id={user_id}, page={pagination_params.page})")
         stmt = (
             select(SingleplayerGameplayORM)
             .options(
@@ -52,6 +62,7 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
     async def _get_gameplay_orm(
         self, gameplay_id: uuid.UUID
     ) -> SingleplayerGameplayORM:
+        logger.debug(f"_get_gameplay_orm(gameplay_id={gameplay_id})")
         try:
             stmt = (
                 select(SingleplayerGameplayORM)
@@ -70,11 +81,13 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
             raise GameplayNotFound() from None
 
     async def get_gameplay_by_id(self, gameplay_id: uuid.UUID) -> SingleplayerGameplay:
+        logger.debug(f"get_gameplay_by_id(gameplay_id={gameplay_id})")
         return (await self._get_gameplay_orm(gameplay_id)).to_gameplay()
 
     async def update_gameplay(
         self, gameplay: SingleplayerGameplay
     ) -> SingleplayerGameplay:
+        logger.debug(f"update_gameplay(gameplay_id={gameplay.id})")
         existing = await self._get_gameplay_orm(gameplay.id)
         user_id = existing.user_id
         self.session.expunge(existing)
@@ -84,4 +97,5 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
         )
         await self.session.merge(updated_orm)
         await self.session.commit()
+        logger.debug(f"Singleplayer gameplay {gameplay.id} updated")
         return gameplay

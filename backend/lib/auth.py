@@ -1,8 +1,11 @@
+import logging
 import os
 import uuid
 from typing import Annotated, AsyncGenerator, Optional
 
 from fastapi import Depends, WebSocket
+
+logger = logging.getLogger(__name__)
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
@@ -59,6 +62,7 @@ async def get_current_user(
     online_users_store: Annotated[OnlineUsersStore, Depends(get_online_users_store)],
 ) -> User:
     is_online = await online_users_store.is_user_online(user_orm.id)
+    logger.debug(f"User {user_orm.id} authenticated, is_online={is_online}")
     return user_orm.to_user(is_online=is_online)
 
 
@@ -88,6 +92,7 @@ async def get_user_from_websocket(
     token = websocket.cookies.get("auth")
 
     if not token:
+        logger.warning("WebSocket connection attempt without auth token")
         raise WebSocketException(code=WS_UNAUTHORIZED, reason="Missing auth token")
 
     try:
@@ -95,13 +100,16 @@ async def get_user_from_websocket(
         user = await strategy.read_token(token, user_manager)
 
         if not user or not user.is_active:
+            logger.warning(f"WebSocket auth failed: user not found or inactive")
             raise WebSocketException(code=WS_USER_NOT_FOUND, reason="User not found")
 
+        logger.debug(f"User {user.id} authenticated via WebSocket")
         return user.to_user(is_online=True)
 
     except WebSocketException:
         raise
     except Exception as e:
+        logger.error(f"WebSocket auth error: {e}")
         raise WebSocketException(
             code=WS_INVALID_TOKEN, reason="Invalid or expired token"
         ) from e

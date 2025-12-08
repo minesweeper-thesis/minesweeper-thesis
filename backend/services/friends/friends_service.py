@@ -1,7 +1,10 @@
+import logging
 import uuid
 from contextlib import suppress
 
 from fastapi_pagination import Params
+
+logger = logging.getLogger(__name__)
 
 import backend.repositories.exceptions as repo_exceptions
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship, User
@@ -25,9 +28,11 @@ class FriendsService:
         self.notification_system = notification_system
 
     async def get_friends(self, user: User, pagination_params: Params):
+        logger.debug(f"get_friends(user_id={user.id}, page={pagination_params.page})")
         return await self.friends_repo.get_friends(user.id, pagination_params)
 
     async def get_pending_friend_requests(self, user: User, pagination_params: Params):
+        logger.debug(f"get_pending_friend_requests(user_id={user.id})")
         return await self.friends_repo.get_friend_requests(
             pagination_params,
             friend_id=user.id,
@@ -35,6 +40,7 @@ class FriendsService:
         )
 
     async def get_sent_friend_requests(self, user: User, pagination_params: Params):
+        logger.debug(f"get_sent_friend_requests(user_id={user.id})")
         return await self.friends_repo.get_friend_requests(
             pagination_params,
             user_id=user.id,
@@ -48,6 +54,7 @@ class FriendsService:
             raise RequestedFriendNotExists() from None
 
     async def make_friend_request(self, user: User, friend_id: uuid.UUID):
+        logger.debug(f"make_friend_request(user_id={user.id}, friend_id={friend_id})")
         if user.id == friend_id:
             raise CannotFriendRequestYourself()
 
@@ -81,6 +88,7 @@ class FriendsService:
 
         await self.notification_system.notify(friend_id, friend_request)
 
+        logger.info(f"Friend request sent from {user.id} to {friend_id}")
         return friend_request
 
     async def accept_friend_request(self, user: User, friend_request_id: uuid.UUID):

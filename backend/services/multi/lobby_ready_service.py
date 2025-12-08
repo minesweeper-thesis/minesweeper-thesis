@@ -1,7 +1,10 @@
+import logging
 import uuid
 from typing import Annotated, Optional
 
 from fastapi import Depends
+
+logger = logging.getLogger(__name__)
 
 from backend.core.board import Board
 from backend.core.game import *
@@ -59,6 +62,7 @@ class LobbyReadyService:
         return True
 
     async def toggle_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
+        logger.debug(f"User {user.id} toggling ready in lobby {lobby_id}")
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if lobby.is_user_ready(user):
             await self._cancel_user_ready(lobby, user)
@@ -95,6 +99,7 @@ class LobbyReadyService:
         await send_user_ready_in_lobby(self.notification_system.notify, lobby, user)
 
         if lobby.all_users_ready():
+            logger.info(f"All users ready in lobby {lobby_id}, creating session")
             session = await self._get_session(lobby, lobby_session)
             await self.multi_repo.save_pending(session)
 

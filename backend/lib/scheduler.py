@@ -1,10 +1,13 @@
 import asyncio
+import logging
 import threading
 import uuid
 from datetime import datetime
 from typing import Any, Callable, Coroutine
 
 from apscheduler.schedulers.background import BackgroundScheduler
+
+logger = logging.getLogger(__name__)
 
 from backend.protocols import JobID, Scheduler
 
@@ -45,16 +48,16 @@ class AsyncScheduler(Scheduler):
         )
         self._scheduler.start()
         self._initialized = True
-        print(f"[Scheduler] Initialized with event loop: {loop}")
+        logger.info(f"Scheduler initialized with event loop: {loop}")
 
     def shutdown(self):
         """Shutdown the scheduler gracefully."""
         if self._scheduler and self._initialized:
             try:
                 self._scheduler.shutdown(wait=False)
-                print("[Scheduler] Shutdown complete")
+                logger.info("Scheduler shutdown complete")
             except Exception as e:
-                print(f"[Scheduler] Shutdown warning: {e}")
+                logger.warning(f"Scheduler shutdown warning: {e}")
             finally:
                 self._initialized = False
 
@@ -97,7 +100,7 @@ class AsyncScheduler(Scheduler):
                 # Wait for completion and propagate any exceptions
                 future.result(timeout=300)  # 5 minute timeout
             except Exception as e:
-                print(f"[Scheduler] Job {job_id} failed: {e}")
+                logger.error(f"Job {job_id} failed: {e}")
                 import traceback
 
                 traceback.print_exc()
@@ -113,7 +116,7 @@ class AsyncScheduler(Scheduler):
         with self._lock:
             self._jobs[job.id] = job
 
-        print(f"[Scheduler] Scheduled job {job_id} for {when}")
+        logger.info(f"Scheduled job {job_id} for {when}")
         return job.id
 
     def cancel(self, job_id: str) -> None:
@@ -124,7 +127,7 @@ class AsyncScheduler(Scheduler):
         if self._scheduler:
             try:
                 self._scheduler.remove_job(job_id)
-                print(f"[Scheduler] Cancelled job {job_id}")
+                logger.info(f"Cancelled job {job_id}")
             except Exception:
                 pass  # Job may have already run or been removed
 
