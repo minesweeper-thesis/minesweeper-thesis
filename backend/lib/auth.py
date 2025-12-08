@@ -13,6 +13,7 @@ from fastapi_users.db import SQLAlchemyUserDatabase
 
 from backend.core.user import User
 from backend.db import *
+from backend.lib.online_users import OnlineUsersStore, get_online_users_store
 from backend.repositories.orm.user_orm import UserORM
 
 cookie_transport = CookieTransport(cookie_name="auth", cookie_max_age=3600)
@@ -53,20 +54,25 @@ async def get_user_manager(
 fastapi_users = FastAPIUsers[UserORM, uuid.UUID](get_user_manager, [auth_backend])
 
 
-def get_current_user(
-    user_orm: UserORM = Depends(fastapi_users.current_user(active=True)),
+async def get_current_user(
+    user_orm: Annotated[UserORM, Depends(fastapi_users.current_user(active=True))],
+    online_users_store: Annotated[OnlineUsersStore, Depends(get_online_users_store)],
 ) -> User:
-    return user_orm.to_user(is_online=True)
+    is_online = await online_users_store.is_user_online(user_orm.id)
+    return user_orm.to_user(is_online=is_online)
 
 
-def get_optional_current_user(
-    user_orm: Optional[UserORM] = Depends(
-        fastapi_users.current_user(active=True, optional=True)
-    )
+async def get_optional_current_user(
+    user_orm: Annotated[
+        Optional[UserORM],
+        Depends(fastapi_users.current_user(active=True, optional=True)),
+    ],
+    online_users_store: Annotated[OnlineUsersStore, Depends(get_online_users_store)],
 ) -> Optional[User]:
     if user_orm is None:
         return None
-    return user_orm.to_user(is_online=True)
+    is_online = await online_users_store.is_user_online(user_orm.id)
+    return user_orm.to_user(is_online=is_online)
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]

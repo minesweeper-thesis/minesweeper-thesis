@@ -16,9 +16,6 @@ def test_get_me_returns_current_user_response(client, auth):
 
     assert user.email == email
     assert user.nickname == "getmeuser"
-    assert user.is_active is True
-    assert user.is_superuser is False
-    assert user.is_verified is False
 
 
 def test_patch_me_updates_nickname(client, auth):

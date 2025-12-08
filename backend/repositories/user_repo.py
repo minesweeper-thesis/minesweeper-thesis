@@ -5,6 +5,7 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
 
+from backend import protocols
 from backend.core.user import User
 from backend.core.user.chat import UserChatMessage
 from backend.db.db import DBSession
@@ -16,7 +17,7 @@ from .exceptions import *
 from .orm import *
 
 
-class UserRepository:
+class UserRepository(protocols.UserRepository):
     def __init__(self, session: DBSession):
         self.session = session
         self.online_users_store = get_online_users_store()

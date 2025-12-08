@@ -10,6 +10,7 @@ from backend.core.multi import *
 from backend.routers.schemas import Response
 from backend.routers.schemas.common import GeneratorSchema
 from backend.routers.schemas.user import UserResponse
+from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
 
 
 class GameConfigResponse(BaseModel):
@@ -106,9 +107,9 @@ class CurrentLobbyResponse(Response):
     lobby: Optional[LobbyResponse]
 
     @classmethod
-    def build(cls, lobby: Optional[Lobby]) -> Self:
+    def build(cls, dto: UserCurrentLobby) -> Self:
         return cls(
-            lobby=LobbyResponse.build(lobby) if lobby else None,
+            lobby=LobbyResponse.build(dto.lobby) if dto.lobby else None,
         )
 
 
@@ -126,6 +127,19 @@ class KickedResponse(Response):
         return cls(lobby=None)
 
 
+class UserOnlineUpdatedResponse(Response):
+    ws_type: Literal["user_online_status"] = "user_online_status"
+    lobby_id: uuid.UUID
+    user: UserResponse
+
+    @classmethod
+    def build(cls, data: UserOnlineUpdated) -> Self:
+        return cls(
+            lobby_id=data.lobby_id,
+            user=UserResponse.build(data.user),
+        )
+
+
 __all__ = [
     "UpdateGameConfigRequest",
     "LobbyResponse",
@@ -135,4 +149,5 @@ __all__ = [
     "GameConfigUpdatedResponse",
     "KickUserRequest",
     "KickedResponse",
+    "UserOnlineUpdatedResponse",
 ]

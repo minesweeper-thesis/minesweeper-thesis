@@ -32,19 +32,16 @@ class LobbyService:
         self.notification_system = notification_system
 
     async def create_lobby(self, user: User) -> Lobby:
+        lobby_to_leave = self.lobby_repo.get_user_lobby(user)
+        if lobby_to_leave:
+            await self._remove_user(lobby_to_leave, user)
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         self.lobby_repo.save_lobby(lobby)
         return lobby
 
-    async def get_user_lobby(self, user: User) -> Optional[Lobby]:
-        if lobbies := self.lobby_repo.get_user_lobbies(user):
-            return lobbies[0]
-        return None
-
     async def join_lobby(self, user: User, invitation_id: uuid.UUID):
-        user_lobby = self.lobby_repo.get_user_lobbies(user)
-        if user_lobby:
-            lobby_to_leave = user_lobby[0]
+        lobby_to_leave = self.lobby_repo.get_user_lobby(user)
+        if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
 
         invitation = self.lobby_repo.get_invitation(invitation_id)

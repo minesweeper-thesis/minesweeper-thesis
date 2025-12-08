@@ -5,6 +5,7 @@ from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import Float, func, select
 
+from backend import protocols
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.db.db import DBSession
@@ -57,7 +58,7 @@ async def transform_user_ranking_items(items, is_online_func):
     return result
 
 
-class StatsRepository:
+class StatsRepository(protocols.StatsRepository):
     def __init__(self, session: DBSession):
         self.session = session
         self.online_users_store = get_online_users_store()

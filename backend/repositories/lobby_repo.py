@@ -1,10 +1,13 @@
 import uuid
 from collections import defaultdict
 from contextlib import suppress
+from typing import Optional
 
 from fastapi_pagination import Page, Params
 
+from backend import protocols
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
+from backend.core.user import User
 
 lobbies: dict[uuid.UUID, Lobby] = {}
 invitations: dict[uuid.UUID, Invitation] = {}
@@ -20,7 +23,10 @@ class InvitationNotFound(Exception):
     pass
 
 
-class LobbyRepository:
+class LobbyRepository(protocols.LobbyRepository):
+    def __init__(self):
+        pass
+
     def save_lobby(self, lobby: Lobby):
         lobbies[lobby.id] = lobby
 
@@ -58,8 +64,11 @@ class LobbyRepository:
             if invitation.invitee == user
         ]
 
-    def get_user_lobbies(self, user) -> list[Lobby]:
-        return [lobby for lobby in lobbies.values() if user in lobby.users]
+    def get_user_lobby(self, user: User) -> Optional[Lobby]:
+        for lobby in lobbies.values():
+            if user in lobby.users:
+                return lobby
+        return None
 
     def add_message(self, message: LobbyChatMessage) -> None:
         messages[message.lobby_id].append(message)

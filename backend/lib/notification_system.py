@@ -14,8 +14,10 @@ from backend.protocols import NotificationSystem
 from backend.routers.schemas import Response
 from backend.routers.schemas.game import *
 from backend.routers.schemas.lobby import *
+from backend.routers.schemas.lobby import UserOnlineUpdatedResponse
 from backend.routers.schemas.user import FriendRequestResponse, UserChatMessageResponse
 from backend.services.dto import *
+from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
 
 
 class WSNotificationSystem(NotificationSystem):
@@ -55,6 +57,8 @@ def create_notification(data: Any) -> str:
         UserNotReady: UserNotReadyResponse,
         KickedFromLobby: KickedResponse,
         UserChatMessage: UserChatMessageResponse,
+        UserOnlineUpdated: UserOnlineUpdatedResponse,
+        UserCurrentLobby: CurrentLobbyResponse,
     }
 
     if type(data) not in mapping:

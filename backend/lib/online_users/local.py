@@ -2,7 +2,8 @@ import uuid
 
 
 class LocalOnlineUsersStore:
-    online_users: set[uuid.UUID] = set()
+    def __init__(self) -> None:
+        self.online_users: set[uuid.UUID] = set()
 
     async def is_user_online(self, user_id: uuid.UUID) -> bool:
         return user_id in self.online_users

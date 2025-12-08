@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+from backend import protocols
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.db.db import DBSession
 from backend.lib.online_users import get_online_users_store
@@ -16,7 +17,7 @@ from .exceptions import *
 from .orm import *
 
 
-class FriendsRepository:
+class FriendsRepository(protocols.FriendsRepository):
     def __init__(self, session: DBSession):
         self.session = session
         self.online_users_store = get_online_users_store()

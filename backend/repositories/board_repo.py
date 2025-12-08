@@ -7,6 +7,7 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
+from backend import protocols
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
 from backend.db.db import DBSession
 
@@ -14,7 +15,7 @@ from .exceptions import *
 from .orm import *
 
 
-class BoardRepository:
+class BoardRepository(protocols.BoardRepository):
     def __init__(self, session: DBSession):
         self.session = session
 

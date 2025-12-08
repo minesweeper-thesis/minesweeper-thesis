@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+from backend import protocols
 from backend.core.single.gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
 
@@ -14,7 +15,7 @@ from .exceptions import *
 from .orm import *
 
 
-class SingleplayerRepository:
+class SingleplayerRepository(protocols.SingleplayerRepository):
     def __init__(self, session: DBSession):
         self.session = session
 

@@ -10,5 +10,8 @@ class OnlineUsersStore(Protocol):
     async def set_user_offline(self, user_id: uuid.UUID): ...
 
 
+_online_users_store = LocalOnlineUsersStore()
+
+
 def get_online_users_store() -> OnlineUsersStore:
-    return LocalOnlineUsersStore()
+    return _online_users_store
