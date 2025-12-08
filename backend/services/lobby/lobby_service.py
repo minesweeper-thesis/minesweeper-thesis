@@ -1,9 +1,10 @@
 import logging
+import os
 import uuid
 
 logger = logging.getLogger(__name__)
 
-from backend.core.board import DifficultyLevel
+from backend.core.board import DifficultyLevel, GeneratorParams
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
@@ -14,12 +15,28 @@ from backend.services.dto import KickedFromLobby
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
 
-DEFAULT_GAME_CONFIG = GameConfig(
-    rounds=3,
-    max_round_time=60,
-    difficulty_level=DifficultyLevel(3, 3, 3),
-    game_mode="normal",
-    generator=Generator(generator_type="random"),
+DEV = "localhost" in os.getenv("BACKEND_URL", "")
+
+
+DEFAULT_GAME_CONFIG = (
+    GameConfig(
+        rounds=3,
+        max_round_time=60,
+        difficulty_level=DifficultyLevel(3, 3, 3),
+        game_mode="normal",
+        generator=Generator(generator_type="random"),
+    )
+    if DEV
+    else GameConfig(
+        rounds=3,
+        max_round_time=60,
+        difficulty_level=DifficultyLevel(10, 10, 15),
+        game_mode="normal",
+        generator=Generator(
+            generator_type="ml",
+            settings=GeneratorParams(classifier="lightgbm"),
+        ),
+    )
 )
 
 

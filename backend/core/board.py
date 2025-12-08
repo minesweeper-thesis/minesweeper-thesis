@@ -23,7 +23,7 @@ class DifficultyLevel:
 @dataclass
 class GeneratorParams:
     classifier: ClassifierType
-    heuristic: HeuristicType
+    heuristic: HeuristicType = "no"
     heuristic_args: tuple[float | int, ...] = tuple()
 
 
