@@ -63,7 +63,7 @@ def _create_action_from_data(data) -> GameAction:
             return FlagAction(cell=(data["cell"][0], data["cell"][1]))
         case "remove_flag":
             return RemoveFlagAction(cell=(data["cell"][0], data["cell"][1]))
-        case "use_hint":
+        case "hint":
             return UseHintAction()
         case _:
             raise ValueError(f"Unknown action type: {data['type']}")
