@@ -10,15 +10,15 @@ from backend.repositories import *
 
 
 def _get_notification_system():
-    from backend.lib.notification_system import WSNotificationSystem
+    from backend.lib.notification_system import get_notification_system
 
-    return WSNotificationSystem()
+    return get_notification_system()
 
 
-def _get_game_transport():
-    from backend.lib.websocket_game_transport import WebSocketGameTransport
+def _get_game_transport_factory():
+    from backend.lib.session_game_transport import get_game_transport_factory
 
-    return WebSocketGameTransport()
+    return get_game_transport_factory()
 
 
 registry: dict[type, Callable] = {
@@ -32,7 +32,7 @@ registry: dict[type, Callable] = {
     p.BoardGenerator: LocalBoardGenerator,
     p.PendingBoardsStore: get_pending_boards_store,
     p.NotificationSystem: _get_notification_system,
-    p.GameTransport: _get_game_transport,
+    p.GameTransportFactory: _get_game_transport_factory,
     p.Scheduler: get_scheduler,
 }
 

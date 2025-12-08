@@ -18,7 +18,7 @@ class RoundScheduler:
         self,
         multi_repo: MultiplayerRepositoryDep,
         scheduler: SchedulerDep,
-        game_transport: GameTransportDep,
+        game_transport_factory: GameTransportFactoryDep,
         board_repo: BoardRepositoryDep,
         lobby_repo: LobbyRepositoryDep,
         notification_system: NotificationSystemDep,
@@ -26,7 +26,7 @@ class RoundScheduler:
     ):
         self.multi_repo = multi_repo
         self.scheduler = scheduler
-        self.game_transport = game_transport
+        self.game_transport_factory = game_transport_factory
 
         self.board_repo = board_repo
         self.lobby_repo = lobby_repo
@@ -87,8 +87,9 @@ class RoundScheduler:
         await self._send_events(session)
 
         if session.is_session_over():
+            transport = self.game_transport_factory.create(session_id)
             for user_id in session.player_ids:
-                await self.game_transport.close(user_id)
+                await transport.close(user_id)
 
         await self.multi_repo.save_session(session)
 
@@ -119,7 +120,8 @@ class RoundScheduler:
         in_game: bool = False,
     ):
         if in_game:
-            sender = self.game_transport.send
+            transport = self.game_transport_factory.create(session.id)
+            sender = transport.send
         else:
             sender = self.notification_system.notify
 
@@ -136,9 +138,10 @@ class RoundScheduler:
             )
 
     async def _send_events(self, session: MultiplayerSession):
+        transport = self.game_transport_factory.create(session.id)
         for user_id, events in session.consume_events().items():
             for event in events:
-                await self.game_transport.send(user_id, event)
+                await transport.send(user_id, event)
 
     async def schedule_start(
         self,

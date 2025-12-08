@@ -7,4 +7,8 @@ class GameTransport(Protocol):
     async def close(self, receiver_id: uuid.UUID) -> None: ...
 
 
-__all_ = ["GameTransport"]
+class GameTransportFactory(Protocol):
+    def create(self, session_id: uuid.UUID) -> GameTransport: ...
+
+
+__all_ = ["GameTransport", "GameTransportFactory"]

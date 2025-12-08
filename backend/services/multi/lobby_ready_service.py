@@ -28,7 +28,6 @@ class LobbyReadyService:
         lobby_repo: LobbyRepositoryDep,
         multi_repo: MultiplayerRepositoryDep,
         notification_system: NotificationSystemDep,
-        game_transport: GameTransportDep,
         board_generator: BoardGeneratorDep,
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
@@ -37,7 +36,6 @@ class LobbyReadyService:
         self.board_repo = board_repo
         self.lobby_repo = lobby_repo
         self.notification_system = notification_system
-        self.game_transport = game_transport
         self.board_generator = board_generator
         self.pending_store = pending_store
 

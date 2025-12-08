@@ -5,7 +5,10 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
-from backend.lib.websockets.connections_manager import connections_manager
+from backend.lib.notification_system import (
+    WSNotificationSystem,
+    get_notification_system,
+)
 from backend.routers.schemas import WSRequest
 from backend.routers.schemas.lobby import (
     CurrentLobbyResponse,
@@ -24,8 +27,11 @@ async def send_notifications(
     user: CurrentUserWebSocket,
     lobby_service: LobbyService,
     lobby_invitation_service: LobbyInvitationService,
+    notification_system: Annotated[
+        WSNotificationSystem, Depends(get_notification_system)
+    ],
 ):
-    connections_manager.add(user.id, websocket)
+    notification_system.connect_user(user.id, websocket)
 
     async def receiver():
         while True:
@@ -48,4 +54,4 @@ async def send_notifications(
         await receiver()
 
     except WebSocketDisconnect:
-        connections_manager.remove(user.id)
+        notification_system.disconnect_user(user.id)

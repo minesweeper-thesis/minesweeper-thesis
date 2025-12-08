@@ -27,7 +27,7 @@ class StartRoundService:
         background_tasks: BackgroundTasks,
         notification_system: NotificationSystemDep,
         scheduler: SchedulerDep,
-        game_transport: GameTransportDep,
+        game_transport_factory: GameTransportFactoryDep,
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
     ):
@@ -37,7 +37,7 @@ class StartRoundService:
         self.background_tasks = background_tasks
         self.notification_system = notification_system
         self.scheduler = scheduler
-        self.game_transport = game_transport
+        self.game_transport_factory = game_transport_factory
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
 
@@ -74,7 +74,8 @@ class StartRoundService:
 
         session.cancel_ready(user.id)
 
-        await send_user_not_ready(self.game_transport.send, session, user)
+        transport = self.game_transport_factory.create(session.id)
+        await send_user_not_ready(transport.send, session, user)
 
         await self.multi_repo.save_session(session)
 
@@ -91,10 +92,11 @@ class StartRoundService:
 
         session.set_ready(user.id)
 
-        await send_user_ready(self.game_transport.send, session, user)
+        transport = self.game_transport_factory.create(session_id)
+        await send_user_ready(transport.send, session, user)
 
         if session.all_players_ready():
-            await send_round_ready(self.game_transport.send, session)
+            await send_round_ready(transport.send, session)
 
             if session.is_next_round_available:
                 await self.round_scheduler.schedule_start(session)

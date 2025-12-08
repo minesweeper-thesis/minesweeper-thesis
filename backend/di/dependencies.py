@@ -18,7 +18,9 @@ LobbyRepositoryDep = Annotated[p.LobbyRepository, registry[p.LobbyRepository]]
 BoardGeneratorDep = Annotated[p.BoardGenerator, registry[p.BoardGenerator]]
 PendingBoardsStoreDep = Annotated[p.PendingBoardsStore, registry[p.PendingBoardsStore]]
 NotificationSystemDep = Annotated[p.NotificationSystem, registry[p.NotificationSystem]]
-GameTransportDep = Annotated[p.GameTransport, registry[p.GameTransport]]
+GameTransportFactoryDep = Annotated[
+    p.GameTransportFactory, registry[p.GameTransportFactory]
+]
 SchedulerDep = Annotated[p.Scheduler, registry[p.Scheduler]]
 
 __all__ = [
@@ -32,6 +34,6 @@ __all__ = [
     "BoardGeneratorDep",
     "PendingBoardsStoreDep",
     "NotificationSystemDep",
-    "GameTransportDep",
+    "GameTransportFactoryDep",
     "SchedulerDep",
 ]

@@ -149,7 +149,7 @@ def test_websocket_use_hint_action(client, auth):
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
 
-        ws.send_json({"type": "use_hint"})
+        ws.send_json({"type": "hint"})
         data = json.loads(ws.receive_text())
 
         assert data["type"] in ["hint", "error", "reveal", "game_state"]
