@@ -48,10 +48,10 @@ class UserRankingItem:
 async def transform_user_ranking_items(items, is_online_func):
     result = []
     for item in items:
-        is_online = await is_online_func(item[1].id)
+        is_online = await is_online_func(item[0].id)
         result.append(
             UserRankingItem(
-                item[1].to_user(is_online), item[2], item[3], item[4], item[5]
+                item[0].to_user(is_online), item[1], item[2], item[3], item[4]
             )
         )
     return result

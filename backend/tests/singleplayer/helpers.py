@@ -68,8 +68,63 @@ def create_board_sync(rows=5, columns=5, mine_count=2) -> tuple[str, tuple[int, 
     return result
 
 
-def create_game(client, rows=5, columns=5, mine_count=2) -> str:
-    board_id, _ = create_board_sync(rows=rows, columns=columns, mine_count=mine_count)
+def create_board_from_full_board_sync(
+    full_board: list[list[int]], start_field: tuple[int, int]
+) -> str:
+    async def create():
+        from sqlalchemy import text
+
+        async with async_session_maker() as session:
+            await session.execute(text("PRAGMA busy_timeout=30000"))
+            repo = BoardRepository(session)
+
+            rows = len(full_board)
+            columns = len(full_board[0])
+            minefields = []
+            for r in range(rows):
+                for c in range(columns):
+                    if full_board[r][c] == -1:
+                        minefields.append((r, c))
+
+            mine_count = len(minefields)
+            difficulty = DifficultyLevel(
+                rows=rows, columns=columns, mine_count=mine_count
+            )
+
+            board = Board(
+                id=uuid.uuid4(),
+                minefields=minefields,
+                start_field=start_field,
+                generation_settings=GenerationSettings(
+                    type="random", settings=None, difficulty_level=difficulty
+                ),
+            )
+            await repo.add_board(board)
+            return str(board.id)
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+
+    if loop and loop.is_running():
+        import concurrent.futures
+
+        with concurrent.futures.ThreadPoolExecutor() as pool:
+            result = pool.submit(asyncio.run, create()).result()
+    else:
+        result = asyncio.run(create())
+
+    return result
+
+
+def create_game(
+    client, rows=5, columns=5, mine_count=2, board_id: str | None = None
+) -> str:
+    if board_id is None:
+        board_id, _ = create_board_sync(
+            rows=rows, columns=columns, mine_count=mine_count
+        )
 
     resp = client.post(
         "/api/game/single",

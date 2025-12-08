@@ -1,0 +1,26 @@
+[
+    {
+        "type": "receive",
+        "time": 1765161284.518852,
+        "opcode": 1,
+        "data": "{\"type\":\"game_state\",\"board_id\":\"2dcc28a3-c123-4393-8082-cdc517c2cbfb\",\"status\":\"not_started\",\"result\":null,\"board\":null,\"difficulty_level\":{\"rows\":10,\"columns\":10,\"mine_count\":15},\"elapsed_time\":0.0,\"loss_cause\":null,\"start_field\":[0,5]}"
+    },
+    {
+        "type": "send",
+        "time": 1765161288.262318,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_one\",\"cell\":[6,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161288.306446,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[6,3,-1]],\"game_status\":\"finished\"}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161288.358353,
+        "opcode": 1,
+        "data": "{\"type\":\"game_over\",\"game_status\":\"loss\",\"full_board\":[[0,1,-1,1,0,0,0,0,1,1],[1,2,2,1,0,0,0,0,1,-1],[2,-1,1,1,1,1,0,0,1,1],[-1,3,2,1,-1,1,0,0,0,0],[2,-1,1,1,1,2,2,2,1,0],[1,1,2,1,1,1,-1,-1,1,0],[1,1,1,-1,2,3,4,3,1,0],[-1,3,2,2,2,-1,-1,1,0,0],[-1,4,-1,1,1,2,2,1,0,0],[-1,3,1,1,0,0,0,0,0,0]],\"elapsed_time\":0.000035110017051920295,\"loss_cause\":{\"type\":\"mine_clicked\",\"cell\":[6,3]}}"
+    }
+]
