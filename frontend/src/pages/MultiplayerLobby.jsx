@@ -62,7 +62,7 @@ export default function MultiplayerLobby() {
         }
 
         try {
-            const res = await fetch(`api/lobbies/${lobby.id}/ready`, {
+            const res = await fetch(`api/lobbies/${lobby.id}/ready/set`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
