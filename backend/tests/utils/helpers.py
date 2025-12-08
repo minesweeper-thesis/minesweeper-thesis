@@ -5,8 +5,6 @@ from fastapi.testclient import TestClient
 
 
 class AuthFixture:
-    """Wspólny fixture do rejestracji i logowania w testach"""
-
     def __init__(self, test_client):
         self._client = test_client
 
@@ -25,10 +23,7 @@ class AuthFixture:
 
 
 def register_and_authenticate(
-    client: TestClient,
-    email: str,
-    password: str = "pw",
-    nickname: Optional[str] = None,
+    client: TestClient, email: str, password: str = "pw", nickname: Optional[str] = None
 ) -> dict:
     if nickname is None:
         nickname = email.split("@")[0]

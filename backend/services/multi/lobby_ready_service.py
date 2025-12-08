@@ -1,67 +1,44 @@
+import logging
 import uuid
-from collections.abc import Callable
-from typing import Annotated, Any, Awaitable, Optional
+from typing import Annotated, Optional
 
 from fastapi import Depends
 
-from backend import protocols, repositories
+logger = logging.getLogger(__name__)
+
 from backend.core.board import Board
 from backend.core.game import *
-from backend.core.lobby import create_session
-from backend.core.lobby.lobby import Lobby
-from backend.core.multi.config import GameConfig
-from backend.core.multi.session import MultiplayerSession
+from backend.core.lobby import Lobby, create_session
+from backend.core.multi import GameConfig, MultiplayerSession
 from backend.core.user import User
-from backend.lib.board_generator import LocalBoardGenerator
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.pending_boards import get_pending_boards_store
-from backend.lib.websocket_game_transport import WebSocketGameTransport
+from backend.di.dependencies import *
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
-from backend.services.dto.round import UserNotReady
 from backend.services.exceptions import *
+from backend.services.multi.helpers import (
+    send_round_ready,
+    send_user_not_ready,
+    send_user_ready_in_lobby,
+)
 from backend.services.multi.round_scheduler import RoundScheduler
-
-MultiplayerRepository = Annotated[
-    protocols.MultiplayerRepository, Depends(repositories.MultiplayerRepository)
-]
-BoardRepository = Annotated[
-    protocols.BoardRepository, Depends(repositories.BoardRepository)
-]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-GameTransport = Annotated[
-    protocols.GameTransport, Depends(lambda: WebSocketGameTransport())
-]
-BoardGenerator = Annotated[protocols.BoardGenerator, Depends(LocalBoardGenerator)]
-PendingBoardsStore = Annotated[
-    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
-]
-
-
-type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
 class LobbyReadyService:
     def __init__(
         self,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        multi_repo: MultiplayerRepository,
-        notification_system: NotificationSystem,
-        game_transport: GameTransport,
-        board_generator: BoardGenerator,
-        pending_store: PendingBoardsStore,
+        board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
+        notification_system: NotificationSystemDep,
+        board_generator: BoardGeneratorDep,
+        pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
         self.lobby_repo = lobby_repo
         self.notification_system = notification_system
-        self.game_transport = game_transport
         self.board_generator = board_generator
         self.pending_store = pending_store
 
@@ -85,6 +62,7 @@ class LobbyReadyService:
         return True
 
     async def toggle_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
+        logger.debug(f"User {user.id} toggling ready in lobby {lobby_id}")
         lobby = self.lobby_repo.get_lobby(lobby_id)
         if lobby.is_user_ready(user):
             await self._cancel_user_ready(lobby, user)
@@ -103,8 +81,8 @@ class LobbyReadyService:
         lobby.set_user_not_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-        for player in lobby.users:
-            await self.notification_system.notify(player.id, UserNotReady(user.id, 0))
+        assert lobby_session is not None
+        await send_user_not_ready(self.notification_system.notify, lobby_session, user)
 
     async def set_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
         lobby = self.lobby_repo.get_lobby(lobby_id)
@@ -118,34 +96,36 @@ class LobbyReadyService:
         lobby.set_user_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-        for player in lobby.users:
-            await self.notification_system.notify(player.id, UserReady(user.id, 0))
+        await send_user_ready_in_lobby(self.notification_system.notify, lobby, user)
 
         if lobby.all_users_ready():
-            if lobby_session is not None:
-                if lobby_session.game_config == lobby.game_config:
-                    session = lobby_session
-                else:
-                    await self.multi_repo.delete_pending(lobby_session.id)
-
-                    # todo cancel tasks
-                    session_id = uuid.uuid4()
-                    session = await create_session(session_id, lobby)
-            else:
-                session_id = uuid.uuid4()
-                session = await create_session(session_id, lobby)
-
+            logger.info(f"All users ready in lobby {lobby_id}, creating session")
+            session = await self._get_session(lobby, lobby_session)
             await self.multi_repo.save_pending(session)
 
-            for user_id in session.player_ids:
-                await self.notification_system.notify(
-                    user_id,
-                    RoundReady(session.id, 0, session.game_config.difficulty_level),
-                )
+            await send_round_ready(self.notification_system.notify, session)
 
             self.lobby = lobby
             self.session = session
             await self._prepare_boards()
+
+    async def _get_session(
+        self, lobby: Lobby, lobby_session: Optional[MultiplayerSession]
+    ) -> MultiplayerSession:
+        if lobby_session is not None:
+            if lobby_session.game_config == lobby.game_config:
+                session = lobby_session
+            else:
+                await self.multi_repo.delete_pending(lobby_session.id)
+
+                # todo cancel tasks
+                session_id = uuid.uuid4()
+                session = await create_session(session_id, lobby)
+        else:
+            session_id = uuid.uuid4()
+            session = await create_session(session_id, lobby)
+
+        return session
 
     async def _prepare_boards(self):
         to_generate = self.session.rounds_number - len(self.session.rounds)

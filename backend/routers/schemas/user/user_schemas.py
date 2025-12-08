@@ -18,6 +18,7 @@ class UserResponse(BaseModel):
     id: uuid.UUID
     nickname: str
     email: str
+    is_online: bool = False
     avatar_url: Optional[str] = None
 
     @classmethod
@@ -26,6 +27,7 @@ class UserResponse(BaseModel):
             id=user.id,
             email=user.email,
             nickname=user.nickname,
+            is_online=user.is_online,
             avatar_url=user.avatar.url if user.avatar else None,
         )
 

@@ -1,7 +1,10 @@
 import asyncio
+import logging
 import time
 import uuid
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
 from backend.protocols.pending_boards_store_protocol import PendingBoardsStore
@@ -26,6 +29,9 @@ class InMemoryPendingStore(PendingBoardsStore):
         metadata: PendingBoardMetadata,
         ttl_seconds: int,
     ) -> PendingBoard:
+        logger.debug(
+            f"create_pending(generation_id={generation_id}, ttl_seconds={ttl_seconds})"
+        )
         await self._clear_expired()
         now = self._now()
         pending = PendingBoard(
@@ -37,17 +43,25 @@ class InMemoryPendingStore(PendingBoardsStore):
         self._expires_at[generation_id] = now + ttl_seconds
         self._ready[generation_id] = False
 
+        logger.debug(f"Created pending board {generation_id} with TTL {ttl_seconds}s")
         return pending
 
     async def mark_ready(self, generation_id: uuid.UUID, board_id: uuid.UUID) -> None:
+        logger.debug(f"mark_ready(generation_id={generation_id}, board_id={board_id})")
         await self._clear_expired()
         self._ready[generation_id] = True
         if generation_id in self._store:
             self._store[generation_id].board_id = board_id
+        logger.info(
+            f"Pending board {generation_id} marked as ready with board_id {board_id}"
+        )
 
     async def wait_for_ready(
         self, generation_id: uuid.UUID, timeout: float | None = None
     ) -> Optional[PendingBoard]:
+        logger.debug(
+            f"wait_for_ready(generation_id={generation_id}, timeout={timeout})"
+        )
         if self._ready.get(generation_id, False):
             return self._store[generation_id]
 
@@ -61,6 +75,7 @@ class InMemoryPendingStore(PendingBoardsStore):
                 return None
 
     async def get_pending_gameplay(self, id: uuid.UUID) -> Optional[PendingBoard]:
+        logger.debug(f"get_pending_gameplay(id={id})")
         await self._clear_expired()
 
         for pending in self._store.values():
@@ -71,6 +86,9 @@ class InMemoryPendingStore(PendingBoardsStore):
     async def get_pending_round(
         self, session_id: uuid.UUID, round_index: int
     ) -> Optional[PendingBoard]:
+        logger.debug(
+            f"get_pending_round(session_id={session_id}, round_index={round_index})"
+        )
         await self._clear_expired()
 
         for pending in self._store.values():

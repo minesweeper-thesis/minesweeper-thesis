@@ -22,7 +22,7 @@ async def create_gameplay_via_service(user_id: uuid.UUID) -> uuid.UUID:
         board_repo = BoardRepository(session)
         gp_repo = SingleplayerRepository(session)
 
-        board_generator = LocalBoardGenerator(board_repo, BackgroundTasks())
+        board_generator = LocalBoardGenerator(BackgroundTasks())
 
         create = CreateSingleGameplayService(
             board_repo, gp_repo, board_generator, get_pending_boards_store()
@@ -47,7 +47,5 @@ async def create_gameplay_via_service(user_id: uuid.UUID) -> uuid.UUID:
 
         gameplay_id = await create.create_singleplayer_gameplay(user, settings)
         await play.load_gameplay(gameplay_id, timeout=5.0)
-
-        return gameplay_id
 
         return gameplay_id

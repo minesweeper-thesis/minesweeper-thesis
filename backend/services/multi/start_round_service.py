@@ -1,54 +1,37 @@
+import logging
 import uuid
-from collections.abc import Callable
-from datetime import timedelta
-from typing import Annotated, Any, Awaitable
+from typing import Annotated, Any
 
 from fastapi import BackgroundTasks, Depends
 
-from backend import protocols, repositories
+logger = logging.getLogger(__name__)
+
 from backend.core.game import *
 from backend.core.multi import *
 from backend.core.user import User
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.pending_boards import get_pending_boards_store
-from backend.lib.scheduler import get_scheduler
-from backend.lib.websocket_game_transport import WebSocketGameTransport
+from backend.di.dependencies import *
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
+from backend.services.multi.helpers import (
+    send_round_ready,
+    send_user_not_ready,
+    send_user_ready,
+)
 from backend.services.multi.round_scheduler import RoundScheduler
-
-MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
-BoardRepository = Annotated[repositories.BoardRepository, Depends()]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
-GameTransport = Annotated[
-    protocols.GameTransport, Depends(lambda: WebSocketGameTransport())
-]
-PendingBoardsStore = Annotated[
-    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
-]
-
-type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
-
-
-ROUND_START_DELAY = timedelta(seconds=5)
 
 
 class StartRoundService:
     def __init__(
         self,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        multi_repo: MultiplayerRepository,
+        board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
-        notification_system: NotificationSystem,
-        scheduler: Scheduler,
-        game_transport: GameTransport,
-        pending_store: PendingBoardsStore,
+        notification_system: NotificationSystemDep,
+        scheduler: SchedulerDep,
+        game_transport_factory: GameTransportFactoryDep,
+        pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
     ):
         self.multi_repo = multi_repo
@@ -57,14 +40,23 @@ class StartRoundService:
         self.background_tasks = background_tasks
         self.notification_system = notification_system
         self.scheduler = scheduler
-        self.game_transport = game_transport
+        self.game_transport_factory = game_transport_factory
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
 
         self.messages: list[tuple[uuid.UUID, Any]] = []
 
+    def _ensure_user_in_session(self, session: MultiplayerSession, user: User):
+        if user.id not in session.player_ids:
+            raise PermissionError("User is not part of this session")
+
+        if session.is_session_over():
+            raise ValueError("Session is already over")
+
     async def toggle_user_ready(self, session_id: uuid.UUID, user: User):
+        logger.debug(f"User {user.id} toggling ready status in session {session_id}")
         session = await self.multi_repo.get_session(session_id)
+        self._ensure_user_in_session(session, user)
         if session.is_user_ready(user):
             await self._cancel_user_ready(session, user)
         else:
@@ -72,14 +64,11 @@ class StartRoundService:
 
     async def cancel_user_ready(self, session_id: uuid.UUID, user: User):
         session = await self.multi_repo.get_session(session_id)
+        self._ensure_user_in_session(session, user)
         await self._cancel_user_ready(session, user)
 
     async def _cancel_user_ready(self, session: MultiplayerSession, user: User):
-        if user.id not in session.player_ids:
-            raise PermissionError("User is not part of this session")
-
-        if session.is_session_over():
-            raise ValueError("Session is already over")
+        self._ensure_user_in_session(session, user)
 
         if session.ready_locked:
             return
@@ -89,21 +78,15 @@ class StartRoundService:
 
         session.cancel_ready(user.id)
 
-        for player_id in session.player_ids:
-            await self.game_transport.send(
-                player_id, UserNotReady(user.id, session.current_round_index + 1)
-            )
+        transport = self.game_transport_factory.create(session.id)
+        await send_user_not_ready(transport.send, session, user)
 
         await self.multi_repo.save_session(session)
 
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
         session = await self.multi_repo.get_session(session_id)
 
-        if user.id not in session.player_ids:
-            raise PermissionError("User is not part of this session")
-
-        if session.is_session_over():
-            raise ValueError("Session is already over")
+        self._ensure_user_in_session(session, user)
 
         if session.ready_locked:
             return
@@ -113,52 +96,15 @@ class StartRoundService:
 
         session.set_ready(user.id)
 
-        next_round_index = session.current_round_index + 1
-
-        for player_id in session.player_ids:
-            await self.game_transport.send(
-                player_id, UserReady(user.id, next_round_index)
-            )
+        transport = self.game_transport_factory.create(session_id)
+        await send_user_ready(transport.send, session, user)
 
         if session.all_players_ready():
-            for user_id in session.player_ids:
-                await self.game_transport.send(
-                    user_id,
-                    RoundReady(
-                        session.id,
-                        next_round_index,
-                        session.game_config.difficulty_level,
-                    ),
-                )
+            logger.info(f"All players ready in session {session_id}, starting round")
+            await send_round_ready(transport.send, session)
 
             if session.is_next_round_available:
-                countdown_to = datetime.now() + ROUND_START_DELAY
-                round_start_time = countdown_to + ROUND_START_DELAY
-
-                for user_id in session.player_ids:
-                    await self.game_transport.send(
-                        user_id,
-                        RoundCountdown(
-                            session.id,
-                            next_round_index,
-                            countdown_to,
-                            round_start_time,
-                            session._next_round.board.start_field,
-                        ),
-                    )
-
-                self.scheduler.schedule(
-                    self.round_scheduler.lock_ready,
-                    countdown_to,
-                    session_id=session.id,
-                )
-
-                self.scheduler.schedule(
-                    self.round_scheduler.start_round,
-                    round_start_time,
-                    start_at=round_start_time,
-                    session_id=session.id,
-                )
+                await self.round_scheduler.schedule_start(session)
             else:
                 self.background_tasks.add_task(
                     self._wait_for_generation_and_start_round, session
@@ -177,33 +123,7 @@ class StartRoundService:
 
         await self.pending_store.wait_for_ready(pending.generation_id, 24 * 3600)
 
-        countdown_to = datetime.now() + ROUND_START_DELAY
-        start_at = countdown_to + ROUND_START_DELAY
-
-        for user_id in session.player_ids:
-            await self.game_transport.send(
-                user_id,
-                RoundCountdown(
-                    session.id,
-                    next_round_index,
-                    countdown_to,
-                    start_at,
-                    session._next_round.board.start_field,
-                ),
-            )
-
-        self.scheduler.schedule(
-            self.round_scheduler.lock_ready,
-            countdown_to,
-            session_id=session.id,
-        )
-
-        self.scheduler.schedule(
-            self.round_scheduler.start_round,
-            start_at,
-            session_id=session.id,
-            start_at=start_at,
-        )
+        await self.round_scheduler.schedule_start(session)
 
     def collect_messages(self) -> list[tuple[uuid.UUID, Any]]:
         msgs = self.messages

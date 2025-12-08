@@ -11,6 +11,8 @@ from backend.routers.schemas.lobby import *
 PaginationParams = Annotated[Params, Depends()]
 
 LobbyService = Annotated[services.LobbyService, Depends()]
+LobbyChatService = Annotated[services.LobbyChatService, Depends()]
+LobbyInvitationService = Annotated[services.LobbyInvitationService, Depends()]
 LobbyReadyService = Annotated[services.LobbyReadyService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
@@ -41,7 +43,7 @@ async def update_lobby_config(
 @lobby_router.post("/{lobby_id}/invitations")
 async def invite_user_to_lobby(
     lobby_id: uuid.UUID,
-    service: LobbyService,
+    service: LobbyInvitationService,
     user: CurrentUser,
     request: InviteUserToLobbyRequest,
 ):
@@ -85,7 +87,7 @@ async def kick_user_from_lobby(
 @invitations_router.delete("/{invitation_id}")
 async def reject_game_invitation(
     user: CurrentUser,
-    service: LobbyService,
+    service: LobbyInvitationService,
     invitation_id: uuid.UUID,
 ):
     """Rejects a game invitation."""
@@ -125,7 +127,7 @@ async def toggle_user_ready(
 async def send_chat_message(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyService,
+    service: LobbyChatService,
     request: LobbyChatMessageRequest,
 ):
     """Sends a chat message in the lobby."""
@@ -139,7 +141,7 @@ async def send_chat_message(
 async def get_chat_messages(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyService,
+    service: LobbyChatService,
     pagination_params: PaginationParams,
 ):
     """Retrieves chat messages from the lobby."""

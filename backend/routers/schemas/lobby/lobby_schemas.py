@@ -8,8 +8,9 @@ from backend.core.game import GameMode
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.routers.schemas import Response
-from backend.routers.schemas.game.single_schemas import GeneratorSchema
+from backend.routers.schemas.common import GeneratorSchema
 from backend.routers.schemas.user import UserResponse
+from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
 
 
 class GameConfigResponse(BaseModel):
@@ -26,7 +27,7 @@ class GameConfigResponse(BaseModel):
             max_round_time=config.max_round_time,
             difficulty_level=config.difficulty_level,
             game_mode=config.game_mode,
-            generator=GeneratorSchema.from_dto(config.generator),
+            generator=GeneratorSchema.from_generator(config.generator),
         )
 
 
@@ -69,7 +70,7 @@ class UpdateGameConfigRequest(BaseModel):
                 mine_count=self.difficulty_level.mine_count,
             ),
             game_mode=self.game_mode,
-            generator=self.generator.to_dto(),
+            generator=self.generator.to_generator(),
         )
 
 
@@ -106,9 +107,9 @@ class CurrentLobbyResponse(Response):
     lobby: Optional[LobbyResponse]
 
     @classmethod
-    def build(cls, lobby: Optional[Lobby]) -> Self:
+    def build(cls, dto: UserCurrentLobby) -> Self:
         return cls(
-            lobby=LobbyResponse.build(lobby) if lobby else None,
+            lobby=LobbyResponse.build(dto.lobby) if dto.lobby else None,
         )
 
 
@@ -126,6 +127,19 @@ class KickedResponse(Response):
         return cls(lobby=None)
 
 
+class UserOnlineUpdatedResponse(Response):
+    ws_type: Literal["user_online_status"] = "user_online_status"
+    lobby_id: uuid.UUID
+    user: UserResponse
+
+    @classmethod
+    def build(cls, data: UserOnlineUpdated) -> Self:
+        return cls(
+            lobby_id=data.lobby_id,
+            user=UserResponse.build(data.user),
+        )
+
+
 __all__ = [
     "UpdateGameConfigRequest",
     "LobbyResponse",
@@ -135,4 +149,5 @@ __all__ = [
     "GameConfigUpdatedResponse",
     "KickUserRequest",
     "KickedResponse",
+    "UserOnlineUpdatedResponse",
 ]

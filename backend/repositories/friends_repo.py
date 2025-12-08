@@ -1,35 +1,36 @@
+import logging
 import uuid
-from typing import Annotated, Optional
+from typing import Optional
 
-from fastapi import Depends
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+logger = logging.getLogger(__name__)
+
+from backend import protocols
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.db.db import DBSession
-from backend.repositories import online_users
+from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
 from .orm import *
 
-OnlineUsersStore = Annotated[
-    online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
-]
 
-
-class FriendsRepository:
-    def __init__(self, session: DBSession, online_users_store: OnlineUsersStore):
+class FriendsRepository(protocols.FriendsRepository):
+    def __init__(self, session: DBSession):
         self.session = session
-        self.online_users_store = online_users_store
+        self.online_users_store = get_online_users_store()
 
     async def is_user_online(self, user_id: uuid.UUID) -> bool:
         return await self.online_users_store.is_user_online(user_id)
 
     async def get_friends(self, user_id: uuid.UUID, pagination_params: Params):
+        logger.debug(f"get_friends(user_id={user_id}, page={pagination_params.page})")
+        logger.debug(f"Getting friends for user {user_id}")
         stmt = (
             select(UserORM)
             .join(UserORM.friend_of)
@@ -49,6 +50,9 @@ class FriendsRepository:
         friend_id: Optional[uuid.UUID] = None,
         status: Optional[FriendRequestStatus] = None,
     ):
+        logger.debug(
+            f"get_friend_request(id={id}, user_id={user_id}, friend_id={friend_id}, status={status})"
+        )
         args = []
         if id:
             args.append(FriendRequestORM.id == id)
@@ -83,6 +87,9 @@ class FriendsRepository:
             )
 
         except NoResultFound:
+            logger.warning(
+                f"Friend request not found with filters: id={id}, user_id={user_id}, friend_id={friend_id}"
+            )
             raise FriendRequestNotFound() from None
 
     async def get_friend_requests(

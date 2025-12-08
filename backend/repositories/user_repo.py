@@ -1,62 +1,66 @@
+import logging
 import uuid
-from typing import Annotated
 
-from fastapi import Depends
-from fastapi_pagination import Page, Params
+from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
 
+logger = logging.getLogger(__name__)
+
+from backend import protocols
 from backend.core.user import User
 from backend.core.user.chat import UserChatMessage
 from backend.db.db import DBSession
-from backend.repositories import online_users
-from backend.repositories.avatar import storage
+from backend.lib.avatar.storage import get_avatar_storage
+from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 
 from .exceptions import *
 from .orm import *
 
-OnlineUsersStore = Annotated[
-    online_users.OnlineUsersStore, Depends(online_users.get_online_users_store)
-]
-AvatarStorage = Annotated[storage.AvatarStorage, Depends(storage.get_avatar_storage)]
 
-
-class UserRepository:
-    def __init__(
-        self,
-        session: DBSession,
-        online_users_store: OnlineUsersStore,
-        avatar_storage: AvatarStorage,
-    ):
+class UserRepository(protocols.UserRepository):
+    def __init__(self, session: DBSession):
         self.session = session
-        self.online_users_store = online_users_store
-        self.avatar_storage = avatar_storage
+        self.online_users_store = get_online_users_store()
+        self.avatar_storage = get_avatar_storage()
 
     async def set_user_online(self, user_id: uuid.UUID):
+        logger.debug(f"set_user_online(user_id={user_id})")
         await self.online_users_store.set_user_online(user_id)
 
     async def set_user_offline(self, user_id: uuid.UUID):
+        logger.debug(f"set_user_offline(user_id={user_id})")
         await self.online_users_store.set_user_offline(user_id)
 
     async def is_user_online(self, user_id: uuid.UUID) -> bool:
+        logger.debug(f"is_user_online(user_id={user_id})")
         return await self.online_users_store.is_user_online(user_id)
 
     async def get_user(self, user_id: uuid.UUID) -> User:
+        logger.debug(f"get_user(user_id={user_id})")
         try:
             stmt = select(UserORM).where(UserORM.id == user_id)
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_user(await self.is_user_online(user_id))
+            user = result.scalar_one().to_user(await self.is_user_online(user_id))
+            logger.debug(f"Retrieved user {user_id}")
+            return user
 
         except NoResultFound:
+            logger.warning(f"User {user_id} not found")
             raise UserNotFound() from None
 
     async def set_avatar(self, user_id: uuid.UUID, content: bytes | None) -> User:
+        logger.debug(
+            f"set_avatar(user_id={user_id}, content_size={len(content) if content else 0})"
+        )
         if content:
             url = await self.avatar_storage.save(user_id, content)
+            logger.info(f"Avatar saved for user {user_id}: {url}")
         else:
             url = None
+            logger.info(f"Avatar removed for user {user_id}")
 
         stmt = select(UserORM).where(UserORM.id == user_id)
         result = await self.session.execute(stmt)
@@ -69,6 +73,7 @@ class UserRepository:
         return user.to_user(await self.is_user_online(user_id))
 
     async def search_users(self, query: str, params):
+        logger.debug(f"Searching users with query: '{query}'")
         priority = case(
             (UserORM.nickname.ilike(f"{query}%"), 1),
             (UserORM.email.ilike(f"{query}%"), 2),  # type: ignore
@@ -100,13 +105,17 @@ class UserRepository:
         )
 
     async def add_message(self, message: UserChatMessage):
+        logger.debug(f"add_message(from={message.from_user.id}, to={message.to.id})")
         orm_message = UserChatMessageORM.from_chat_message(message)
         self.session.add(orm_message)
         await self.session.commit()
 
     async def get_messages(
         self, from_user_id: uuid.UUID, to_user_id: uuid.UUID, pagination_params: Params
-    ) -> Page[UserChatMessage]:
+    ):
+        logger.debug(
+            f"get_messages(from_user_id={from_user_id}, to_user_id={to_user_id})"
+        )
         stmt = (
             select(UserChatMessageORM)
             .where(

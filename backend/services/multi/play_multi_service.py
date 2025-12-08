@@ -1,37 +1,28 @@
+import logging
 import uuid
-from collections.abc import Callable
-from typing import Annotated, Any, Awaitable
 
-from fastapi import BackgroundTasks, Depends
+from fastapi import BackgroundTasks
 
-from backend import protocols, repositories
+logger = logging.getLogger(__name__)
+
 from backend.core.game import *
+from backend.di.dependencies import *
 from backend.lib.auth import CurrentUser
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.scheduler import get_scheduler
+from backend.protocols.game_transport_protocol import GameTransport
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
-
-MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
-BoardRepository = Annotated[repositories.BoardRepository, Depends()]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
-
-type Notify = Callable[[uuid.UUID, Any], Awaitable[None]]
 
 
 class PlayMultiService:
     def __init__(
         self,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        multi_repo: MultiplayerRepository,
+        board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
-        notification_system: NotificationSystem,
-        scheduler: Scheduler,
+        notification_system: NotificationSystemDep,
+        scheduler: SchedulerDep,
+        game_transport_factory: GameTransportFactoryDep,
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -39,44 +30,58 @@ class PlayMultiService:
         self.background_tasks = background_tasks
         self.notification_system = notification_system
         self.scheduler = scheduler
+        self.game_transport_factory = game_transport_factory
 
-        self.messages: list[tuple[uuid.UUID, Any]] = []
+        self.transport: GameTransport = None  # type: ignore
 
     async def set_session(
         self,
         session_id: uuid.UUID,
         user: CurrentUser,
     ):
+        logger.debug(f"set_session(session_id={session_id}, user_id={user.id})")
+        logger.debug(f"Setting multiplayer session {session_id} for user {user.id}")
         self.session_id = session_id
         self.user = user
 
         self.session = await self.multi_repo.get_session(session_id)
 
         if self.user.id not in self.session.player_ids:
+            logger.warning(f"User {user.id} is not part of session {session_id}")
             raise ValueError("User is not part of this session")
 
         if self.session.is_session_over():
+            logger.warning(f"Attempted to join already finished session {session_id}")
             raise ValueError("Session is already over")
 
+        self.transport = self.game_transport_factory.create(session_id)
+        logger.info(f"User {user.id} set for multiplayer session {session_id}")
+
     def is_session_over(self) -> bool:
+        logger.debug(f"is_session_over(session_id={self.session_id})")
         return self.session.is_session_over()
 
-    def get_game_state(self) -> GameState:
-        return self.session.get_user_game_state(self.user.id)
+    async def get_game_state(self):
+        logger.debug(
+            f"get_game_state(session_id={self.session_id}, user_id={self.user.id})"
+        )
+        game_state = self.session.get_user_game_state(self.user.id)
+        await self.transport.send(self.user.id, game_state)
 
     async def execute_action(self, action: GameAction):
+        logger.debug(
+            f"execute_action(session_id={self.session_id}, user_id={self.user.id}, action={type(action).__name__})"
+        )
+        logger.debug(
+            f"User {self.user.id} executing action in session {self.session_id}: {type(action).__name__}"
+        )
         self.session.execute_action_for_user(self.user.id, action)
 
         for user_id, events in self.session.consume_events().items():
             for event in events:
-                self.messages.append((user_id, event))
+                await self.transport.send(user_id, event)
 
         await self.multi_repo.save_session(self.session)
 
-    def collect_messages(self) -> list[tuple[uuid.UUID, Any]]:
-        msgs = self.messages
-        self.messages = []
-        return msgs
 
-
-__all__ = ["PlayMultiService", "Notify"]
+__all__ = ["PlayMultiService"]

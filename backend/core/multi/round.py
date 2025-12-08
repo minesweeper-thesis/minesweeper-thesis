@@ -117,9 +117,7 @@ class MultiplayerRound:
                         loss_cause=gameplay.loss_cause,
                     )
                 )
-
-        for user_id in self.gameplays:
-            self._update_user_score_item(user_id)
+                self._update_user_score_item(gameplay.user_id)
 
         for user_id in self.gameplays.keys():
             self.scoreboard.sort()
@@ -145,7 +143,7 @@ class MultiplayerRound:
         score_item.status = "finished" if gameplay.is_game_over() else "in_progress"
         score_item.result = gameplay.result
         score_item.loss_cause = gameplay.loss_cause
-        if gameplay.is_game_over():
+        if gameplay.is_game_over() and gameplay.result == "win":
             score_item.score += self.round_time.total_seconds() - gameplay.elapsed_time
 
     def execute_action_for_user(self, user_id: uuid.UUID, action: GameAction) -> None:

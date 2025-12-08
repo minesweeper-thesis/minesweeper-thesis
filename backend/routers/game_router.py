@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
@@ -7,7 +7,7 @@ from backend import services
 from backend.core.game.game_actions import *
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
-from backend.lib.websockets.websockets_registry import multi_websockets
+from backend.lib.websockets.websockets_registry import session_websockets
 from backend.routers.schemas.game import NewGameRequest, NewGameResponse
 from backend.services import exceptions
 from backend.services.single.single_exceptions import GenerationTimeout
@@ -111,8 +111,7 @@ async def handle_multi(
 ):
     match data["type"]:
         case "get_state":
-            play.get_game_state()
-            return [(user.id, play.get_game_state())]
+            await play.get_game_state()
 
         case "ready":
             await start_round.set_user_ready(session_id, user)
@@ -126,8 +125,6 @@ async def handle_multi(
         case _:
             action = _create_action_from_data_multi(data)
             await play.execute_action(action)
-
-    return play.collect_messages()
 
 
 def _create_action_from_data_multi(data) -> GameAction:
@@ -144,13 +141,6 @@ def _create_action_from_data_multi(data) -> GameAction:
             raise ValueError(f"Unknown action type: {data['type']}")
 
 
-async def send(user_id: uuid.UUID, message: Any):
-    if user_id in multi_websockets._websockets:
-        websocket = multi_websockets.get(user_id)
-        response = create_game_notification(message)
-        await websocket.send_text(response)
-
-
 @game_router.websocket("/multi/{session_id}")
 async def play_multi(
     session_id: uuid.UUID,
@@ -161,16 +151,13 @@ async def play_multi(
 ):
     try:
         await websocket.accept()
-        multi_websockets.add(user.id, websocket)
+        session_websockets.add(session_id, user.id, websocket)
 
         await play.set_session(session_id, user)
 
         while True:
             data = await websocket.receive_json()
-            messages = await handle_multi(user, session_id, data, play, start)
-
-            for user_id, message in messages:
-                await send(user_id, message)
+            await handle_multi(user, session_id, data, play, start)
 
             if play.is_session_over():
                 break
@@ -178,4 +165,4 @@ async def play_multi(
         await websocket.close()
 
     except WebSocketDisconnect:
-        multi_websockets.remove(user.id)
+        session_websockets.remove(session_id, user.id)

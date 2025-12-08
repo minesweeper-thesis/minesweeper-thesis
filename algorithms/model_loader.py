@@ -15,12 +15,11 @@ class _ModelLoaderABC(ABC):
         columns: int,
         mine_count: int,
         classifier: str,
-        classifier_iterations: int,
+        version: str,
     ) -> None:
         super().__init__()
 
-        iter_str = classifier_iterations if classifier_iterations > -1 else ""
-        self._filename = f"{rows},{columns},{mine_count}_{classifier}{iter_str}.onnx"
+        self._filename = f"{rows},{columns},{mine_count}_{classifier}{version}.onnx"
 
         self._path = os.path.join("models_onnx", self._filename)
 
@@ -51,7 +50,7 @@ class RemoteModelLoader(_ModelLoaderABC):
             region_name=AWS_REGION,
         )
 
-        s3.download_file(AWS_BUCKET_NAME, self._path, path)
+        s3.download_file(AWS_BUCKET_NAME, self._path, path)  # type: ignore
 
         return path
 
@@ -63,9 +62,9 @@ class ModelLoader(_ModelLoaderABC):
         columns: int,
         mine_count: int,
         classifier: str,
-        classifier_iterations: int,
+        version: str,
     ) -> None:
-        super().__init__(rows, columns, mine_count, classifier, classifier_iterations)
+        super().__init__(rows, columns, mine_count, classifier, version)
 
         if (
             AWS_ACCESS_KEY_ID
@@ -74,11 +73,11 @@ class ModelLoader(_ModelLoaderABC):
             and AWS_BUCKET_NAME
         ):
             self._loader = RemoteModelLoader(
-                rows, columns, mine_count, classifier, classifier_iterations
+                rows, columns, mine_count, classifier, version
             )
         else:
             self._loader = LocalModelLoader(
-                rows, columns, mine_count, classifier, classifier_iterations
+                rows, columns, mine_count, classifier, version
             )
 
     def get_model_path(self) -> str:
