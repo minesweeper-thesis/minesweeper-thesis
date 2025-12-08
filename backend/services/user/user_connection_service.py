@@ -5,6 +5,7 @@ from backend.di.dependencies import (
     UserRepositoryDep,
 )
 from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
+from backend.services.dto.round import UserNotReady, UserReady
 
 
 class UserConnectionService:
@@ -32,6 +33,17 @@ class UserConnectionService:
     async def _notify_current_lobby(self, user: User):
         lobby = self.lobby_repo.get_user_lobby(user)
         await self.notification_system.notify(user.id, UserCurrentLobby(lobby))
+
+        if lobby:
+            for user in lobby.users:
+                if lobby.is_user_ready(user):
+                    await self.notification_system.notify(
+                        user.id, UserReady(user.id, 0)
+                    )
+                else:
+                    await self.notification_system.notify(
+                        user.id, UserNotReady(user.id, 0)
+                    )
 
     async def _notify_user_online_status(self, user: User):
         user = await self.user_repo.get_user(user.id)

@@ -26,6 +26,11 @@ async def send_user_ready_in_lobby(sender: Callable, lobby: Lobby, user: User):
         await sender(player.id, UserReady(user.id, 0))
 
 
+async def send_user_not_ready_in_lobby(sender: Callable, lobby: Lobby, user: User):
+    for player in lobby.users:
+        await sender(player.id, UserNotReady(user.id, 0))
+
+
 async def send_user_not_ready(
     sender: Callable, session: MultiplayerSession, user: User
 ):
