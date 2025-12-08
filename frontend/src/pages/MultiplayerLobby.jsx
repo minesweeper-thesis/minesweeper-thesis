@@ -47,10 +47,15 @@ export default function MultiplayerLobby() {
     const players = lobby?.users?.map(u => ({
         id: u.id,
         name: u.nickname,
-        online: true,
-        ready: false,
+        online: u.is_online,
+        ready: u.status === "ready",
+        status: u.status,
         score: 0,
     })) || [];
+
+    const me = players.find(p => p.id === sessionId);
+    const isOffline = me && !me.online;
+    const isReady = me?.status === "ready";
 
     const ownerId = lobby.host.id;
 
@@ -62,7 +67,7 @@ export default function MultiplayerLobby() {
         }
 
         try {
-            const res = await fetch(`api/lobbies/${lobby.id}/ready/set`, {
+            const res = await fetch(`api/lobbies/${lobby.id}/ready/toggle`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -74,7 +79,6 @@ export default function MultiplayerLobby() {
                 throw new Error(txt || res.statusText);
             }
 
-            addLobbyMessage("You marked ready.");
         } catch (err) {
             console.error("Ready error:", err);
             addLobbyMessage("Ready request failed.");
@@ -170,14 +174,25 @@ export default function MultiplayerLobby() {
                                         </div>
                                         <div className="w-px h-8 bg-border-primary"></div>
                                         <button
-                                            className={`px-2 py-1 rounded text-sm border border-border-primary transition w-[90px] text-center ${
-                                                player.ready
-                                                    ? "bg-green-600 text-white"
-                                                    : "bg-bg-secondary text-text-secondary"
-                                            }`}
+                                            className={`
+                                                        px-2 py-1 rounded text-sm border border-border-primary
+                                                        transition-all duration-300 w-[90px] text-center
+                                                        ${
+                                                            player.status === "ready"
+                                                                ? "bg-green-600 text-white scale-105 shadow-md"
+                                                                : player.status === "offline"
+                                                                    ? "bg-red-900 text-white opacity-70"
+                                                                    : "bg-bg-secondary text-text-secondary"
+                                                         }
+                                                       `}
                                         >
-                                            {player.ready ? "Ready" : "Not Ready"}
+                                            {player.status === "ready"
+                                                ? "Ready"
+                                                : player.status === "offline"
+                                                    ? "Offline"
+                                                    : "Not Ready"}
                                         </button>
+
                                     </div>
                                 </div>
                             ))}
@@ -186,11 +201,33 @@ export default function MultiplayerLobby() {
                         </div>
 
                         <button
-                            onClick={sendReady}
-                            className="mt-2 w-full py-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition"
+                            onClick={isOffline ? undefined : sendReady}
+                            disabled={isOffline}
+                            className={`
+                                        mt-2 w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-2
+                                        transform transition-all duration-300 ease-out
+
+                              ${isOffline
+                                ? "bg-gray-500 text-gray-300 cursor-not-allowed scale-95"
+                                : isReady
+                                    ? "bg-green-600 text-white shadow-lg scale-105"
+                                    : "bg-accent-primary text-white hover:bg-accent-secondary scale-100"
+                              }
+                            `}
                         >
-                            Ready Up
+                            {isOffline ? (
+                                <>
+                                    <span className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></span>
+                                    Offline
+                                </>
+                            ) : isReady ? (
+                                "Ready!"
+                            ) : (
+                                "Ready Up"
+                            )}
                         </button>
+
+
                     </div>
 
                     {/* LOBBY SETTINGS */}
@@ -232,19 +269,19 @@ export default function MultiplayerLobby() {
                                     <span className="font-semibold capitalize">{lobby.game_config?.game_mode}</span>
                                 </p>
 
-                                <p>
-                                    <span className="text-text-muted">Generator:</span>{" "}
-                                    <span className="font-semibold">{lobby.game_config?.generator_type}</span>
-                                </p>
+                                {/*<p>*/}
+                                {/*    <span className="text-text-muted">Generator:</span>{" "}*/}
+                                {/*    <span className="font-semibold">{lobby.game_config?.generator.type}</span>*/}
+                                {/*</p>*/}
 
                                 <p>
                                     <span className="text-text-muted">Classifier:</span>{" "}
-                                    <span className="font-semibold">{lobby.game_config?.generator_settings?.classifier}</span>
+                                    <span className="font-semibold">{lobby.game_config?.generator?.settings?.classifier}</span>
                                 </p>
 
                                 <p>
                                     <span className="text-text-muted">Heuristic:</span>{" "}
-                                    <span className="font-semibold">{lobby.game_config?.generator_settings?.heuristic}</span>
+                                    <span className="font-semibold">{lobby.game_config?.generator?.settings?.heuristic}</span>
                                 </p>
                             </div>
 
@@ -282,12 +319,12 @@ export default function MultiplayerLobby() {
                             chatMessages.map(m => (
                                 <div key={m.id} className="text-sm">
                                     <span className="text-text-secondary">
-                                        [{m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString() : "--:--"}]
+                                        [{m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString() : new Date().toLocaleTimeString()}]
                                     </span>{" "}
 
                                     {m.nick ? (
                                         <span>
-                                            <span className="font-bold">{m.nick}</span>: {m.text}
+                                            <span className="font-bold">{m.nick}</span> {!m.system && ":"} {m.text}
                                         </span>
                                     ) : (
                                         <span className="italic text-text-secondary">{m.text}</span>

@@ -70,7 +70,7 @@ export function SessionProvider({ children }) {
             case "round_start":
                 setRound(msg.round);
                 setStartAt(msg.start_at);
-
+                setEndAt(msg.end_at);
                 const difficulty = boardDataRef.current;
 
 
@@ -92,7 +92,7 @@ export function SessionProvider({ children }) {
 
             case "round_end":
                 setStatus("lobby");
-                setEndAt(msg.end_at);
+                // setEndAt(msg.end_at);
                 break;
 
             case "session_over":
@@ -100,14 +100,18 @@ export function SessionProvider({ children }) {
                 setSessionId(null);
                 break;
 
-            case "ready":
+            case "round_ready":
                 setSessionId(msg.session_id);
-                setRound(msg.round ?? 0);
+                setRound(msg.round ?? 1);
+                // setStartAt(msg.start_at ?? null);
+                // setStatus("game");
+                // console.log("->", msg.difficulty_level);
+                // setBoardData(msg.difficulty_level);
+                break;
+
+            case "round_countdown":
                 setStartAt(msg.start_at ?? null);
                 setStatus("game");
-                console.log("->", msg.difficulty_level);
-                setBoardData(msg.difficulty_level);
-                break
             default:
                 return false;
         }

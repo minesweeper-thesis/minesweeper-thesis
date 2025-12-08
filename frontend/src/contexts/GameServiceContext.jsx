@@ -75,7 +75,7 @@ export function GameServiceProvider({ children }) {
                     }
                     console.log("[WS] Ustawiam current lobby:", msg.lobby);
                     setGotLobby(true);
-                    setLobby(msg.lobby);
+                    setLobby(applyInitialStatuses(msg.lobby));
                     break;
 
                 case "game_config_updated":
@@ -98,6 +98,13 @@ export function GameServiceProvider({ children }) {
                     handleUserStatus(msg);
                     break;
 
+                case "user_online_status":
+                    handleOnlineStatus(msg);
+                    break;
+
+                case "user_ready":
+                    handleUserReady(msg);
+                    break;
 
                 case "ready":
                     notifyListeners(msg);
@@ -173,15 +180,21 @@ export function GameServiceProvider({ children }) {
         };
 
         fetchChatHistory();
-    }, [lobby]);
+    }, [lobby?.id]);
 
 
-    const addLobbyMessage = (text, nick = null, timestamp = null) => {
+
+    useEffect(() => {
+        console.log("zmieniono lobby:")
+        console.log(lobby);
+    }, [lobby?.users?.status]);
+
+    const addLobbyMessage = (text, nick = null, timestamp = null, system = false) => {
         setChatMessages(prev => [
             ...prev,
             {
                 id: crypto.randomUUID(),
-                system: nick === null,       // jeśli nie ma nicku → system message
+                system: system,
                 text,
                 nick,
                 timestamp
@@ -209,6 +222,65 @@ export function GameServiceProvider({ children }) {
         }
     };
 
+    const applyInitialStatuses = (incomingLobby) => {
+        if (!incomingLobby) return null;
+
+        return {
+            ...incomingLobby,
+            users: incomingLobby.users.map(u => ({
+                ...u,
+                status: u.is_online ? "not_ready" : "offline"
+            }))
+        };
+    };
+
+
+    const handleOnlineStatus = (msg) => {
+        // if (!lobby) return;
+        addLobbyMessage(`${msg.user.is_online ? "is now online" : "has gone offline"}`, msg.user.nickname, null, true);
+        setLobby(prev => {
+            // if (!prev) return prev;
+
+            const newLobby = {
+                ...prev,
+                users: prev.users.map(u =>
+
+                    u.id === msg.user.id
+                        ? {
+                            ...u,
+                            status: msg.user.is_online ? "not_ready" : "offline",
+                            is_online: msg.user.is_online,
+
+                        }
+                        : u
+                )
+            };
+            console.log("newLobby",newLobby);
+            return newLobby;
+        });
+
+
+
+    }
+
+    const handleUserReady = (msg) => {
+        setLobby(prev => {
+            if (!prev) return prev;
+
+
+            return {
+                ...prev,
+                users: prev.users.map(u =>
+                    u.id === msg.user_id
+                        ? {
+                            ...u,
+                            status: msg.value ? "ready" : "not_ready"
+                        }
+                        : u
+                )
+            };
+        });
+    }
 
     const handleUserStatus = (msg) => {
         if (!msg.user || !msg.status) return;
@@ -229,7 +301,7 @@ export function GameServiceProvider({ children }) {
                     users: [...prev.users, user_]
                 };
 
-                addLobbyMessage(`${user_.nickname} joined the lobby.`);
+                addLobbyMessage(` joined the lobby.`, user_.nickname, null, true);
                 return updated;
             }
 
@@ -239,7 +311,7 @@ export function GameServiceProvider({ children }) {
                     users: prev.users.filter(u => u.id !== user_.id),
                 };
 
-                addLobbyMessage(`${user_.nickname} left the lobby.`);
+                addLobbyMessage(` left the lobby.`, user_.nickname, null, true);
                 return updated;
             }
 
