@@ -18,7 +18,7 @@ from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.multi.helpers import (
     send_round_ready,
-    send_user_not_ready,
+    send_user_not_ready_in_lobby,
     send_user_ready_in_lobby,
 )
 from backend.services.multi.round_scheduler import RoundScheduler
@@ -81,8 +81,7 @@ class LobbyReadyService:
         lobby.set_user_not_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-        assert lobby_session is not None
-        await send_user_not_ready(self.notification_system.notify, lobby_session, user)
+        await send_user_not_ready_in_lobby(self.notification_system.notify, lobby, user)
 
     async def set_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
         lobby = self.lobby_repo.get_lobby(lobby_id)
