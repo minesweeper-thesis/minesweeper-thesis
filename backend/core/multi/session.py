@@ -104,7 +104,7 @@ class MultiplayerSession:
         for item in self._current_round.scoreboard.items:
             for session_item in self.scoreboard.items:
                 if session_item.user_id == item.user_id:
-                    session_item.score = item.score
+                    session_item.score += item.score
                     break
 
         if self.is_session_over():
