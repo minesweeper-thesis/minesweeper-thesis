@@ -79,7 +79,7 @@ class StartRoundService:
         session.cancel_ready(user.id)
 
         transport = self.game_transport_factory.create(session.id)
-        await send_user_not_ready(transport.send, session, user)
+        await send_user_not_ready(self.notification_system.notify, session, user)
 
         await self.multi_repo.save_session(session)
 
@@ -97,7 +97,7 @@ class StartRoundService:
         session.set_ready(user.id)
 
         transport = self.game_transport_factory.create(session_id)
-        await send_user_ready(transport.send, session, user)
+        await send_user_ready(self.notification_system.notify, session, user)
 
         if session.all_players_ready():
             logger.info(f"All players ready in session {session_id}, starting round")
