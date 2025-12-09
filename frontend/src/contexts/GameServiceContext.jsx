@@ -236,6 +236,9 @@ export function GameServiceProvider({ children }) {
     };
 
     const resetReady = () => {
+        setLobby(applyInitialStatuses(lobby));
+    }
+
 
     const handleOnlineStatus = (msg) => {
         // if (!lobby) return;
