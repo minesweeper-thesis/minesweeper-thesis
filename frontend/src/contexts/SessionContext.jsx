@@ -169,7 +169,7 @@ export function SessionProvider({ children }) {
                 if (!updated) return player;
                 return {
                     ...player,
-                    score: updated.score ?? Math.floor(player.score)
+                    score: Math.floor(updated.score) ?? Math.floor(player.score)
                 };
             })
         );
