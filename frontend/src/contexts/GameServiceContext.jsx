@@ -235,6 +235,7 @@ export function GameServiceProvider({ children }) {
         };
     };
 
+    const resetReady = () => {
 
     const handleOnlineStatus = (msg) => {
         // if (!lobby) return;
@@ -481,6 +482,7 @@ export function GameServiceProvider({ children }) {
             removeMessageListener,
             updateLobbySettings,
             isHost,
+            resetReady
         }}>
             {children}
         </GameServiceContext.Provider>

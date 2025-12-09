@@ -14,7 +14,7 @@ import boardInterpreter from "../utils/boardInterpreter";
 export const SessionContext = createContext(null);
 
 export function SessionProvider({ children }) {
-    const { addMessageListener, removeMessageListener } = useGame();
+    const { addMessageListener, removeMessageListener, lobby } = useGame();
 
     const [sessionId, setSessionId] = useState(null);
     const [round, setRound] = useState(null);
@@ -32,17 +32,36 @@ export function SessionProvider({ children }) {
     const boardRef = useRef(null);
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
 
+    const [scoreboard, setScoreboard] = useState([]);
+
     const boardDataRef = useRef(null);
     useEffect(() => {
         boardDataRef.current = boardData;
     }, [boardData]);
 
 
+    useEffect(() => {
+        if (!lobby?.users) return;
+
+        const initialScoreboard = lobby.users.map(u => ({
+            id: u.id,
+            nickname: u.nickname,
+            avatar_url: u.avatar_url,
+            score: 0
+        }));
+
+        setScoreboard(initialScoreboard);
+    }, [lobby?.users]);
+
     const handleGameServiceMessage = useCallback((msg) => {
         if (!msg ) return;
         console.log("[Session] (forwarded):", msg);
 
         switch (msg.type) {
+            case "reset_session":
+                setSessionId(null);
+                break;
+
             case "round_ready":
                 setSessionId(msg.session_id);
                 setRound(msg.round ?? 1);
@@ -100,13 +119,23 @@ export function SessionProvider({ children }) {
                 break;
 
             case "round_end":
-                setStatus("lobby");
-                // setEndAt(msg.end_at);
+                if (msg.scoreboard) {
+                    updateScoreFromMessage(msg.scoreboard);
+                }
+
+                // opóźnienie 3 sekundy przed powrotem do lobby
+                setTimeout(() => {
+                    setStatus("lobby");
+                }, 3000);
                 break;
 
             case "session_over":
                 setStatus("lobby");
                 setSessionId(null);
+                break;
+
+            case "score_update":
+                updateScore(msg);
                 break;
 
             case "round_ready":
@@ -124,6 +153,27 @@ export function SessionProvider({ children }) {
 
         return true;
     }, []);
+
+    const updateScore = (msg) => {
+        if (!msg?.user_id) return;
+
+        setScoreboard(prev => prev.map(player =>
+            player.id === msg.user_id ? { ...player, score: Math.floor(msg.score) } : player
+        ));
+    };
+
+    const updateScoreFromMessage = (msgScoreboard) => {
+        setScoreboard(prev =>
+            prev.map(player => {
+                const updated = msgScoreboard.find(p => p.user_id === player.id);
+                if (!updated) return player;
+                return {
+                    ...player,
+                    score: updated.score ?? Math.floor(player.score)
+                };
+            })
+        );
+    };
 
 
     const ws = useMultiplayerWebSocket(
@@ -172,7 +222,8 @@ export function SessionProvider({ children }) {
             resetSession,
             setGameState,
             setMines,
-            mines
+            mines,
+            scoreboard
         }}>
             {children}
         </SessionContext.Provider>
