@@ -15,6 +15,7 @@ export default function MultiplayerLobby() {
     const [showInvitePopup, setShowInvitePopup] = useState(false);
     const [showSettingsPopup, setShowSettingsPopup] = useState(false);
     const chatRef = useRef(null);
+    const [redirectCountdown, setRedirectCountdown] = useState(null);
 
     useEffect(() => {
         if (!lobby) {
@@ -23,11 +24,26 @@ export default function MultiplayerLobby() {
     }, [lobby, getLobby]);
 
     useEffect(() => {
-        console.log("lobby status", status);
-        if (status === "game"){
-            navigate("/game");
+        if (status === "game") {
+            setRedirectCountdown(5);
         }
     }, [status]);
+
+    useEffect(() => {
+        if (redirectCountdown === null) return;
+
+        if (redirectCountdown <= 0) {
+            navigate("/game");
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setRedirectCountdown(prev => prev - 1);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, [redirectCountdown, navigate]);
+
 
     useEffect(() => {
         if (!chatRef.current) return;
@@ -200,32 +216,38 @@ export default function MultiplayerLobby() {
                             <div className="h-50"></div>
                         </div>
 
-                        <button
-                            onClick={isOffline ? undefined : sendReady}
-                            disabled={isOffline}
-                            className={`
-                                        mt-2 w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-2
-                                        transform transition-all duration-300 ease-out
+                        {redirectCountdown !== null ? (
+                            <div className="mt-2 w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-yellow-400 text-black">
+                                {redirectCountdown}
+                            </div>
+                        ) : (
+                            <button
+                                onClick={isOffline ? undefined : sendReady}
+                                disabled={isOffline}
+                                className={`
+                                    mt-2 w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-2
+                                    transform transition-all duration-300 ease-out
+                                    ${isOffline
+                                        ? "bg-gray-500 text-gray-300 cursor-not-allowed scale-95"
+                                        : isReady
+                                        ? "bg-green-600 text-white shadow-lg scale-105"
+                                        : "bg-accent-primary text-white hover:bg-accent-secondary scale-100"
+                                    }
+                                `}
+                            >
+                                {isOffline ? (
+                                    <>
+                                        <span className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></span>
+                                        Offline
+                                    </>
+                                ) : isReady ? (
+                                    "Ready!"
+                                ) : (
+                                    "Ready Up"
+                                )}
+                            </button>
+                        )}
 
-                              ${isOffline
-                                ? "bg-gray-500 text-gray-300 cursor-not-allowed scale-95"
-                                : isReady
-                                    ? "bg-green-600 text-white shadow-lg scale-105"
-                                    : "bg-accent-primary text-white hover:bg-accent-secondary scale-100"
-                              }
-                            `}
-                        >
-                            {isOffline ? (
-                                <>
-                                    <span className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></span>
-                                    Offline
-                                </>
-                            ) : isReady ? (
-                                "Ready!"
-                            ) : (
-                                "Ready Up"
-                            )}
-                        </button>
 
 
                     </div>

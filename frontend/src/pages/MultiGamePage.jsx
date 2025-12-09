@@ -33,7 +33,7 @@ export default function MultiGamePage() {
         if (status === "lobby") navigate("/lobby");
     }, [status]);
 
-    const timeToStart = startAt ? Math.max(0, startAt - now) : null;
+    const timeToStart = startAt ? Math.max(0, startAt - Date.now()) : 0;
     const gameTimeLeft = endAt ? Math.max(0, endAt - now) : null;
 
     if (!sessionId) {
@@ -81,7 +81,7 @@ export default function MultiGamePage() {
                                     setGameState={setGameState}
                                     setMines={setMines}
                                     mode={"multi"}
-                                    countdownTime={timeToStart}
+                                    countdownTime={Math.floor(timeToStart/1000)}
                                 />
                             </div>
                         </div>

@@ -19,6 +19,7 @@ export function SessionProvider({ children }) {
     const [sessionId, setSessionId] = useState(null);
     const [round, setRound] = useState(null);
     const [startAt, setStartAt] = useState(null);
+    const [leaveLobbyAt, setLeaveLobbyAt] = useState(null);
     const [endAt, setEndAt] = useState(null);
     const [startField, setStartField] = useState(null);
     const [status, setStatus] = useState("lobby");
@@ -38,16 +39,24 @@ export function SessionProvider({ children }) {
 
 
     const handleGameServiceMessage = useCallback((msg) => {
-        if (!msg || msg.type !== "ready") return;
-
+        if (!msg ) return;
         console.log("[Session] (forwarded):", msg);
 
-        setSessionId(msg.session_id);
-        setRound(msg.round ?? 0);
-        setStartAt(msg.start_at ?? null);
-        setStatus("game");
-        console.log("->", msg.difficulty_level);
-        setBoardData(msg.difficulty_level);
+        switch (msg.type) {
+            case "round_ready":
+                setSessionId(msg.session_id);
+                setRound(msg.round ?? 1);
+                setBoardData(msg.difficulty_level);
+                break;
+            case "round_countdown":
+                setStartAt(msg.start_at ?? null);
+                // setLeaveLobbyAt(msg.countdown_to ?? null)
+                setStatus("game");
+
+                break
+            default:
+                break;
+        }
 
     }, []);
 
@@ -103,15 +112,12 @@ export function SessionProvider({ children }) {
             case "round_ready":
                 setSessionId(msg.session_id);
                 setRound(msg.round ?? 1);
-                // setStartAt(msg.start_at ?? null);
-                // setStatus("game");
-                // console.log("->", msg.difficulty_level);
-                // setBoardData(msg.difficulty_level);
                 break;
 
             case "round_countdown":
                 setStartAt(msg.start_at ?? null);
                 setStatus("game");
+                break;
             default:
                 return false;
         }

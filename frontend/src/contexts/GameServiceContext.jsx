@@ -106,7 +106,8 @@ export function GameServiceProvider({ children }) {
                     handleUserReady(msg);
                     break;
 
-                case "ready":
+                case "round_ready":
+                case "round_countdown":
                     notifyListeners(msg);
                     break;
 
