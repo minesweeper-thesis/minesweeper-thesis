@@ -6,7 +6,7 @@ from fastapi_pagination import Page, Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.routers.schemas.lobby import *
+from backend.schemas.lobby import *
 
 PaginationParams = Annotated[Params, Depends()]
 

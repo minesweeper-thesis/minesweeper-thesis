@@ -2,7 +2,7 @@ import uuid
 
 from pydantic import BaseModel, ConfigDict
 
-from backend.routers.schemas.user import UserResponse
+from backend.schemas.user import UserResponse
 
 
 class GameplayRankingResponse(BaseModel):

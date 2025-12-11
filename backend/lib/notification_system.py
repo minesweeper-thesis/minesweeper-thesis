@@ -14,11 +14,11 @@ from backend.core.user import FriendRequest
 from backend.core.user.chat import UserChatMessage
 from backend.lib.websockets.websockets_registry import WebsocketsRegistry
 from backend.protocols import NotificationSystem
-from backend.routers.schemas import Response
-from backend.routers.schemas.game import *
-from backend.routers.schemas.lobby import *
-from backend.routers.schemas.lobby import UserOnlineUpdatedResponse
-from backend.routers.schemas.user import FriendRequestResponse, UserChatMessageResponse
+from backend.schemas import Response
+from backend.schemas.game import *
+from backend.schemas.lobby import *
+from backend.schemas.lobby import UserOnlineUpdatedResponse
+from backend.schemas.user import FriendRequestResponse, UserChatMessageResponse
 from backend.services.dto import *
 from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
 

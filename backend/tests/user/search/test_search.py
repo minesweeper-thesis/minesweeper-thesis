@@ -1,7 +1,7 @@
-import io
 import uuid
 
-from backend.routers.schemas.user import UserResponse
+from backend.schemas.user import UserResponse
+
 
 def test_search_users_returns_paginated_user_response(client, auth):
     email = f"searchable-{uuid.uuid4().hex[:8]}@example.com"
@@ -32,6 +32,7 @@ def test_search_users_returns_paginated_user_response(client, auth):
 
         uuid.UUID(str(user.id))
 
+
 def test_search_users_finds_matching_user(client, auth):
     unique_name = f"unique{uuid.uuid4().hex[:8]}"
     email = f"{unique_name}@example.com"
@@ -46,6 +47,7 @@ def test_search_users_finds_matching_user(client, auth):
     nicknames = [item["nickname"] for item in data["items"]]
     assert unique_name in nicknames
 
+
 def test_search_users_empty_query_works(client, auth):
     email = f"emptysearch-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="emptypw", nickname="emptyquery")
@@ -53,8 +55,8 @@ def test_search_users_empty_query_works(client, auth):
     resp = client.get("/api/search", params={"query": ""})
     assert resp.status_code in [200, 422]
 
+
 def test_search_users_no_auth_works(client):
     resp = client.get("/api/search", params={"query": "test"})
 
     assert resp.status_code in [200, 401]
-

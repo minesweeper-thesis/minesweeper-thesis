@@ -4,7 +4,7 @@ from typing import Literal, Self
 from pydantic import BaseModel
 
 from backend.core.lobby import *
-from backend.routers.schemas import Response
+from backend.schemas import Response
 
 from ..user import UserResponse
 

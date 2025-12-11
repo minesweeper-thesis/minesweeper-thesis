@@ -36,5 +36,5 @@ registry: dict[type, Callable] = {
     p.Scheduler: get_scheduler,
 }
 
-for protocol, provider in registry.items():
-    registry[protocol] = Depends(provider)
+for protocol, impl in registry.items():
+    registry[protocol] = Depends(impl)

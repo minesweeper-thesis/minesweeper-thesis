@@ -7,9 +7,9 @@ from backend.core.board import DifficultyLevel
 from backend.core.game import GameMode
 from backend.core.lobby import *
 from backend.core.multi import *
-from backend.routers.schemas import Response
-from backend.routers.schemas.common import GeneratorSchema
-from backend.routers.schemas.user import UserResponse
+from backend.schemas import Response
+from backend.schemas.common import GeneratorSchema
+from backend.schemas.user import UserResponse
 from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
 
 

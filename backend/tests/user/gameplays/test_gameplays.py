@@ -1,7 +1,5 @@
-import io
 import uuid
 
-from backend.routers.schemas.user import UserResponse
 
 def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
     email = f"gameplays-{uuid.uuid4().hex[:8]}@example.com"
@@ -19,6 +17,7 @@ def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
     assert "size" in data
 
     assert isinstance(data["items"], list)
+
 
 def test_get_gameplays_validates_gameplay_response_schema(client, auth):
     email = f"gpschema-{uuid.uuid4().hex[:8]}@example.com"
@@ -77,6 +76,7 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
                 uuid.UUID(str(item["user_id"]))
                 assert item["status"] in ["not_started", "in_progress", "finished"]
                 assert isinstance(item["elapsed_time"], (int, float))
+
 
 def test_get_gameplays_without_auth_returns_401(client):
     resp = client.get("/api/gameplays")

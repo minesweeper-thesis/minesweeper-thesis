@@ -1,7 +1,6 @@
 import io
 import uuid
 
-from backend.routers.schemas.user import UserResponse
 
 def test_upload_avatar_success(client, auth):
     email = f"avatar-{uuid.uuid4().hex[:8]}@example.com"
@@ -30,6 +29,7 @@ def test_upload_avatar_success(client, auth):
     assert isinstance(data["avatar_url"], str)
     assert len(data["avatar_url"]) > 0
 
+
 def test_upload_avatar_invalid_file_type_returns_400(client, auth):
     email = f"badavatar-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="badavatarpw", nickname="badavataruser")
@@ -44,6 +44,7 @@ def test_upload_avatar_invalid_file_type_returns_400(client, auth):
     assert "detail" in data
     assert "Invalid file type" in data["detail"]
 
+
 def test_upload_avatar_without_auth_returns_401(client):
     png_data = b"\x89PNG\r\n\x1a\n..."
 
@@ -54,6 +55,7 @@ def test_upload_avatar_without_auth_returns_401(client):
 
     assert resp.status_code == 401
 
+
 def test_delete_avatar_success(client, auth):
     email = f"delavatar-{uuid.uuid4().hex[:8]}@example.com"
     auth(email=email, password="delavatarpw", nickname="delavataruser")
@@ -62,7 +64,7 @@ def test_delete_avatar_success(client, auth):
 
     assert resp.status_code in [200, 204]
 
+
 def test_delete_avatar_without_auth_returns_401(client):
     resp = client.delete("/api/avatar")
     assert resp.status_code == 401
-

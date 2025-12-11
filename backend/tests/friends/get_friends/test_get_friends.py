@@ -3,7 +3,7 @@ import uuid
 from fastapi.testclient import TestClient
 
 from backend.main import app
-from backend.routers.schemas.user import UserResponse
+from backend.schemas.user import UserResponse
 
 
 def test_get_friends_returns_paginated_user_response(client, auth):

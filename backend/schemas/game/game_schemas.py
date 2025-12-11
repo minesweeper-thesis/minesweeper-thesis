@@ -4,7 +4,7 @@ from typing import Literal, Optional, Self
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
-from backend.routers.schemas import Response
+from backend.schemas import Response
 from backend.services.dto import *
 
 

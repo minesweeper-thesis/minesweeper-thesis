@@ -4,8 +4,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from backend.core.user import FriendRequest, FriendRequestStatus
-from backend.routers.schemas import Response
-from backend.routers.schemas.user.user_schemas import UserResponse
+from backend.schemas import Response
+from backend.schemas.user.user_schemas import UserResponse
 
 
 class MakeFriendRequest(BaseModel):

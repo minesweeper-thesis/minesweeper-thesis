@@ -8,7 +8,7 @@ from backend.core.game.game_actions import *
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.session_websockets import session_websockets
-from backend.routers.schemas.game import NewGameRequest, NewGameResponse
+from backend.schemas.game import NewGameRequest, NewGameResponse
 from backend.services import exceptions
 from backend.services.single.single_exceptions import GenerationTimeout
 

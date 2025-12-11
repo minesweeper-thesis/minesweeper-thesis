@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from backend.core.single.gameplay import SingleplayerGameplay
 from backend.core.user import User
-from backend.routers.schemas import Response
+from backend.schemas import Response
 
 
 class UserCreateRequest(BaseUserCreate):

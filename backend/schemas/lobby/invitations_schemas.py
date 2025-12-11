@@ -4,8 +4,8 @@ from typing import Literal, Self
 from pydantic import BaseModel
 
 from backend.core.lobby import *
-from backend.routers.schemas import Response, WSRequest
-from backend.routers.schemas.lobby.lobby_schemas import GameConfigResponse
+from backend.schemas import Response, WSRequest
+from backend.schemas.lobby.lobby_schemas import GameConfigResponse
 
 from ..user import UserResponse
 

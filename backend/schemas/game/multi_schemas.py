@@ -12,7 +12,7 @@ from backend.core.multi import (
     SessionOver,
     SessionScoreItem,
 )
-from backend.routers.schemas import Response
+from backend.schemas import Response
 from backend.services.dto import *
 
 

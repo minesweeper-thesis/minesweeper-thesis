@@ -1,6 +1,6 @@
 import uuid
 
-from backend.routers.schemas.user import CurrentUserResponse
+from backend.schemas.user import CurrentUserResponse
 
 
 def test_get_me_returns_current_user_response(client, auth):

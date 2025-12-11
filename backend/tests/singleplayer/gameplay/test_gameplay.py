@@ -1,7 +1,7 @@
 import json
 import uuid
 
-from backend.routers.schemas.game.single_schemas import NewGameResponse
+from backend.schemas.game.single_schemas import NewGameResponse
 
 
 def test_start_game_validates_response(client, auth):
