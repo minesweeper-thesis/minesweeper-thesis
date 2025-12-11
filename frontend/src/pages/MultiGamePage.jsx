@@ -18,6 +18,7 @@ export default function MultiGamePage() {
         gameState,
         setMines,
         setGameState,
+        scoreboard
     } = useSession();
 
     const navigate = useNavigate();
@@ -33,7 +34,7 @@ export default function MultiGamePage() {
         if (status === "lobby") navigate("/lobby");
     }, [status]);
 
-    const timeToStart = startAt ? Math.max(0, startAt - now) : null;
+    const timeToStart = startAt ? Math.max(0, startAt - Date.now()) : 0;
     const gameTimeLeft = endAt ? Math.max(0, endAt - now) : null;
 
     if (!sessionId) {
@@ -81,7 +82,7 @@ export default function MultiGamePage() {
                                     setGameState={setGameState}
                                     setMines={setMines}
                                     mode={"multi"}
-                                    countdownTime={timeToStart}
+                                    countdownTime={Math.floor(timeToStart/1000)}
                                 />
                             </div>
                         </div>
@@ -91,19 +92,29 @@ export default function MultiGamePage() {
                     <div className="w-full md:w-1/3 bg-bg-secondary border border-border-primary p-4 rounded-xl shadow h-fit">
                         <h2 className="text-lg font-semibold mb-4">Leaderboard</h2>
                         <div className="flex flex-col gap-3">
-                            {[1, 2, 3].map((i) => (
-                                <div
-                                    key={i}
-                                    className="flex justify-between items-center bg-bg-tertiary border border-border-primary p-3 rounded-lg"
-                                >
-                                    <span className="text-text-primary">Player {i}</span>
-                                    <span className="text-accent-primary font-semibold">
-                                        {"123"}
-                                    </span>
-                                </div>
-                            ))}
+                            {scoreboard.length === 0 ? (
+                                <div className="text-text-secondary text-sm italic">No players yet</div>
+                            ) : (
+                                scoreboard.map(player => (
+                                    <div
+                                        key={player.id}
+                                        className="flex items-center justify-between bg-bg-tertiary border border-border-primary p-3 rounded-lg"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <img
+                                                src={player.avatar_url || "/avatar.svg"}
+                                                alt="avatar"
+                                                className="w-10 h-10 rounded-full bg-white border-2 border-border-primary object-cover"
+                                            />
+                                            <span className="font-medium text-text-primary">{player.nickname}</span>
+                                        </div>
+                                        <span className="text-accent-primary font-semibold">{player.score}</span>
+                                    </div>
+                                ))
+                            )}
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
