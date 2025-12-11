@@ -12,7 +12,7 @@ from backend import protocols
 from backend.core.user import User
 from backend.core.user.chat import UserChatMessage
 from backend.db.db import DBSession
-from backend.lib.avatar.storage import get_avatar_storage
+from backend.lib.avatar_storage import get_avatar_storage
 from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 

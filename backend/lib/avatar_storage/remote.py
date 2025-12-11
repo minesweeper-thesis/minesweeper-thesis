@@ -1,6 +1,6 @@
 import uuid
 
-from .storage import AvatarStorage
+from . import AvatarStorage
 
 
 class RemoteAvatarStorage(AvatarStorage):

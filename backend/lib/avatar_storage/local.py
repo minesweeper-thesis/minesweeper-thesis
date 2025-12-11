@@ -3,7 +3,7 @@ import uuid
 
 import filetype
 
-from .storage import AvatarStorage
+from . import AvatarStorage
 
 STATIC_AVATAR_DIR = "img"
 
