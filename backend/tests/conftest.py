@@ -14,6 +14,7 @@ _test_db_file.close()
 os.environ["DATABASE_URL"] = (
     f"sqlite+aiosqlite:///{_test_db_path}?check_same_thread=False&timeout=30"
 )
+os.environ["AUTH_SECRET"] = "test-secret-key"
 
 from backend.db.db import engine
 from backend.main import app

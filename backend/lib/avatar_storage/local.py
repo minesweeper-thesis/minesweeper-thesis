@@ -3,6 +3,8 @@ import uuid
 
 import filetype
 
+from backend.config import BACKEND_URL
+
 from . import AvatarStorage
 
 STATIC_AVATAR_DIR = "img"
@@ -35,8 +37,7 @@ class LocalAvatarStorage(AvatarStorage):
         return self._get_url(filename)
 
     def _get_url(self, filename: str) -> str:
-        base_url = os.getenv("BACKEND_URL", "http://localhost:8000/api")
-        url = f"{base_url}/{self.static_dir}/{filename}"
+        url = f"{BACKEND_URL}/{self.static_dir}/{filename}"
         return url
 
     async def delete(self, avatar_url: str) -> None:

@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_pagination import add_pagination
 
 from backend import routers
+from backend.config import FRONTEND_URL
 from backend.lib.scheduler import initialize_scheduler, shutdown_scheduler
 
 from .db import *
@@ -42,8 +43,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 api = FastAPI()
 
 routers.register_exceptions(api)
-
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 api.add_middleware(
     CORSMiddleware,

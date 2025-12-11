@@ -1,9 +1,9 @@
 import logging
-import os
 import uuid
 
 logger = logging.getLogger(__name__)
 
+from backend.config import BACKEND_URL
 from backend.core.board import DifficultyLevel, GeneratorParams
 from backend.core.game import *
 from backend.core.lobby import *
@@ -15,7 +15,7 @@ from backend.services.dto import KickedFromLobby
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
 
-DEV = "localhost" in os.getenv("BACKEND_URL", "")
+DEV = "localhost" in BACKEND_URL
 
 
 DEFAULT_GAME_CONFIG = (

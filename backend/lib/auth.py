@@ -1,5 +1,4 @@
 import logging
-import os
 import uuid
 from typing import Annotated, AsyncGenerator, Optional
 
@@ -14,6 +13,7 @@ from fastapi_users.authentication import (
 )
 from fastapi_users.db import SQLAlchemyUserDatabase
 
+from backend.config import AUTH_SECRET
 from backend.core.user import User
 from backend.db import *
 from backend.lib.online_users import OnlineUsersStore, get_online_users_store
@@ -21,7 +21,6 @@ from backend.repositories.orm.user_orm import UserORM
 
 cookie_transport = CookieTransport(cookie_name="auth", cookie_max_age=3600)
 
-SECRET = os.getenv("AUTH_SECRET", "rEpEeWsEnIm")
 
 WS_UNAUTHORIZED = 4001
 WS_INVALID_TOKEN = 4002
@@ -29,7 +28,7 @@ WS_USER_NOT_FOUND = 4003
 
 
 def get_jwt_strategy() -> JWTStrategy:
-    return JWTStrategy(secret=SECRET, lifetime_seconds=3600)
+    return JWTStrategy(secret=str(AUTH_SECRET), lifetime_seconds=3600)
 
 
 auth_backend = AuthenticationBackend(
@@ -40,8 +39,8 @@ auth_backend = AuthenticationBackend(
 
 
 class UserManager(UUIDIDMixin, BaseUserManager[UserORM, uuid.UUID]):
-    reset_password_token_secret = SECRET
-    verification_token_secret = SECRET
+    reset_password_token_secret = str(AUTH_SECRET)
+    verification_token_secret = str(AUTH_SECRET)
 
 
 async def get_user_db(session: AsyncSession = Depends(get_async_session)):
