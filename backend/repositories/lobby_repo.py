@@ -10,7 +10,6 @@ logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
-from backend.core.user import User
 
 lobbies: dict[uuid.UUID, Lobby] = {}
 invitations: dict[uuid.UUID, Invitation] = {}
@@ -74,18 +73,18 @@ class LobbyRepository(protocols.LobbyRepository):
             del invitations[invitation_id]
             logger.debug(f"Invitation {invitation_id} deleted")
 
-    def get_pending_invitations(self, user) -> list[Invitation]:
-        logger.debug(f"get_pending_invitations(user_id={user.id})")
+    def get_pending_invitations(self, user_id: uuid.UUID) -> list[Invitation]:
+        logger.debug(f"get_pending_invitations(user_id={user_id})")
         return [
             invitation
             for invitation in invitations.values()
-            if invitation.invitee == user
+            if invitation.invitee.id == user_id
         ]
 
-    def get_user_lobby(self, user: User) -> Optional[Lobby]:
-        logger.debug(f"get_user_lobby(user_id={user.id})")
+    def get_user_lobby(self, user_id: uuid.UUID) -> Optional[Lobby]:
+        logger.debug(f"get_user_lobby(user_id={user_id})")
         for lobby in lobbies.values():
-            if user in lobby.users:
+            if any(user.id == user_id for user in lobby.users):
                 return lobby
         return None
 

@@ -67,7 +67,7 @@ class LobbyInvitationService:
 
     async def get_pending_invitations(self, user: User) -> list[Invitation]:
         logger.debug(f"get_pending_invitations(user_id={user.id})")
-        return self.lobby_repo.get_pending_invitations(user)
+        return self.lobby_repo.get_pending_invitations(user.id)
 
 
 __all__ = ["LobbyInvitationService"]

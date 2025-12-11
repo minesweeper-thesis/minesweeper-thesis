@@ -21,6 +21,7 @@ class SingleplayerRepository(Protocol):
     async def get_gameplay_by_id(
         self, gameplay_id: uuid.UUID
     ) -> SingleplayerGameplay: ...
+
     async def update_gameplay(
         self, gameplay: SingleplayerGameplay
     ) -> SingleplayerGameplay: ...

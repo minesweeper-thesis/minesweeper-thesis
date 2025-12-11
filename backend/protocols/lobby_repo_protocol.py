@@ -4,7 +4,6 @@ from typing import Optional, Protocol
 from fastapi_pagination import Page, Params
 
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
-from backend.core.user import User
 
 
 class LobbyRepository(Protocol):
@@ -20,9 +19,9 @@ class LobbyRepository(Protocol):
 
     def delete_invitation(self, invitation_id: uuid.UUID) -> None: ...
 
-    def get_pending_invitations(self, user: User) -> list[Invitation]: ...
+    def get_pending_invitations(self, user_id: uuid.UUID) -> list[Invitation]: ...
 
-    def get_user_lobby(self, user: User) -> Optional[Lobby]: ...
+    def get_user_lobby(self, user_id: uuid.UUID) -> Optional[Lobby]: ...
 
     def add_message(self, message: LobbyChatMessage) -> None: ...
 

@@ -53,7 +53,7 @@ class LobbyService:
 
     async def create_lobby(self, user: User) -> Lobby:
         logger.debug(f"create_lobby(user_id={user.id})")
-        lobby_to_leave = self.lobby_repo.get_user_lobby(user)
+        lobby_to_leave = self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
@@ -63,7 +63,7 @@ class LobbyService:
 
     async def join_lobby(self, user: User, invitation_id: uuid.UUID):
         logger.debug(f"join_lobby(user_id={user.id}, invitation_id={invitation_id})")
-        lobby_to_leave = self.lobby_repo.get_user_lobby(user)
+        lobby_to_leave = self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
 
