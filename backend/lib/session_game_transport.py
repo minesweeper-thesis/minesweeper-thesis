@@ -5,7 +5,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 from backend.lib.notification_system import create_game_notification
-from backend.lib.websockets.websockets_registry import session_websockets
+from backend.lib.websockets.session_websockets import session_websockets
 from backend.protocols.game_transport_protocol import GameTransport
 
 

@@ -22,3 +22,6 @@ class MultiplayerRepository(Protocol):
     ) -> Optional[MultiplayerSession]: ...
 
     async def delete_pending(self, session_id: uuid.UUID): ...
+
+
+__all__ = ["MultiplayerRepository", "SessionNotFound"]
