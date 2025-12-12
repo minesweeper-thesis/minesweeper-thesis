@@ -22,4 +22,4 @@ class UserOnlineUpdated:
     user: User
 
 
-__all__ = ["KickedFromLobby"]
+__all__ = ["KickedFromLobby", "UserCurrentLobby", "UserOnlineUpdated"]

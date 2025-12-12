@@ -57,6 +57,24 @@ class MultiplayerSession:
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
 
+    def set_player_ids(self, player_ids: list[uuid.UUID]) -> None:
+        if self.is_started() or self.current_round_index != -1 or len(self.rounds) > 0:
+            raise ValueError("Cannot change players after session setup")
+
+        self.player_ids = player_ids
+        self.ready_players.intersection_update(set(player_ids))
+
+        existing = {item.user_id for item in self.scoreboard.items}
+        removed = existing - set(player_ids)
+        if removed:
+            self.scoreboard.items = [
+                item for item in self.scoreboard.items if item.user_id not in removed
+            ]
+
+        added = set(player_ids) - existing
+        for user_id in added:
+            self.scoreboard.items.append(SessionScoreItem(user_id=user_id, score=0))
+
     @property
     def _current_round(self) -> MultiplayerRound:
         if self.current_round_index == -1:
@@ -89,20 +107,25 @@ class MultiplayerSession:
     def clear_ready_players(self):
         self.ready_players.clear()
 
-    def is_user_ready(self, user: User) -> bool:
-        return user.id in self.ready_players
+    def is_user_ready(self, user_id: uuid.UUID) -> bool:
+        return user_id in self.ready_players
 
     def lock_ready(self):
         self.ready_locked = True
 
-    def end_current_round(self) -> None:
-        self._current_round.end()
+    def end_round(self, round_index: int) -> None:
+        round = self.rounds[round_index]
+
+        if round.state != "playing":
+            return
+
+        round.end()
         self._consume_round_events()
 
         self.clear_ready_players()
         self.ready_locked = False
 
-        for item in self._current_round.scoreboard.items:
+        for item in round.scoreboard.items:
             for session_item in self.scoreboard.items:
                 if session_item.user_id == item.user_id:
                     session_item.score += item.score

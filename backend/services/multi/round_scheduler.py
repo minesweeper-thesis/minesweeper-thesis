@@ -41,7 +41,7 @@ class RoundScheduler:
         self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
     ):  # todo: board juz istnieje
         try:
-            session = await self.multi_repo.get_session(session_id)
+            await self.multi_repo.get_session(session_id)
         except SessionNotFound:
             await self.board_repo.add_board(board)
             return
@@ -49,16 +49,7 @@ class RoundScheduler:
         if generation_id is not None:
             await self.pending_store.mark_ready(generation_id, board.id)
 
-        if len(session.rounds) == 0:
-            await self._schedule_frist_round_start(session_id, board)
-        else:
-            await self._add_round_to_session(session_id, board)
-
-    async def _schedule_frist_round_start(self, session_id: uuid.UUID, board: Board):
-        session = await self.multi_repo.get_session(session_id)
-        await self._add_round_to_session(session.id, board)
-
-        await self.schedule_start(session, immediately=True)
+        await self._add_round_to_session(session_id, board)
 
     async def _add_round_to_session(self, session_id: uuid.UUID, board: Board):
         session = await self.multi_repo.get_session(session_id)
@@ -76,11 +67,11 @@ class RoundScheduler:
         session.add_round(round)
         await self.multi_repo.save_session(session)
 
-    async def end_round(self, session_id: uuid.UUID):
+    async def end_round(self, session_id: uuid.UUID, round_index: int):
         session = await self.multi_repo.get_session(session_id)
         # todo: lock z handle game action
 
-        session.end_current_round()
+        session.end_round(round_index)
 
         events_by_user = session.consume_events()
         session_over = session.is_over()
@@ -112,7 +103,10 @@ class RoundScheduler:
         await self._publish_events(session.id, events_by_user)
 
         self.scheduler.schedule(
-            self.end_round, end_at, session_id=session_id
+            self.end_round,
+            end_at,
+            session_id=session_id,
+            round_index=session.current_round_index,
         )  # todo: save job id
 
     async def _send_countdown(

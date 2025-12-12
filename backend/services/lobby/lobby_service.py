@@ -45,10 +45,12 @@ class LobbyService:
         self,
         lobby_repo: LobbyRepositoryDep,
         user_repo: UserRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
         notification_system: NotificationSystemDep,
     ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo
+        self.multi_repo = multi_repo
         self.notification_system = notification_system
 
     async def create_lobby(self, user: User) -> Lobby:
@@ -58,6 +60,8 @@ class LobbyService:
             await self._remove_user(lobby_to_leave, user)
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         self.lobby_repo.save_lobby(lobby)
+        session = await create_session(lobby.id, lobby)
+        await self.multi_repo.save_session(session)
         logger.info(f"Lobby {lobby.id} created by user {user.id}")
         return lobby
 
@@ -78,6 +82,7 @@ class LobbyService:
 
         data = lobby.add_user(user)
         self.lobby_repo.save_lobby(lobby)
+        await self._sync_session_players(lobby)
         self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
@@ -99,6 +104,10 @@ class LobbyService:
         ensure_user_is_host(lobby, user)
 
         event = lobby.update_game_config(game_config)
+        session = await self.multi_repo.get_pending_for_lobby(lobby.id)
+        if session is not None:
+            session.game_config = game_config
+            await self.multi_repo.save_session(session)
 
         self.lobby_repo.save_lobby(lobby)
 
@@ -147,8 +156,16 @@ class LobbyService:
             self.lobby_repo.delete_lobby(lobby.id)
         else:
             self.lobby_repo.save_lobby(lobby)
+            await self._sync_session_players(lobby)
             for lobby_user in lobby.users:
                 await self.notification_system.notify(lobby_user.id, data)
+
+    async def _sync_session_players(self, lobby: Lobby) -> None:
+        session = await self.multi_repo.get_session(lobby.id)
+
+        if not session.is_started() and not session.is_over():
+            session.set_player_ids([user.id for user in lobby.users])
+            await self.multi_repo.save_session(session)
 
 
 __all__ = ["LobbyService"]

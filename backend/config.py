@@ -1,11 +1,11 @@
 from starlette.config import Config
 from starlette.datastructures import Secret
 
-config = Config(".env")
+config = Config("backend/.env")
 
 DATABASE_URL = config("DATABASE_URL", default="sqlite+aiosqlite:///minesweeper.db")
 
-AUTH_SECRET = config("AUTH_SECRET", cast=Secret)
+AUTH_SECRET = config("AUTH_SECRET", cast=Secret, default="RePeEwSeNiM")
 
 FRONTEND_URL = config("FRONTEND_URL", default="http://localhost:3000")
 BACKEND_URL = config("BACKEND_URL", default="http://localhost:8000/api")

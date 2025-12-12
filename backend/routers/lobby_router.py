@@ -13,7 +13,7 @@ PaginationParams = Annotated[Params, Depends()]
 LobbyService = Annotated[services.LobbyService, Depends()]
 LobbyChatService = Annotated[services.LobbyChatService, Depends()]
 LobbyInvitationService = Annotated[services.LobbyInvitationService, Depends()]
-LobbyReadyService = Annotated[services.LobbyReadyService, Depends()]
+StartRoundService = Annotated[services.StartRoundService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
 invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
@@ -97,30 +97,30 @@ async def reject_game_invitation(
 @lobby_router.post("/{lobby_id}/ready/set")
 async def set_user_ready(
     lobby_id: uuid.UUID,
-    service: LobbyReadyService,
+    service: StartRoundService,
     user: CurrentUser,
 ):
     """Sets the user as ready in the lobby."""
-    await service.set_user_ready_in_lobby(lobby_id, user)
+    await service.set_user_ready(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/ready/cancel")
 async def cancel_user_ready(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyReadyService,
+    service: StartRoundService,
 ):
     """Sets the user as not ready in the lobby."""
-    await service.cancel_user_ready_in_lobby(lobby_id, user)
+    await service.cancel_user_ready(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/ready/toggle")
 async def toggle_user_ready(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyReadyService,
+    service: StartRoundService,
 ):
-    await service.toggle_user_ready_in_lobby(lobby_id, user)
+    await service.toggle_user_ready(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/chat-messages")

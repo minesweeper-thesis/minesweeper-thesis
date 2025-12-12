@@ -3,8 +3,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from backend.core.board import Board
-from backend.core.lobby import Lobby
-from backend.core.multi import GameConfig, MultiplayerSession
+from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import (
     BoardGeneratorDep,
     BoardRepositoryDep,
@@ -15,7 +14,7 @@ from backend.repositories.exceptions import UnsolvedBoardNotFound
 from backend.services.multi.round_scheduler import RoundScheduler
 
 
-class LobbyBoardsPreparer:
+class SessionBoardsPreparer:
     def __init__(
         self,
         board_repo: BoardRepositoryDep,
@@ -28,49 +27,39 @@ class LobbyBoardsPreparer:
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
 
-    async def prepare(self, lobby: Lobby, session: MultiplayerSession):
+    async def prepare(self, session: MultiplayerSession):
         to_generate = session.rounds_number - len(session.rounds)
 
         for round_index in range(to_generate):
-            await self._prepare_round_board(
-                lobby, session, lobby.game_config, round_index
-            )
+            await self._prepare_round_board(session, round_index)
 
     async def _prepare_round_board(
         self,
-        lobby: Lobby,
         session: MultiplayerSession,
-        game_config: GameConfig,
         round_index: int,
     ):
-        board = await self._get_unsolved_or_generate_board(
-            lobby, session, game_config, round_index
-        )
+        board = await self._get_unsolved_or_generate_board(session, round_index)
 
         if board is not None:
             await self.round_scheduler.on_board_generated(session.id, None, board)
 
     async def _get_unsolved_or_generate_board(
         self,
-        lobby: Lobby,
         session: MultiplayerSession,
-        game_config: GameConfig,
         round_index: int,
     ) -> Board | None:
-        user_ids = [user.id for user in lobby.users]
         try:
             return await self.board_repo.get_unsolved_board(
-                game_config.difficulty_level,
-                generation_settings=game_config.generation_settings,
-                user_ids=user_ids,
+                session.game_config.difficulty_level,
+                generation_settings=session.game_config.generation_settings,
+                user_ids=session.player_ids,
             )
         except UnsolvedBoardNotFound:
-            await self._generate_board(session, game_config, round_index)
+            await self._generate_board(session, round_index)
             return None
 
-    async def _generate_board(
-        self, session: MultiplayerSession, game_config: GameConfig, round_index: int
-    ):
+    async def _generate_board(self, session: MultiplayerSession, round_index: int):
+        game_config = session.game_config
         generation_id = await self.board_generator.generate_board(
             game_config.generation_settings,
             on_completed=lambda generation_id, board: self.round_scheduler.on_board_generated(
@@ -91,4 +80,4 @@ class LobbyBoardsPreparer:
         )
 
 
-__all__ = ["LobbyBoardsPreparer"]
+__all__ = ["SessionBoardsPreparer"]
