@@ -13,7 +13,7 @@ from backend.di.dependencies import *
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.multi.components import RoundReadinessNotifier
+from backend.services.multi.components import PendingBoardWaiter, RoundReadinessNotifier
 from backend.services.multi.round_scheduler import RoundScheduler
 
 
@@ -30,6 +30,7 @@ class StartRoundService:
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
         readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
+        pending_board_waiter: Annotated[PendingBoardWaiter, Depends()],
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -41,6 +42,7 @@ class StartRoundService:
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
         self.readiness_notifier = readiness_notifier
+        self.pending_board_waiter = pending_board_waiter
 
         self.messages: list[tuple[uuid.UUID, Any]] = []
 
@@ -108,23 +110,12 @@ class StartRoundService:
                 await self.round_scheduler.schedule_start(session)
             else:
                 self.background_tasks.add_task(
-                    self._wait_for_generation_and_start_round, session
+                    self.pending_board_waiter.wait_and_schedule_next_round,
+                    session,
+                    24 * 3600,
                 )
 
         await self.multi_repo.save_session(session)
-
-    async def _wait_for_generation_and_start_round(self, session: MultiplayerSession):
-        next_round_index = session.current_round_index + 1
-
-        pending = await self.pending_store.get_pending_round(
-            session.id, next_round_index
-        )
-        if pending is None:
-            raise RuntimeError("Pending board not found")
-
-        await self.pending_store.wait_for_ready(pending.generation_id, 24 * 3600)
-
-        await self.round_scheduler.schedule_start(session)
 
 
 __all__ = ["StartRoundService"]

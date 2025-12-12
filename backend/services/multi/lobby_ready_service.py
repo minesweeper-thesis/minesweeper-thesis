@@ -6,41 +6,34 @@ from fastapi import Depends
 
 logger = logging.getLogger(__name__)
 
-from backend.core.board import Board
 from backend.core.game import *
 from backend.core.lobby import Lobby, create_session
-from backend.core.multi import GameConfig, MultiplayerSession
+from backend.core.multi import MultiplayerSession
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.multi.components import RoundReadinessNotifier
-from backend.services.multi.round_scheduler import RoundScheduler
+from backend.services.multi.components import (
+    LobbyBoardsPreparer,
+    RoundReadinessNotifier,
+)
 
 
 class LobbyReadyService:
     def __init__(
         self,
-        board_repo: BoardRepositoryDep,
         lobby_repo: LobbyRepositoryDep,
         multi_repo: MultiplayerRepositoryDep,
         notification_system: NotificationSystemDep,
-        board_generator: BoardGeneratorDep,
-        pending_store: PendingBoardsStoreDep,
-        round_scheduler: Annotated[RoundScheduler, Depends()],
         readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
+        boards_preparer: Annotated[LobbyBoardsPreparer, Depends()],
     ):
         self.multi_repo = multi_repo
-        self.board_repo = board_repo
         self.lobby_repo = lobby_repo
         self.notification_system = notification_system
-        self.board_generator = board_generator
-        self.pending_store = pending_store
-
-        self.round_scheduler = round_scheduler
         self.readiness_notifier = readiness_notifier
+        self.boards_preparer = boards_preparer
 
     async def _is_session_active(self, session: Optional[MultiplayerSession]) -> bool:
         return session is not None and session.is_started() and not session.is_over()
@@ -96,7 +89,7 @@ class LobbyReadyService:
 
             self.lobby = lobby
             self.session = session
-            await self._prepare_boards()
+            await self.boards_preparer.prepare(self.lobby, self.session)
 
     async def _get_session(
         self, lobby: Lobby, lobby_session: Optional[MultiplayerSession]
@@ -115,54 +108,6 @@ class LobbyReadyService:
             session = await create_session(session_id, lobby)
 
         return session
-
-    async def _prepare_boards(self):
-        to_generate = self.session.rounds_number - len(self.session.rounds)
-
-        for round_index in range(to_generate):
-            game_config = self.lobby.game_config
-            await self._get_board(game_config, round_index)
-
-    async def _get_board(self, game_config: GameConfig, round_index: int):
-        board = await self._get_unsolved_or_generate_board(game_config, round_index)
-
-        if board is not None:
-            await self.round_scheduler.on_board_generated(self.session.id, None, board)
-
-    async def _get_unsolved_or_generate_board(
-        self, game_config: GameConfig, round_index: int
-    ) -> Optional[Board]:
-        user_ids = [user.id for user in self.lobby.users]
-        try:
-            return await self.board_repo.get_unsolved_board(
-                game_config.difficulty_level,
-                generation_settings=game_config.generation_settings,
-                user_ids=user_ids,
-            )
-
-        except UnsolvedBoardNotFound:
-            await self._generate_board(game_config, round_index)
-            return None
-
-    async def _generate_board(self, game_config: GameConfig, round_index: int):
-        generation_id = await self.board_generator.generate_board(
-            game_config.generation_settings,
-            on_completed=lambda generation_id, board: self.round_scheduler.on_board_generated(
-                self.session.id, generation_id, board
-            ),
-        )
-
-        await self.pending_store.create_pending(
-            generation_id,
-            PendingBoardMetadata(
-                generation_settings=game_config.generation_settings,
-                difficulty_level=game_config.difficulty_level,
-                mode=game_config.game_mode,
-                session_id=self.session.id,
-                round_index=round_index,
-            ),
-            24 * 3600,
-        )
 
 
 __all__ = ["LobbyReadyService"]
