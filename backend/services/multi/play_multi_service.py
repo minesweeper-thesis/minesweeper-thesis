@@ -77,11 +77,13 @@ class PlayMultiService:
         )
         self.session.execute_action_for_user(self.user.id, action)
 
-        for user_id, events in self.session.consume_events().items():
-            for event in events:
-                await self.transport.send(user_id, event)
+        events_by_user = self.session.consume_events()
 
         await self.multi_repo.save_session(self.session)
+
+        for user_id, events in events_by_user.items():
+            for event in events:
+                await self.transport.send(user_id, event)
 
 
 __all__ = ["PlayMultiService"]

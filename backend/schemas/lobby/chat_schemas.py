@@ -5,8 +5,7 @@ from pydantic import BaseModel
 
 from backend.core.lobby import *
 from backend.schemas import Response
-
-from ..user import UserResponse
+from backend.schemas.user import UserResponse
 
 
 class LobbyChatMessageRequest(BaseModel):

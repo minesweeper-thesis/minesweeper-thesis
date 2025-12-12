@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Any, Optional
 
 from backend.core.board import Board
 from backend.core.game import *
@@ -82,14 +82,17 @@ class RoundScheduler:
 
         session.end_current_round()
 
-        await self._send_events(session)
+        events_by_user = session.consume_events()
+        session_over = session.is_over()
 
-        if session.is_over():
+        await self.multi_repo.save_session(session)
+
+        await self._publish_events(session.id, events_by_user)
+
+        if session_over:
             transport = self.game_transport_factory.create(session_id)
             for user_id in session.player_ids:
                 await transport.close(user_id)
-
-        await self.multi_repo.save_session(session)
 
     async def start_round(
         self, session_id: uuid.UUID, start_at: datetime, immediately: bool = False
@@ -102,13 +105,15 @@ class RoundScheduler:
 
         session.start_next_round(start_at)
 
-        await self._send_events(session)
+        events_by_user = session.consume_events()
+
+        await self.multi_repo.save_session(session)
+
+        await self._publish_events(session.id, events_by_user)
 
         self.scheduler.schedule(
             self.end_round, end_at, session_id=session_id
         )  # todo: save job id
-
-        await self.multi_repo.save_session(session)
 
     async def _send_countdown(
         self,
@@ -131,13 +136,15 @@ class RoundScheduler:
                     0,
                     countdown_to,
                     round_start_time,
-                    session._next_round.board.start_field,
+                    session.next_round.board.start_field,
                 ),
             )
 
-    async def _send_events(self, session: MultiplayerSession):
-        transport = self.game_transport_factory.create(session.id)
-        for user_id, events in session.consume_events().items():
+    async def _publish_events(
+        self, session_id: uuid.UUID, events_by_user: dict[uuid.UUID, list[Any]]
+    ):
+        transport = self.game_transport_factory.create(session_id)
+        for user_id, events in events_by_user.items():
             for event in events:
                 await transport.send(user_id, event)
 

@@ -6,8 +6,7 @@ from pydantic import BaseModel
 from backend.core.lobby import *
 from backend.schemas import Response, WSRequest
 from backend.schemas.lobby.lobby_schemas import GameConfigResponse
-
-from ..user import UserResponse
+from backend.schemas.user import UserResponse
 
 
 class InviteUserToLobbyRequest(BaseModel):

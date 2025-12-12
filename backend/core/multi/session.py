@@ -52,7 +52,7 @@ class MultiplayerSession:
         )
 
     def is_started(self) -> bool:
-        return len(self.rounds) > 0 and self.rounds[0]._state == "playing"
+        return len(self.rounds) > 0 and self.rounds[0].state == "playing"
 
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
@@ -64,7 +64,7 @@ class MultiplayerSession:
         return self.rounds[self.current_round_index]
 
     @property
-    def _next_round(self) -> MultiplayerRound:
+    def next_round(self) -> MultiplayerRound:
         if self.current_round_index + 1 >= len(self.rounds):
             raise RuntimeError("No next round available")
         return self.rounds[self.current_round_index + 1]

@@ -78,10 +78,9 @@ class StartRoundService:
 
         session.cancel_ready(user.id)
 
-        transport = self.game_transport_factory.create(session.id)
-        await send_user_not_ready(self.notification_system.notify, session, user)
-
         await self.multi_repo.save_session(session)
+
+        await send_user_not_ready(self.notification_system.notify, session, user)
 
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
         session = await self.multi_repo.get_session(session_id)
