@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, model_validator
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
 from backend.schemas.common import GeneratorSchema
-from backend.services.single.play_single_service import NewGameSettings
+from backend.services.dto import NewGameSettings
 
 
 class NewGameRequest(BaseModel):

@@ -50,7 +50,7 @@ class PlayMultiService:
             logger.warning(f"User {user.id} is not part of session {session_id}")
             raise ValueError("User is not part of this session")
 
-        if self.session.is_session_over():
+        if self.session.is_over():
             logger.warning(f"Attempted to join already finished session {session_id}")
             raise ValueError("Session is already over")
 
@@ -59,7 +59,7 @@ class PlayMultiService:
 
     def is_session_over(self) -> bool:
         logger.debug(f"is_session_over(session_id={self.session_id})")
-        return self.session.is_session_over()
+        return self.session.is_over()
 
     async def get_game_state(self):
         logger.debug(

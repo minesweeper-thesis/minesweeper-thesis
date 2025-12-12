@@ -50,7 +50,7 @@ class StartRoundService:
         if user.id not in session.player_ids:
             raise PermissionError("User is not part of this session")
 
-        if session.is_session_over():
+        if session.is_over():
             raise ValueError("Session is already over")
 
     async def toggle_user_ready(self, session_id: uuid.UUID, user: User):

@@ -20,7 +20,6 @@ class RoundScheduler:
         scheduler: SchedulerDep,
         game_transport_factory: GameTransportFactoryDep,
         board_repo: BoardRepositoryDep,
-        lobby_repo: LobbyRepositoryDep,
         notification_system: NotificationSystemDep,
         pending_store: PendingBoardsStoreDep,
     ):
@@ -29,7 +28,6 @@ class RoundScheduler:
         self.game_transport_factory = game_transport_factory
 
         self.board_repo = board_repo
-        self.lobby_repo = lobby_repo
         self.notification_system = notification_system
         self.pending_store = pending_store
 
@@ -86,7 +84,7 @@ class RoundScheduler:
 
         await self._send_events(session)
 
-        if session.is_session_over():
+        if session.is_over():
             transport = self.game_transport_factory.create(session_id)
             for user_id in session.player_ids:
                 await transport.close(user_id)
@@ -100,7 +98,7 @@ class RoundScheduler:
         if not immediately and not session.all_players_ready():
             return
 
-        end_at = start_at + timedelta(seconds=session.max_round_time)
+        end_at = start_at + timedelta(seconds=session.game_config.max_round_time)
 
         session.start_next_round(start_at)
 

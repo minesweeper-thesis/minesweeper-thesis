@@ -24,7 +24,6 @@ class MultiplayerSession:
         lobby_id: uuid.UUID,
         difficulty_level: DifficultyLevel,
         game_config: GameConfig,
-        max_round_time: int,
         player_ids: list[uuid.UUID],
         rounds_number: int,
         rounds: list[MultiplayerRound] = None,  # type: ignore
@@ -36,7 +35,6 @@ class MultiplayerSession:
         self.lobby_id = lobby_id
         self.difficulty_level = difficulty_level
         self.game_config = game_config
-        self.max_round_time = max_round_time
         self.player_ids = player_ids
         self.rounds_number = rounds_number
         self.rounds: list[MultiplayerRound] = rounds
@@ -52,6 +50,9 @@ class MultiplayerSession:
                 SessionScoreItem(user_id=player_id, score=0) for player_id in player_ids
             ]
         )
+
+    def is_started(self) -> bool:
+        return len(self.rounds) > 0 and self.rounds[0]._state == "playing"
 
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
@@ -107,7 +108,7 @@ class MultiplayerSession:
                     session_item.score += item.score
                     break
 
-        if self.is_session_over():
+        if self.is_over():
             self.scoreboard.sort()
             for user_id in self.player_ids:
                 self.events[user_id].append(
@@ -124,7 +125,7 @@ class MultiplayerSession:
         self._current_round.start(start_at, session_scores)
         self._consume_round_events()
 
-    def is_session_over(self) -> bool:
+    def is_over(self) -> bool:
         return (
             len(self.rounds) == self.rounds_number
             and self.rounds[-1].all_gameplays_finished()
@@ -142,7 +143,7 @@ class MultiplayerSession:
             self.clear_ready_players()
             self.ready_locked = False
 
-        if self.is_session_over():
+        if self.is_over():
             self.scoreboard.sort()
             for user_id in self.player_ids:
                 self.events[user_id].append(

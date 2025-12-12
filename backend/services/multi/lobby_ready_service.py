@@ -44,22 +44,8 @@ class LobbyReadyService:
 
         self.round_scheduler = round_scheduler
 
-    async def _is_session_active(
-        self, lobby_session: Optional[MultiplayerSession]
-    ) -> bool:
-        if lobby_session is None:
-            return False
-
-        if len(lobby_session.rounds) == 0:
-            return False
-
-        if lobby_session.rounds[0]._state == "not_started":
-            return False
-
-        if lobby_session.is_session_over():
-            return False
-
-        return True
+    async def _is_session_active(self, session: Optional[MultiplayerSession]) -> bool:
+        return session is not None and session.is_started() and not session.is_over()
 
     async def toggle_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
         logger.debug(f"User {user.id} toggling ready in lobby {lobby_id}")
