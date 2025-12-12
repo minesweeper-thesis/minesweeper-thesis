@@ -13,11 +13,7 @@ from backend.di.dependencies import *
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.multi.helpers import (
-    send_round_ready,
-    send_user_not_ready,
-    send_user_ready,
-)
+from backend.services.multi.components import RoundReadinessNotifier
 from backend.services.multi.round_scheduler import RoundScheduler
 
 
@@ -33,6 +29,7 @@ class StartRoundService:
         game_transport_factory: GameTransportFactoryDep,
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
+        readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -43,6 +40,7 @@ class StartRoundService:
         self.game_transport_factory = game_transport_factory
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
+        self.readiness_notifier = readiness_notifier
 
         self.messages: list[tuple[uuid.UUID, Any]] = []
 
@@ -80,7 +78,9 @@ class StartRoundService:
 
         await self.multi_repo.save_session(session)
 
-        await send_user_not_ready(self.notification_system.notify, session, user)
+        await self.readiness_notifier.send_user_not_ready(
+            self.notification_system.notify, session, user
+        )
 
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
         session = await self.multi_repo.get_session(session_id)
@@ -96,11 +96,13 @@ class StartRoundService:
         session.set_ready(user.id)
 
         transport = self.game_transport_factory.create(session_id)
-        await send_user_ready(self.notification_system.notify, session, user)
+        await self.readiness_notifier.send_user_ready(
+            self.notification_system.notify, session, user
+        )
 
         if session.all_players_ready():
             logger.info(f"All players ready in session {session_id}, starting round")
-            await send_round_ready(transport.send, session)
+            await self.readiness_notifier.send_round_ready(transport.send, session)
 
             if session.is_next_round_available:
                 await self.round_scheduler.schedule_start(session)
@@ -123,11 +125,6 @@ class StartRoundService:
         await self.pending_store.wait_for_ready(pending.generation_id, 24 * 3600)
 
         await self.round_scheduler.schedule_start(session)
-
-    def collect_messages(self) -> list[tuple[uuid.UUID, Any]]:
-        msgs = self.messages
-        self.messages = []
-        return msgs
 
 
 __all__ = ["StartRoundService"]

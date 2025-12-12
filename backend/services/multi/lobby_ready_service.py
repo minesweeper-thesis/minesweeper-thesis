@@ -16,11 +16,7 @@ from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.multi.helpers import (
-    send_round_ready,
-    send_user_not_ready_in_lobby,
-    send_user_ready_in_lobby,
-)
+from backend.services.multi.components import RoundReadinessNotifier
 from backend.services.multi.round_scheduler import RoundScheduler
 
 
@@ -34,6 +30,7 @@ class LobbyReadyService:
         board_generator: BoardGeneratorDep,
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
+        readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -43,6 +40,7 @@ class LobbyReadyService:
         self.pending_store = pending_store
 
         self.round_scheduler = round_scheduler
+        self.readiness_notifier = readiness_notifier
 
     async def _is_session_active(self, session: Optional[MultiplayerSession]) -> bool:
         return session is not None and session.is_started() and not session.is_over()
@@ -67,7 +65,9 @@ class LobbyReadyService:
         lobby.set_user_not_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-        await send_user_not_ready_in_lobby(self.notification_system.notify, lobby, user)
+        await self.readiness_notifier.send_user_not_ready_in_lobby(
+            self.notification_system.notify, lobby, user
+        )
 
     async def set_user_ready_in_lobby(self, lobby_id: uuid.UUID, user: User):
         lobby = self.lobby_repo.get_lobby(lobby_id)
@@ -81,14 +81,18 @@ class LobbyReadyService:
         lobby.set_user_ready(user)
         self.lobby_repo.save_lobby(lobby)
 
-        await send_user_ready_in_lobby(self.notification_system.notify, lobby, user)
+        await self.readiness_notifier.send_user_ready_in_lobby(
+            self.notification_system.notify, lobby, user
+        )
 
         if lobby.all_users_ready():
             logger.info(f"All users ready in lobby {lobby_id}, creating session")
             session = await self._get_session(lobby, lobby_session)
             await self.multi_repo.save_pending(session)
 
-            await send_round_ready(self.notification_system.notify, session)
+            await self.readiness_notifier.send_round_ready(
+                self.notification_system.notify, session
+            )
 
             self.lobby = lobby
             self.session = session
