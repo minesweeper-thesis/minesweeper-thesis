@@ -127,7 +127,7 @@ class RoundScheduler:
                 user_id,
                 RoundCountdown(
                     session.id,
-                    0,
+                    session.current_round_index + 1,
                     countdown_to,
                     round_start_time,
                     session.next_round.board.start_field,

@@ -1,14 +1,17 @@
 import uuid
 
+import pytest
+
 from backend.schemas.user import CurrentUserResponse
 
 
-def test_get_me_returns_current_user_response(client, auth):
+@pytest.mark.anyio
+async def test_get_me_returns_current_user_response(client, auth):
     """GET /me returns full CurrentUserResponse for logged in user."""
     email = f"getme-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="getmepw", nickname="getmeuser")
+    await auth(email=email, password="getmepw", nickname="getmeuser")
 
-    resp = client.get("/api/auth/me")
+    resp = await client.get("/api/auth/me")
     assert resp.status_code == 200
 
     data = resp.json()
@@ -18,12 +21,13 @@ def test_get_me_returns_current_user_response(client, auth):
     assert user.nickname == "getmeuser"
 
 
-def test_patch_me_updates_nickname(client, auth):
+@pytest.mark.anyio
+async def test_patch_me_updates_nickname(client, auth):
     """PATCH /me updates user nickname."""
     email = f"patchme-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="patchpw", nickname="oldnick")
+    await auth(email=email, password="patchpw", nickname="oldnick")
 
-    resp = client.patch(
+    resp = await client.patch(
         "/api/auth/me",
         json={
             "nickname": "newnickname",
@@ -37,13 +41,14 @@ def test_patch_me_updates_nickname(client, auth):
     assert user.nickname == "newnickname"
 
 
-def test_patch_me_updates_settings(client, auth):
+@pytest.mark.anyio
+async def test_patch_me_updates_settings(client, auth):
     """PATCH /me updates user settings."""
     email = f"patchsettings-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="patchpw", nickname="settingsuser")
+    await auth(email=email, password="patchpw", nickname="settingsuser")
 
     new_settings = {"theme": "light", "language": "pl"}
-    resp = client.patch(
+    resp = await client.patch(
         "/api/auth/me",
         json={
             "nickname": "settingsuser",

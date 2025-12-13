@@ -3,23 +3,41 @@ from typing import Optional
 
 from fastapi.testclient import TestClient
 
+from backend.tests.utils.cookies import using_auth_cookie
+
 
 class AuthFixture:
     def __init__(self, test_client):
         self._client = test_client
 
-    def __call__(self, email="test@example.com", password="pw", nickname="test"):
+    async def __call__(self, email="test@example.com", password="pw", nickname="test"):
         payload = {
             "email": email,
             "password": password,
             "nickname": nickname,
             "settings": {},
         }
-        self._client.post("/api/auth/register", json=payload)
-        self._client.post(
-            "/api/auth/login", data={"username": email, "password": password}
+        await self._client.post("/api/auth/register", json=payload)
+
+        login_resp = await self._client.post(
+            "/api/auth/login",
+            data={"username": email, "password": password},
         )
-        return {"email": email, "password": password, "nickname": nickname}
+        auth_cookie = login_resp.cookies.get("auth")
+        assert auth_cookie, "Login did not set 'auth' cookie on the response"
+
+        async with using_auth_cookie(self._client, auth_cookie):
+            me_resp = await self._client.get("/api/auth/me")
+        assert me_resp.status_code == 200
+        user_id = me_resp.json()["id"]
+
+        return {
+            "email": email,
+            "password": password,
+            "nickname": nickname,
+            "auth_cookie": auth_cookie,
+            "user_id": user_id,
+        }
 
 
 def register_and_authenticate(

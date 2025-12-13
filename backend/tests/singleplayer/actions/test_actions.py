@@ -1,14 +1,17 @@
 import json
 import uuid
 
+import pytest
+
 from backend.tests.singleplayer.helpers import create_game
 
 
-def test_websocket_reveal_one_returns_response(client, auth):
+@pytest.mark.anyio
+async def test_websocket_reveal_one_returns_response(client, auth):
     email = f"ws-reveal-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_reveal")
+    await auth(email=email, password="pw", nickname="ws_reveal")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -24,11 +27,12 @@ def test_websocket_reveal_one_returns_response(client, auth):
         assert isinstance(data["revealed_cells"], list)
 
 
-def test_websocket_reveal_start_field_is_safe(client, auth):
+@pytest.mark.anyio
+async def test_websocket_reveal_start_field_is_safe(client, auth):
     email = f"ws-startsafe-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_startsafe")
+    await auth(email=email, password="pw", nickname="ws_startsafe")
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=2)
+    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -45,11 +49,12 @@ def test_websocket_reveal_start_field_is_safe(client, auth):
             assert data["type"] == "reveal"
 
 
-def test_websocket_reveal_returns_valid_cell_values(client, auth):
+@pytest.mark.anyio
+async def test_websocket_reveal_returns_valid_cell_values(client, auth):
     email = f"ws-cellval-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_cellval")
+    await auth(email=email, password="pw", nickname="ws_cellval")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -66,11 +71,12 @@ def test_websocket_reveal_returns_valid_cell_values(client, auth):
                     assert 0 <= val <= 8, f"Invalid cell value: {val}"
 
 
-def test_websocket_flag_returns_response(client, auth):
+@pytest.mark.anyio
+async def test_websocket_flag_returns_response(client, auth):
     email = f"ws-flag-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flag")
+    await auth(email=email, password="pw", nickname="ws_flag")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -83,11 +89,12 @@ def test_websocket_flag_returns_response(client, auth):
         assert data["game_status"] in ["not_started", "in_progress", "finished"]
 
 
-def test_websocket_remove_flag_returns_response(client, auth):
+@pytest.mark.anyio
+async def test_websocket_remove_flag_returns_response(client, auth):
     email = f"ws-unflag-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_unflag")
+    await auth(email=email, password="pw", nickname="ws_unflag")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -102,11 +109,12 @@ def test_websocket_remove_flag_returns_response(client, auth):
         assert "game_status" in data
 
 
-def test_websocket_flag_and_unflag_same_cell(client, auth):
+@pytest.mark.anyio
+async def test_websocket_flag_and_unflag_same_cell(client, auth):
     email = f"ws-flagunflag-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flagunflag")
+    await auth(email=email, password="pw", nickname="ws_flagunflag")
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=1)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -120,11 +128,12 @@ def test_websocket_flag_and_unflag_same_cell(client, auth):
         assert unflag_resp["type"] == "remove_flag"
 
 
-def test_websocket_flag_shows_in_state(client, auth):
+@pytest.mark.anyio
+async def test_websocket_flag_shows_in_state(client, auth):
     email = f"ws-flagstate-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flagstate")
+    await auth(email=email, password="pw", nickname="ws_flagstate")
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=1)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -140,11 +149,12 @@ def test_websocket_flag_shows_in_state(client, auth):
         assert cell_value == -4, f"Cell should be flagged (-4), got {cell_value}"
 
 
-def test_websocket_use_hint_action(client, auth):
+@pytest.mark.anyio
+async def test_websocket_use_hint_action(client, auth):
     email = f"ws-hint-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_hint")
+    await auth(email=email, password="pw", nickname="ws_hint")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -155,14 +165,15 @@ def test_websocket_use_hint_action(client, auth):
         assert data["type"] in ["hint", "error", "reveal", "game_state"]
 
 
-def test_websocket_reveal_out_of_bounds(client, auth):
+@pytest.mark.anyio
+async def test_websocket_reveal_out_of_bounds(client, auth):
     from anyio import EndOfStream
     from starlette.websockets import WebSocketDisconnect
 
     email = f"ws-oob-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_oob")
+    await auth(email=email, password="pw", nickname="ws_oob")
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=1)
 
     try:
         with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
@@ -177,11 +188,12 @@ def test_websocket_reveal_out_of_bounds(client, auth):
         pass
 
 
-def test_websocket_flag_revealed_cell(client, auth):
+@pytest.mark.anyio
+async def test_websocket_flag_revealed_cell(client, auth):
     email = f"ws-flagrev-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flagrev")
+    await auth(email=email, password="pw", nickname="ws_flagrev")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -196,11 +208,12 @@ def test_websocket_flag_revealed_cell(client, auth):
         assert data["type"] in ["flag", "error", "game_over"]
 
 
-def test_websocket_normal_mode(client, auth):
+@pytest.mark.anyio
+async def test_websocket_normal_mode(client, auth):
     email = f"ws-normal-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_normal")
+    await auth(email=email, password="pw", nickname="ws_normal")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         data = json.loads(ws.receive_text())

@@ -1,8 +1,11 @@
-
 import uuid
 
-def test_get_gameplays_global_ranking_returns_paginated_response(client):
-    resp = client.get(
+import pytest
+
+
+@pytest.mark.anyio
+async def test_get_gameplays_global_ranking_returns_paginated_response(client):
+    resp = await client.get(
         "/api/stats/gameplays/global",
         params={
             "rows": 10,
@@ -22,12 +25,14 @@ def test_get_gameplays_global_ranking_returns_paginated_response(client):
 
     assert isinstance(data["items"], list)
 
-def test_get_gameplays_global_ranking_validates_schema(client, auth):
+
+@pytest.mark.anyio
+async def test_get_gameplays_global_ranking_validates_schema(client, auth):
 
     email = f"globalrank-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="globalrankpw", nickname="globalrankuser")
+    await auth(email=email, password="globalrankpw", nickname="globalrankuser")
 
-    resp = client.get(
+    resp = await client.get(
         "/api/stats/gameplays/global",
         params={
             "rows": 10,
@@ -53,6 +58,8 @@ def test_get_gameplays_global_ranking_validates_schema(client, auth):
         assert "nickname" in user
         assert "email" in user
 
-def test_get_gameplays_global_ranking_missing_params_returns_422(client):
-    resp = client.get("/api/stats/gameplays/global")
+
+@pytest.mark.anyio
+async def test_get_gameplays_global_ranking_missing_params_returns_422(client):
+    resp = await client.get("/api/stats/gameplays/global")
     assert resp.status_code == 422

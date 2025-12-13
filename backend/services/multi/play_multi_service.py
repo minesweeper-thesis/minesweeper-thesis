@@ -1,5 +1,6 @@
 import logging
 import uuid
+from contextlib import suppress
 
 from fastapi import BackgroundTasks
 
@@ -75,7 +76,9 @@ class PlayMultiService:
         logger.debug(
             f"User {self.user.id} executing action in session {self.session_id}: {type(action).__name__}"
         )
-        self.session.execute_action_for_user(self.user.id, action)
+
+        with suppress(InvalidAction):
+            self.session.execute_action_for_user(self.user.id, action)
 
         events_by_user = self.session.consume_events()
 

@@ -1,64 +1,76 @@
 import json
 import uuid
 
+import pytest
+
+from backend.tests.utils.cookies import using_auth_cookie
 from backend.tests.utils.test_helpers import create_second_user_and_login
 
 
-def test_notifications_websocket_pending_invitations_request(client, auth):
+@pytest.mark.anyio
+async def test_notifications_websocket_pending_invitations_request(client, auth):
     email = f"notif-pending-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="notifpendingpw", nickname="notifpending")
+    user = await auth(email=email, password="notifpendingpw", nickname="notifpending")
 
-    with client.websocket_connect("/api/ws", cookies=dict(client.cookies)) as ws:
-        ws.receive_text()
+    async with using_auth_cookie(client, user["auth_cookie"]):
+        with client.websocket_connect("/api/ws") as ws:
+            ws.receive_text()
 
-        ws.send_json({"type": "pending_invitations"})
+            ws.send_json({"type": "pending_invitations"})
 
-        data = json.loads(ws.receive_text())
+            data = json.loads(ws.receive_text())
 
         assert data["type"] == "pending_invitations"
         assert "invitations" in data
         assert isinstance(data["invitations"], list)
 
 
-def test_notifications_websocket_pending_invitations_has_invitation(client, auth):
+@pytest.mark.anyio
+async def test_notifications_websocket_pending_invitations_has_invitation(client, auth):
     host_email = f"notif-host-{uuid.uuid4().hex[:8]}@example.com"
     guest_email = f"notif-guest-{uuid.uuid4().hex[:8]}@example.com"
 
-    auth(email=host_email, password="notifhostpw", nickname="notifhost")
-    create_resp = client.post("/api/lobbies")
+    await auth(email=host_email, password="notifhostpw", nickname="notifhost")
+    create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_client = create_second_user_and_login(
+    with create_second_user_and_login(
         guest_email, "notifguestpw", "notifguest"
-    )
-    guest_me = guest_client.get("/api/auth/me")
-    guest_id = guest_me.json()["id"]
+    ) as guest_client:
+        guest_me = guest_client.get("/api/auth/me")
+        guest_id = guest_me.json()["id"]
 
-    client.post(f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id})
+        await client.post(
+            f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
+        )
 
-    with guest_client.websocket_connect(
-        "/api/ws", cookies=dict(guest_client.cookies)
-    ) as ws:
-        ws.receive_text()
+        guest_auth_cookie = next(
+            (c.value for c in guest_client.cookies.jar if c.name == "auth"), None
+        )
+        assert guest_auth_cookie, "Guest login did not set 'auth' cookie"
 
-        ws.send_json({"type": "pending_invitations"})
-        data = json.loads(ws.receive_text())
+        async with using_auth_cookie(guest_client, guest_auth_cookie):
+            with guest_client.websocket_connect("/api/ws") as ws:
+                await ws.receive_text()
 
-        assert data["type"] == "pending_invitations"
-        invitations = data["invitations"]
+                await ws.send_json({"type": "pending_invitations"})
+                data = json.loads(ws.receive_text())
 
-        assert len(invitations) >= 1
+            assert data["type"] == "pending_invitations"
+            invitations = data["invitations"]
 
-        inv = invitations[0]
-        assert "type" in inv
-        assert inv["type"] == "invitation"
-        assert "id" in inv
-        assert "lobby" in inv
+            assert len(invitations) >= 1
 
-        lobby = inv["lobby"]
-        assert "id" in lobby
-        assert "host" in lobby
-        assert "game_config" in lobby
+            inv = invitations[0]
+            assert "type" in inv
+            assert inv["type"] == "invitation"
+            assert "id" in inv
+            assert "lobby" in inv
 
-        host = lobby["host"]
-        assert host["nickname"] == "notifhost"
+            lobby = inv["lobby"]
+            assert "id" in lobby
+            assert "host" in lobby
+            assert "game_config" in lobby
+
+            host = lobby["host"]
+            assert host["nickname"] == "notifhost"

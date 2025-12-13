@@ -118,7 +118,7 @@ def create_board_from_full_board_sync(
     return result
 
 
-def create_game(
+async def create_game(
     client, rows=5, columns=5, mine_count=2, board_id: str | None = None
 ) -> str:
     if board_id is None:
@@ -126,7 +126,7 @@ def create_game(
             rows=rows, columns=columns, mine_count=mine_count
         )
 
-    resp = client.post(
+    resp = await client.post(
         "/api/game/single",
         json={
             "board_id": board_id,

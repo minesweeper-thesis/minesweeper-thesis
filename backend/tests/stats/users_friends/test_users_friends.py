@@ -1,8 +1,11 @@
-
 import uuid
 
-def test_get_users_friends_ranking_requires_auth(client):
-    resp = client.get(
+import pytest
+
+
+@pytest.mark.anyio
+async def test_get_users_friends_ranking_requires_auth(client):
+    resp = await client.get(
         "/api/stats/users/friends",
         params={
             "rows": 10,
@@ -13,11 +16,15 @@ def test_get_users_friends_ranking_requires_auth(client):
     )
     assert resp.status_code == 401
 
-def test_get_users_friends_ranking_returns_paginated_response(client, auth):
-    email = f"userfriendsrank-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="userfriendsrankpw", nickname="userfriendsrankuser")
 
-    resp = client.get(
+@pytest.mark.anyio
+async def test_get_users_friends_ranking_returns_paginated_response(client, auth):
+    email = f"userfriendsrank-{uuid.uuid4().hex[:8]}@example.com"
+    await auth(
+        email=email, password="userfriendsrankpw", nickname="userfriendsrankuser"
+    )
+
+    resp = await client.get(
         "/api/stats/users/friends",
         params={
             "rows": 10,
@@ -34,11 +41,13 @@ def test_get_users_friends_ranking_returns_paginated_response(client, auth):
     assert "total" in data
     assert isinstance(data["items"], list)
 
-def test_get_users_friends_ranking_by_average_time(client, auth):
-    email = f"friendsavgtime-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="friendsavgtimepw", nickname="friendsavgtimeuser")
 
-    resp = client.get(
+@pytest.mark.anyio
+async def test_get_users_friends_ranking_by_average_time(client, auth):
+    email = f"friendsavgtime-{uuid.uuid4().hex[:8]}@example.com"
+    await auth(email=email, password="friendsavgtimepw", nickname="friendsavgtimeuser")
+
+    resp = await client.get(
         "/api/stats/users/friends",
         params={
             "rows": 10,

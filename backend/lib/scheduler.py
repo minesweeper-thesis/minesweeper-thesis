@@ -54,7 +54,7 @@ class AsyncScheduler(Scheduler):
         """Shutdown the scheduler gracefully."""
         if self._scheduler and self._initialized:
             try:
-                self._scheduler.shutdown(wait=False)
+                self._scheduler.shutdown(wait=True)
                 logger.info("Scheduler shutdown complete")
             except Exception as e:
                 logger.warning(f"Scheduler shutdown warning: {e}")

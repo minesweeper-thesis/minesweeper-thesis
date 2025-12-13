@@ -1,14 +1,17 @@
 import json
 import uuid
 
+import pytest
+
 from backend.tests.singleplayer.helpers import create_game
 
 
-def test_websocket_initial_game_state_schema(client, auth):
+@pytest.mark.anyio
+async def test_websocket_initial_game_state_schema(client, auth):
     email = f"ws-init-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_init")
+    await auth(email=email, password="pw", nickname="ws_init")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         data = json.loads(ws.receive_text())
@@ -34,13 +37,14 @@ def test_websocket_initial_game_state_schema(client, auth):
         assert data.get("result") is None
 
 
-def test_websocket_game_over_loss_schema(client, auth):
+@pytest.mark.anyio
+async def test_websocket_game_over_loss_schema(client, auth):
     from starlette.websockets import WebSocketDisconnect
 
     email = f"ws-loss-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_loss")
+    await auth(email=email, password="pw", nickname="ws_loss")
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=7)
+    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=7)
 
     game_over = None
     finished = False
@@ -73,11 +77,12 @@ def test_websocket_game_over_loss_schema(client, auth):
         assert isinstance(game_over["full_board"], list)
 
 
-def test_websocket_get_game_state_returns_current_state(client, auth):
+@pytest.mark.anyio
+async def test_websocket_get_game_state_returns_current_state(client, auth):
     email = f"ws-getstate-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_getstate")
+    await auth(email=email, password="pw", nickname="ws_getstate")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=5)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=5)
 
     with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -99,13 +104,14 @@ def test_websocket_get_game_state_returns_current_state(client, auth):
             assert len(row) == 5
 
 
-def test_websocket_board_state_shows_revealed_cell(client, auth):
+@pytest.mark.anyio
+async def test_websocket_board_state_shows_revealed_cell(client, auth):
     from starlette.websockets import WebSocketDisconnect
 
     email = f"ws-verify-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_verify")
+    await auth(email=email, password="pw", nickname="ws_verify")
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=3)
+    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=3)
 
     try:
         with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:

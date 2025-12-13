@@ -1,13 +1,16 @@
 import uuid
 
+import pytest
+
 from backend.schemas.user import UserResponse
 
 
-def test_search_users_returns_paginated_user_response(client, auth):
+@pytest.mark.anyio
+async def test_search_users_returns_paginated_user_response(client, auth):
     email = f"searchable-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="searchpw", nickname="searchableuser")
+    await auth(email=email, password="searchpw", nickname="searchableuser")
 
-    resp = client.get("/api/search", params={"query": "searchable"})
+    resp = await client.get("/api/search", params={"query": "searchable"})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -33,12 +36,13 @@ def test_search_users_returns_paginated_user_response(client, auth):
         uuid.UUID(str(user.id))
 
 
-def test_search_users_finds_matching_user(client, auth):
+@pytest.mark.anyio
+async def test_search_users_finds_matching_user(client, auth):
     unique_name = f"unique{uuid.uuid4().hex[:8]}"
     email = f"{unique_name}@example.com"
-    auth(email=email, password="findpw", nickname=unique_name)
+    await auth(email=email, password="findpw", nickname=unique_name)
 
-    resp = client.get("/api/search", params={"query": unique_name[:10]})
+    resp = await client.get("/api/search", params={"query": unique_name[:10]})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -48,15 +52,17 @@ def test_search_users_finds_matching_user(client, auth):
     assert unique_name in nicknames
 
 
-def test_search_users_empty_query_works(client, auth):
+@pytest.mark.anyio
+async def test_search_users_empty_query_works(client, auth):
     email = f"emptysearch-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="emptypw", nickname="emptyquery")
+    await auth(email=email, password="emptypw", nickname="emptyquery")
 
-    resp = client.get("/api/search", params={"query": ""})
+    resp = await client.get("/api/search", params={"query": ""})
     assert resp.status_code in [200, 422]
 
 
-def test_search_users_no_auth_works(client):
-    resp = client.get("/api/search", params={"query": "test"})
+@pytest.mark.anyio
+async def test_search_users_no_auth_works(client):
+    resp = await client.get("/api/search", params={"query": "test"})
 
     assert resp.status_code in [200, 401]

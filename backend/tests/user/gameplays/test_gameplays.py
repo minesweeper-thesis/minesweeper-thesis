@@ -1,11 +1,14 @@
 import uuid
 
+import pytest
 
-def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
+
+@pytest.mark.anyio
+async def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
     email = f"gameplays-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="gameplayspw", nickname="gameplaysuser")
+    await auth(email=email, password="gameplayspw", nickname="gameplaysuser")
 
-    resp = client.get("/api/gameplays")
+    resp = await client.get("/api/gameplays")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -19,11 +22,10 @@ def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
     assert isinstance(data["items"], list)
 
 
-def test_get_gameplays_validates_gameplay_response_schema(client, auth):
+@pytest.mark.anyio
+async def test_get_gameplays_validates_gameplay_response_schema(client, auth):
     email = f"gpschema-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="gpschemapw", nickname="gpschemauser")
-
-    import asyncio
+    await auth(email=email, password="gpschemapw", nickname="gpschemauser")
 
     from backend.core.board import Board, DifficultyLevel, GenerationSettings
     from backend.db.db import async_session_maker
@@ -47,9 +49,9 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
                 pass
             return str(board.id)
 
-    board_id = asyncio.run(create_board())
+    board_id = await create_board()
 
-    game_resp = client.post(
+    game_resp = await client.post(
         "/api/game/singleplayer",
         json={
             "board_id": board_id,
@@ -59,7 +61,7 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
 
     if game_resp.status_code == 200:
 
-        resp = client.get("/api/gameplays")
+        resp = await client.get("/api/gameplays")
         assert resp.status_code == 200
         data = resp.json()
 
@@ -78,6 +80,7 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
                 assert isinstance(item["elapsed_time"], (int, float))
 
 
-def test_get_gameplays_without_auth_returns_401(client):
-    resp = client.get("/api/gameplays")
+@pytest.mark.anyio
+async def test_get_gameplays_without_auth_returns_401(client):
+    resp = await client.get("/api/gameplays")
     assert resp.status_code == 401

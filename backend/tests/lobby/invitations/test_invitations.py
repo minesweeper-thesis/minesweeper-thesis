@@ -1,21 +1,25 @@
 import uuid
 
-from fastapi.testclient import TestClient
+import pytest
+from httpx import ASGITransport, AsyncClient
 
 from backend.main import app
 from backend.tests.utils.test_helpers import create_second_user_and_login
 
 
-def test_invite_user_to_lobby_success(client, auth):
+@pytest.mark.anyio
+async def test_invite_user_to_lobby_success(client, auth):
     host_email = f"invitehost-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=host_email, password="invitehostpw", nickname="invitehost")
+    await auth(email=host_email, password="invitehostpw", nickname="invitehost")
 
-    create_resp = client.post("/api/lobbies")
+    create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
     guest_email = f"inviteguest-{uuid.uuid4().hex[:8]}@example.com"
-    with TestClient(app, base_url="https://testserver") as client2:
-        reg_resp = client2.post(
+    async with AsyncClient(
+        transport=ASGITransport(app), base_url="https://testserver"
+    ) as client2:
+        reg_resp = await client2.post(
             "/api/auth/register",
             json={
                 "email": guest_email,
@@ -27,7 +31,7 @@ def test_invite_user_to_lobby_success(client, auth):
         guest_id = reg_resp.json()["id"] if reg_resp.status_code == 201 else None
 
     if guest_id:
-        resp = client.post(
+        resp = await client.post(
             f"/api/lobbies/{lobby_id}/invitations",
             json={
                 "user_id": guest_id,
@@ -36,8 +40,9 @@ def test_invite_user_to_lobby_success(client, auth):
         assert resp.status_code in [200, 204]
 
 
-def test_invite_user_without_auth_returns_401(client):
-    resp = client.post(
+@pytest.mark.anyio
+async def test_invite_user_without_auth_returns_401(client):
+    resp = await client.post(
         f"/api/lobbies/{uuid.uuid4()}/invitations",
         json={
             "user_id": str(uuid.uuid4()),
@@ -46,12 +51,13 @@ def test_invite_user_without_auth_returns_401(client):
     assert resp.status_code == 401
 
 
-def test_reject_invitation_success(client, auth):
+@pytest.mark.anyio
+async def test_reject_invitation_success(client, auth):
     host_email = f"rejecthost-{uuid.uuid4().hex[:8]}@example.com"
     guest_email = f"rejectguest-{uuid.uuid4().hex[:8]}@example.com"
 
-    auth(email=host_email, password="rejecthostpw", nickname="rejecthost")
-    create_resp = client.post("/api/lobbies")
+    await auth(email=host_email, password="rejecthostpw", nickname="rejecthost")
+    create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
     guest_client = create_second_user_and_login(
@@ -60,9 +66,12 @@ def test_reject_invitation_success(client, auth):
     guest_me = guest_client.get("/api/auth/me")
     guest_id = guest_me.json()["id"]
 
-    client.post(f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id})
+    await client.post(
+        f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
+    )
 
 
-def test_reject_invitation_without_auth_returns_401(client):
-    resp = client.delete(f"/api/invitations/{uuid.uuid4()}")
+@pytest.mark.anyio
+async def test_reject_invitation_without_auth_returns_401(client):
+    resp = await client.delete(f"/api/invitations/{uuid.uuid4()}")
     assert resp.status_code == 401

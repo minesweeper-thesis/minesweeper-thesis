@@ -34,10 +34,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     await init_db()
     yield
-    await engine.dispose()
-
-    # Shutdown scheduler
     shutdown_scheduler()
+    await engine.dispose()
 
 
 api = FastAPI()
