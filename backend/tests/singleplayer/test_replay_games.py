@@ -16,7 +16,7 @@ json_files = glob.glob(os.path.join(MESSAGES_DIR, "*.json"))
 
 @pytest.mark.parametrize("json_file", json_files)
 @pytest.mark.anyio
-async def test_replay_game(client, auth, json_file):
+async def test_replay_game(client, auth_ws, ws_client, json_file):
     with open(json_file, "r") as f:
         messages = json.load(f)
 
@@ -43,7 +43,7 @@ async def test_replay_game(client, auth, json_file):
     board_id = create_board_from_full_board_sync(full_board, start_field)
 
     unique_id = uuid.uuid4().hex[:8]
-    await auth(
+    auth_ws(
         email=f"replay-{unique_id}@example.com",
         password="pw",
         nickname=f"replay_{unique_id}",
@@ -51,7 +51,7 @@ async def test_replay_game(client, auth, json_file):
 
     gameplay_id = await create_game(client, board_id=board_id)
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         for i, message in enumerate(messages):
             msg_type = message["type"]
             msg_data = json.loads(message["data"])
@@ -59,7 +59,7 @@ async def test_replay_game(client, auth, json_file):
             if msg_type == "send":
                 ws.send_json(msg_data)
             elif msg_type == "receive":
-                received_text = await ws.receive_text()
+                received_text = ws.receive_text()
                 received_data = json.loads(received_text)
 
                 def clean_data(data):

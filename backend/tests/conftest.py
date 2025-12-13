@@ -48,3 +48,20 @@ async def client(test_db):
         transport=ASGITransport(app), base_url="https://testserver"
     ) as ac:
         yield ac
+
+
+@pytest.fixture
+def ws_client(test_db):
+    """Synchronous client for WebSocket tests"""
+    from fastapi.testclient import TestClient
+
+    with TestClient(app, base_url="https://testserver") as c:
+        yield c
+
+
+@pytest.fixture
+def auth_ws(ws_client):
+    """Synchronous auth fixture for WebSocket tests"""
+    from backend.tests.utils.helpers import AuthFixtureSync
+
+    return AuthFixtureSync(ws_client)
