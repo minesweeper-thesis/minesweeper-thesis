@@ -60,6 +60,14 @@ def ws_client(test_db):
 
 
 @pytest.fixture
+def auth(client):
+    """Async auth fixture for AsyncClient (HTTP tests)"""
+    from backend.tests.utils.helpers import AuthFixture
+
+    return AuthFixture(client)
+
+
+@pytest.fixture
 def auth_ws(ws_client):
     """Synchronous auth fixture for WebSocket tests"""
     from backend.tests.utils.helpers import AuthFixtureSync

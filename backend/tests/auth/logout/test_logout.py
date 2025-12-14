@@ -13,7 +13,6 @@ async def test_logout_clears_auth_cookie(client, auth):
 
     resp = await client.post("/api/auth/logout")
     assert resp.status_code == 204
-    # Cookie should be cleared or expired
     assert "auth" not in client.cookies or client.cookies.get("auth") == ""
 
 

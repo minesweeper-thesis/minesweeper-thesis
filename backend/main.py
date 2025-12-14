@@ -29,7 +29,6 @@ backend_logger.propagate = False
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    # Initialize scheduler with the main event loop
     initialize_scheduler()
 
     await init_db()

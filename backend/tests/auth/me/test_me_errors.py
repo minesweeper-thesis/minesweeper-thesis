@@ -29,12 +29,10 @@ async def test_delete_user_by_id_requires_superuser(client, auth):
     email = f"deleteme-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="deletepw", nickname="deleteuser")
 
-    # Get the user id from /me
     me_resp = await client.get("/api/auth/me")
     assert me_resp.status_code == 200
     user_id = me_resp.json()["id"]
 
-    # Regular user trying to delete themselves gets 403
     resp = await client.delete(f"/api/auth/{user_id}")
     assert resp.status_code == 403
 

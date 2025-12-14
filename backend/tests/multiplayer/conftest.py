@@ -2,7 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from backend.main import api, app
-from backend.tests.utils.helpers import AuthFixture
+from backend.tests.utils.helpers import AuthFixture, AuthFixtureSync
 
 
 class ImmediateBoardGenerator:
@@ -120,15 +120,32 @@ def board_generator_override():
     api.dependency_overrides.pop(LocalBoardGenerator, None)
 
 
-@pytest.fixture(scope="session")
-def client(test_db, board_generator_override):
-    with TestClient(app, base_url="https://testserver") as c:
-        yield c
+@pytest.fixture
+async def client(test_db, board_generator_override):
+    from httpx import ASGITransport, AsyncClient
+
+    async with AsyncClient(
+        transport=ASGITransport(app), base_url="https://testserver"
+    ) as ac:
+        yield ac
 
 
 @pytest.fixture
 def auth(client):
     return AuthFixture(client)
+
+
+@pytest.fixture
+def ws_client(test_db):
+    """Synchronous client for WebSocket tests"""
+    with TestClient(app, base_url="https://testserver") as c:
+        yield c
+
+
+@pytest.fixture
+def auth_ws(ws_client):
+    """Synchronous auth fixture for WebSocket tests"""
+    return AuthFixtureSync(ws_client)
 
 
 @pytest.fixture

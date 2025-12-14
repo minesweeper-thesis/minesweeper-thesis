@@ -40,15 +40,12 @@ async def using_auth_cookie(
 @contextmanager
 def using_auth_cookie_sync(client: TestClient, auth_cookie: str) -> Iterator[None]:
     """Synchronous version of using_auth_cookie for TestClient (WebSocket tests)"""
-    # Store previous auth cookies
     previous_auth_cookies = [c for c in client.cookies.jar if c.name == "auth"]
 
-    # Set new auth cookie
     client.cookies.set("auth", auth_cookie)
     try:
         yield
     finally:
-        # Clear current auth cookies
         for c in list(client.cookies.jar):
             if c.name == "auth":
                 try:
@@ -56,6 +53,5 @@ def using_auth_cookie_sync(client: TestClient, auth_cookie: str) -> Iterator[Non
                 except KeyError:
                     pass
 
-        # Restore previous auth cookies
         for c in previous_auth_cookies:
             client.cookies.jar.set_cookie(c)
