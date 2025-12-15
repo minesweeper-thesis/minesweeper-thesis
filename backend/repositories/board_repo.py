@@ -164,8 +164,8 @@ class BoardRepository(protocols.BoardRepository):
                             == MultiplayerRoundORM.session_id
                         )
                         & (
-                            MultiplayerGameplayORM.round_number
-                            == MultiplayerRoundORM.round_number
+                            MultiplayerGameplayORM.round_index
+                            == MultiplayerRoundORM.round_index
                         )
                         & (MultiplayerGameplayORM.user_id.in_(user_ids)),
                     )

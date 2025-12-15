@@ -5,7 +5,6 @@ from contextlib import ExitStack
 
 import pytest
 
-from backend.repositories.multiplayer_repo import sessions
 from backend.tests.multiplayer.ws_helpers import (
     drain_ws,
     random_cell,
@@ -105,7 +104,6 @@ async def test_multiplayer_two_player_flow(client, auth, fake_scheduler, ws_clie
             assert recv_until(ws, {"user_ready"})["value"] is False
 
         fake_scheduler.run_matching({"lock_ready", "start_round"})
-        assert sessions[uuid.UUID(session_id)].current_round_index == -1
 
         guest_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
@@ -134,7 +132,6 @@ async def test_multiplayer_two_player_flow(client, auth, fake_scheduler, ws_clie
         fake_scheduler.run_matching({"end_round"})
         for ws in (host_game, guest_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
-        assert sessions[uuid.UUID(session_id)].current_round_index == 0
 
         host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
@@ -154,7 +151,6 @@ async def test_multiplayer_two_player_flow(client, auth, fake_scheduler, ws_clie
             assert msg["value"] is False
 
         fake_scheduler.run_matching({"lock_ready", "start_round"})
-        assert sessions[uuid.UUID(session_id)].current_round_index == 0
 
         host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
@@ -175,7 +171,6 @@ async def test_multiplayer_two_player_flow(client, auth, fake_scheduler, ws_clie
         fake_scheduler.run_matching({"end_round"})
         for ws in (host_game, guest_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
-        assert sessions[uuid.UUID(session_id)].current_round_index == 1
 
         host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):

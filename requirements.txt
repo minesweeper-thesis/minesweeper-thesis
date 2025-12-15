@@ -78,6 +78,7 @@ python-dateutil==2.9.0.post0
 python-multipart==0.0.20
 pytz==2025.2
 PyYAML==6.0.2
+redis==5.2.1
 rich==14.0.0
 rich-toolkit==0.14.7
 s3transfer==0.14.0

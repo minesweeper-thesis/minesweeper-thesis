@@ -58,8 +58,12 @@ class MultiplayerGameplay(Gameplay):
         return self._gameplay.result
 
     @property
-    def revealed_cells(self) -> list[tuple[int, int]]:
+    def revealed_cells(self) -> list[Cell]:
         return self._gameplay.get_revealed_cells()
+
+    @property
+    def flagged_cells(self) -> list[Cell]:
+        return self._gameplay.get_flagged_cells()
 
     @property
     def board(self) -> Board:

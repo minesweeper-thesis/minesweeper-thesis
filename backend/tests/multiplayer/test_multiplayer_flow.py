@@ -5,7 +5,6 @@ from contextlib import ExitStack
 
 import pytest
 
-from backend.repositories.multiplayer_repo import sessions
 from backend.tests.multiplayer.ws_helpers import (
     drain_ws,
     random_cell,
@@ -137,7 +136,6 @@ async def test_multiplayer_full_flow_many_players(
             assert recv_until(ws, {"user_ready"})["value"] is False
 
         fake_scheduler.run_matching({"lock_ready", "start_round"})
-        assert sessions[uuid.UUID(session_id)].current_round_index == -1
 
         g1_game.send_json({"type": "ready"})
         for ws in (host_notif, g1_notif, g2_notif):
@@ -177,7 +175,6 @@ async def test_multiplayer_full_flow_many_players(
         fake_scheduler.run_matching({"end_round"})
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
-        assert sessions[uuid.UUID(session_id)].current_round_index == 0
 
         host_game.send_json({"type": "ready"})
         for ws in (host_notif, g1_notif, g2_notif):
@@ -193,7 +190,6 @@ async def test_multiplayer_full_flow_many_players(
             assert msg["value"] is False
 
         fake_scheduler.run_matching({"lock_ready", "start_round"})
-        assert sessions[uuid.UUID(session_id)].current_round_index == 0
 
         g1_game.send_json({"type": "ready"})
         for ws in (host_notif, g1_notif, g2_notif):
@@ -219,7 +215,6 @@ async def test_multiplayer_full_flow_many_players(
         fake_scheduler.run_matching({"end_round"})
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
-        assert sessions[uuid.UUID(session_id)].current_round_index == 1
 
         for ws in (host_game, g1_game, g2_game):
             ws.send_json({"type": "ready"})

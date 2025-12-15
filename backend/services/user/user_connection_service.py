@@ -38,7 +38,7 @@ class UserConnectionService:
         await self._notify_user_online_status(user)
 
     async def _notify_current_lobby(self, user: User):
-        lobby = self.lobby_repo.get_user_lobby(user.id)
+        lobby = await self.lobby_repo.get_user_lobby(user.id)
         session = (
             await self.multi_repo.get_pending_for_lobby(lobby.id) if lobby else None
         )
@@ -57,7 +57,7 @@ class UserConnectionService:
 
     async def _notify_user_online_status(self, user: User):
         user = await self.user_repo.get_user(user.id)
-        user_lobby = self.lobby_repo.get_user_lobby(user.id)
+        user_lobby = await self.lobby_repo.get_user_lobby(user.id)
         if user_lobby:
             data = UserOnlineUpdated(lobby_id=user_lobby.id, user=user)
             for lobby_user in user_lobby.users:

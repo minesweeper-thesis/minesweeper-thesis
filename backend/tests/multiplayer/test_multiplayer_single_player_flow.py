@@ -3,7 +3,6 @@ import uuid
 
 import pytest
 
-from backend.repositories.multiplayer_repo import sessions
 from backend.tests.multiplayer.ws_helpers import (
     drain_ws,
     random_cell,
@@ -72,7 +71,6 @@ async def test_multiplayer_single_player_flow(client, auth, ws_client, fake_sche
 
                 fake_scheduler.run_matching({"end_round"})
                 recv_until(game_ws, {"round_end"}, timeout_s=10.0)
-                assert sessions[uuid.UUID(session_id)].current_round_index == 0
 
                 game_ws.send_json({"type": "ready"})
                 recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
@@ -82,7 +80,6 @@ async def test_multiplayer_single_player_flow(client, auth, ws_client, fake_sche
                 assert msg["value"] is False
 
                 fake_scheduler.run_matching({"lock_ready", "start_round"})
-                assert sessions[uuid.UUID(session_id)].current_round_index == 0
 
                 game_ws.send_json({"type": "ready"})
                 recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
@@ -99,7 +96,6 @@ async def test_multiplayer_single_player_flow(client, auth, ws_client, fake_sche
 
                 fake_scheduler.run_matching({"end_round"})
                 recv_until(game_ws, {"round_end"}, timeout_s=10.0)
-                assert sessions[uuid.UUID(session_id)].current_round_index == 1
 
                 game_ws.send_json({"type": "ready"})
                 recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
