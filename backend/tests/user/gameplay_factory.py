@@ -7,7 +7,7 @@ from backend.core.multi.config import Generator
 from backend.core.user import User
 from backend.db.db import async_session_maker
 from backend.lib.board_generator import LocalBoardGenerator
-from backend.lib.pending_boards import get_pending_boards_store
+from backend.lib.pending_boards import RedisPendingStore
 from backend.repositories.board_repo import BoardRepository
 from backend.repositories.singleplayer_repo import SingleplayerRepository
 from backend.services.single import CreateSingleGameplayService
@@ -25,9 +25,9 @@ async def create_gameplay_via_service(user_id: uuid.UUID) -> uuid.UUID:
         board_generator = LocalBoardGenerator(BackgroundTasks())
 
         create = CreateSingleGameplayService(
-            board_repo, gp_repo, board_generator, get_pending_boards_store()
+            board_repo, gp_repo, board_generator, RedisPendingStore()
         )
-        play = PlaySingleService(board_repo, gp_repo, get_pending_boards_store())
+        play = PlaySingleService(board_repo, gp_repo, RedisPendingStore())
 
         user = User(
             id=user_id,

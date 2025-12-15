@@ -22,6 +22,7 @@ db.engine = create_async_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
 db.async_session_maker = async_sessionmaker(db.engine, expire_on_commit=False)
 
 from backend.db.db import engine, get_async_session
+from backend.lib.redis_client import get_redis
 from backend.main import app
 from backend.repositories.orm import Base
 
@@ -57,12 +58,25 @@ async def session():
 
 @pytest.fixture(autouse=True)
 async def override_dependency(session):
-    async def _override():
+    from backend.lib.redis_client import reset_test_redis
+
+    reset_test_redis()
+
+    async def _override_db():
         yield session
 
-    app.dependency_overrides[get_async_session] = _override
+    async def _override_redis():
+        from backend.lib.redis_client import get_redis
+
+        async for redis_client in get_redis():
+            yield redis_client
+
+    app.dependency_overrides[get_async_session] = _override_db
+    app.dependency_overrides[get_redis] = _override_redis
     yield
     app.dependency_overrides = {}
+
+    reset_test_redis()
 
 
 @pytest.fixture

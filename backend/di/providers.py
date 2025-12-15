@@ -3,9 +3,10 @@ from typing import Callable
 from fastapi import Depends
 
 from backend import protocols as p
-from backend.config import REDIS_URL
+from backend.db.db import get_async_session
 from backend.lib.board_generator import LocalBoardGenerator
-from backend.lib.pending_boards import get_pending_boards_store
+from backend.lib.pending_boards import RedisPendingStore
+from backend.lib.redis_client import get_redis
 from backend.lib.scheduler import get_scheduler
 from backend.repositories import *
 
@@ -22,25 +23,30 @@ def _get_game_transport_factory():
     return get_game_transport_factory()
 
 
-_lobby_repo = InMemoryLobbyRepository()
+def _get_lobby_repository(redis=Depends(get_redis)):
+    return RedisLobbyRepository(redis)
 
 
-def _get_lobby_repo():
-    return _lobby_repo if REDIS_URL is None else RedisLobbyRepository()
+def _get_multiplayer_repository(
+    session=Depends(get_async_session), redis=Depends(get_redis)
+):
+    return RedisMultiplayerRepository(session, redis)
+
+
+def _get_pending_boards_store(redis=Depends(get_redis)):
+    return RedisPendingStore(redis)
 
 
 registry: dict[type, Callable] = {
     p.BoardRepository: BoardRepository,
     p.SingleplayerRepository: SingleplayerRepository,
-    p.MultiplayerRepository: (
-        RedisMultiplayerRepository if REDIS_URL else InMemoryMultiplayerRepository
-    ),
+    p.MultiplayerRepository: _get_multiplayer_repository,
     p.UserRepository: UserRepository,
     p.FriendsRepository: FriendsRepository,
     p.StatsRepository: StatsRepository,
-    p.LobbyRepository: _get_lobby_repo,
+    p.LobbyRepository: _get_lobby_repository,
     p.BoardGenerator: LocalBoardGenerator,
-    p.PendingBoardsStore: get_pending_boards_store,
+    p.PendingBoardsStore: _get_pending_boards_store,
     p.NotificationSystem: _get_notification_system,
     p.GameTransportFactory: _get_game_transport_factory,
     p.Scheduler: get_scheduler,

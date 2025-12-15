@@ -12,7 +12,6 @@ from fastapi_pagination import add_pagination
 
 from backend import routers
 from backend.config import FRONTEND_URL
-from backend.lib.redis_client import redis_client
 from backend.lib.scheduler import initialize_scheduler, shutdown_scheduler
 
 from .db import *
@@ -36,8 +35,6 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
     shutdown_scheduler()
     await engine.dispose()
-    if redis_client:
-        await redis_client.aclose()
 
 
 api = FastAPI()
