@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_gameplays_global_ranking_returns_paginated_response(client):
     resp = await client.get(
         "/api/stats/gameplays/global",
@@ -26,7 +26,7 @@ async def test_get_gameplays_global_ranking_returns_paginated_response(client):
     assert isinstance(data["items"], list)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_gameplays_global_ranking_validates_schema(client, auth):
 
     email = f"globalrank-{uuid.uuid4().hex[:8]}@example.com"
@@ -59,7 +59,7 @@ async def test_get_gameplays_global_ranking_validates_schema(client, auth):
         assert "email" in user
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_gameplays_global_ranking_missing_params_returns_422(client):
     resp = await client.get("/api/stats/gameplays/global")
     assert resp.status_code == 422

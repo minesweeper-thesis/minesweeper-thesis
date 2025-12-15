@@ -4,7 +4,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_upload_avatar_success(client, auth):
     email = f"avatar-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="avatarpw", nickname="avataruser")
@@ -33,7 +33,7 @@ async def test_upload_avatar_success(client, auth):
     assert len(data["avatar_url"]) > 0
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_upload_avatar_invalid_file_type_returns_400(client, auth):
     email = f"badavatar-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="badavatarpw", nickname="badavataruser")
@@ -49,7 +49,7 @@ async def test_upload_avatar_invalid_file_type_returns_400(client, auth):
     assert "Invalid file type" in data["detail"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_upload_avatar_without_auth_returns_401(client):
     png_data = b"\x89PNG\r\n\x1a\n..."
 
@@ -61,7 +61,7 @@ async def test_upload_avatar_without_auth_returns_401(client):
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_avatar_success(client, auth):
     email = f"delavatar-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="delavatarpw", nickname="delavataruser")
@@ -71,7 +71,7 @@ async def test_delete_avatar_success(client, auth):
     assert resp.status_code in [200, 204]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_avatar_without_auth_returns_401(client):
     resp = await client.delete("/api/avatar")
     assert resp.status_code == 401

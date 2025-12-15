@@ -7,7 +7,7 @@ from backend.main import app
 from backend.schemas.user import UserResponse
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_friends_returns_paginated_user_response(client, auth):
     email = f"getfriends-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="friendspw", nickname="getfriendsuser")
@@ -27,13 +27,13 @@ async def test_get_friends_returns_paginated_user_response(client, auth):
     assert data["total"] == 0
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_friends_without_auth_returns_401(client):
     resp = await client.get("/api/friends")
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_friends_shows_accepted_friend(client, auth):
     user1_email = f"user1-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=user1_email, password="user1pw", nickname="user1friend")

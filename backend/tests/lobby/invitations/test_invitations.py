@@ -7,7 +7,7 @@ from backend.main import app
 from backend.tests.utils.test_helpers import create_second_user_and_login
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_invite_user_to_lobby_success(client, auth):
     host_email = f"invitehost-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=host_email, password="invitehostpw", nickname="invitehost")
@@ -40,7 +40,7 @@ async def test_invite_user_to_lobby_success(client, auth):
         assert resp.status_code in [200, 204]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_invite_user_without_auth_returns_401(client):
     resp = await client.post(
         f"/api/lobbies/{uuid.uuid4()}/invitations",
@@ -51,7 +51,7 @@ async def test_invite_user_without_auth_returns_401(client):
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_reject_invitation_success(client, auth):
     host_email = f"rejecthost-{uuid.uuid4().hex[:8]}@example.com"
     guest_email = f"rejectguest-{uuid.uuid4().hex[:8]}@example.com"
@@ -71,7 +71,7 @@ async def test_reject_invitation_success(client, auth):
     )
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_reject_invitation_without_auth_returns_401(client):
     resp = await client.delete(f"/api/invitations/{uuid.uuid4()}")
     assert resp.status_code == 401

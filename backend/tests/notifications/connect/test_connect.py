@@ -6,16 +6,18 @@ import pytest
 from backend.tests.utils.cookies import using_auth_cookie_sync
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_notifications_websocket_connect_returns_current_lobby_response(
     auth_ws, ws_client
 ):
     email = f"notif-connect-{uuid.uuid4().hex[:8]}@example.com"
     user = auth_ws(email=email, password="notifconnectpw", nickname="notifconnect")
 
-    with using_auth_cookie_sync(ws_client, user["auth_cookie"]):
-        with ws_client.websocket_connect("/api/ws") as ws:
-            data = json.loads(ws.receive_text())
+    with (
+        using_auth_cookie_sync(ws_client, user["auth_cookie"]),
+        ws_client.websocket_connect("/api/ws") as ws,
+    ):
+        data = json.loads(ws.receive_text())
 
     assert data["type"] == "current_lobby"
     assert "lobby" in data
@@ -28,7 +30,7 @@ async def test_notifications_websocket_connect_returns_current_lobby_response(
         assert "game_config" in lobby
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_notifications_websocket_connect_with_active_lobby(
     client, auth_ws, ws_client
 ):
@@ -41,9 +43,11 @@ async def test_notifications_websocket_connect_with_active_lobby(
         create_resp = await client.post("/api/lobbies")
         lobby_id = create_resp.json()["id"]
 
-    with using_auth_cookie_sync(ws_client, user["auth_cookie"]):
-        with ws_client.websocket_connect("/api/ws") as ws:
-            data = json.loads(ws.receive_text())
+    with (
+        using_auth_cookie_sync(ws_client, user["auth_cookie"]),
+        ws_client.websocket_connect("/api/ws") as ws,
+    ):
+        data = json.loads(ws.receive_text())
 
     assert data["type"] == "current_lobby"
 
@@ -53,7 +57,7 @@ async def test_notifications_websocket_connect_with_active_lobby(
         assert lobby["host"]["nickname"] == "notiflobby"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_notifications_websocket_without_auth_fails(ws_client):
     try:
         with ws_client.websocket_connect("/api/ws") as ws:

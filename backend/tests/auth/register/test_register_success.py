@@ -5,7 +5,7 @@ import pytest
 from backend.schemas.user import CurrentUserResponse
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_register_success_validates_current_user_response(client):
     email = f"reg-{uuid.uuid4().hex[:8]}@example.com"
     payload = {
@@ -33,7 +33,7 @@ async def test_register_success_validates_current_user_response(client):
     uuid.UUID(str(user.id))
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_login_success_sets_auth_cookie(client):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 

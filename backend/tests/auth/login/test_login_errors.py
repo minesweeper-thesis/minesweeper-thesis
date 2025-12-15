@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_login_invalid_credentials_returns_400(client):
     email = f"badlogin-{uuid.uuid4().hex[:8]}@example.com"
 
@@ -31,9 +31,8 @@ async def test_login_invalid_credentials_returns_400(client):
     assert data["detail"] == "LOGIN_BAD_CREDENTIALS"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_login_nonexistent_user_returns_400(client):
-    """POST /login with non-existent user returns 400."""
     resp = await client.post(
         "/api/auth/login",
         data={

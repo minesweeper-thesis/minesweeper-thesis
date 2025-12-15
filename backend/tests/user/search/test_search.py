@@ -5,7 +5,7 @@ import pytest
 from backend.schemas.user import UserResponse
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_search_users_returns_paginated_user_response(client, auth):
     email = f"searchable-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="searchpw", nickname="searchableuser")
@@ -36,7 +36,7 @@ async def test_search_users_returns_paginated_user_response(client, auth):
         uuid.UUID(str(user.id))
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_search_users_finds_matching_user(client, auth):
     unique_name = f"unique{uuid.uuid4().hex[:8]}"
     email = f"{unique_name}@example.com"
@@ -52,7 +52,7 @@ async def test_search_users_finds_matching_user(client, auth):
     assert unique_name in nicknames
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_search_users_empty_query_works(client, auth):
     email = f"emptysearch-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="emptypw", nickname="emptyquery")
@@ -61,7 +61,7 @@ async def test_search_users_empty_query_works(client, auth):
     assert resp.status_code in [200, 422]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_search_users_no_auth_works(client):
     resp = await client.get("/api/search", params={"query": "test"})
 

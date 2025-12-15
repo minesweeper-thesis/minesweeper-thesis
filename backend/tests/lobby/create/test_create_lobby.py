@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_create_lobby_returns_lobby_response(client, auth):
     email = f"lobbyhost-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="lobbyhostpw", nickname="lobbyhost")
@@ -39,7 +39,7 @@ async def test_create_lobby_returns_lobby_response(client, auth):
     assert "mine_count" in dl
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_create_lobby_without_auth_returns_401(client):
     resp = await client.post("/api/lobbies")
     assert resp.status_code == 401

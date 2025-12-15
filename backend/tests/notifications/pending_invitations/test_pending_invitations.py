@@ -7,7 +7,7 @@ from backend.tests.utils.cookies import using_auth_cookie_sync
 from backend.tests.utils.test_helpers import create_second_user_and_login
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_notifications_websocket_pending_invitations_request(auth_ws, ws_client):
     email = f"notif-pending-{uuid.uuid4().hex[:8]}@example.com"
     user = auth_ws(email=email, password="notifpendingpw", nickname="notifpending")
@@ -25,7 +25,7 @@ async def test_notifications_websocket_pending_invitations_request(auth_ws, ws_c
     assert isinstance(data["invitations"], list)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_notifications_websocket_pending_invitations_has_invitation(
     client, auth_ws, ws_client
 ):

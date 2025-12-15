@@ -7,7 +7,7 @@ from backend.main import app
 from backend.schemas.user import FriendRequestResponse
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_pending_requests_returns_paginated_response(client, auth):
     email = f"pending-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="pendingpw", nickname="pendinguser")
@@ -22,7 +22,7 @@ async def test_get_pending_requests_returns_paginated_response(client, auth):
     assert isinstance(data["items"], list)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_pending_requests_shows_incoming_request(client, auth):
     user1_email = f"sender-{uuid.uuid4().hex[:8]}@example.com"
     user2_email = f"receiver-{uuid.uuid4().hex[:8]}@example.com"
@@ -69,13 +69,13 @@ async def test_get_pending_requests_shows_incoming_request(client, auth):
                     assert fr.status.value in ["pending", "accepted", "rejected"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_pending_requests_without_auth_returns_401(client):
     resp = await client.get("/api/friend-requests/pending")
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_sent_requests_returns_paginated_response(client, auth):
     email = f"sent-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="sentpw", nickname="sentuser")
@@ -89,7 +89,7 @@ async def test_get_sent_requests_returns_paginated_response(client, auth):
     assert "total" in data
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_sent_requests_shows_outgoing_request(client, auth):
     user1_email = f"outsender-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=user1_email, password="outsenderpw", nickname="outsender")
@@ -121,7 +121,7 @@ async def test_get_sent_requests_shows_outgoing_request(client, auth):
         assert user2_id in friend_ids
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_friend_request_returns_friend_request_response(client, auth):
     user1_email = f"reqsender-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=user1_email, password="reqsenderpw", nickname="reqsender")
@@ -159,7 +159,7 @@ async def test_send_friend_request_returns_friend_request_response(client, auth)
         assert fr.friend.nickname == "reqreceiver"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_friend_request_to_self_returns_400(client, auth):
     email = f"selfreq-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="selfreqpw", nickname="selfrequser")
@@ -174,7 +174,7 @@ async def test_send_friend_request_to_self_returns_400(client, auth):
     assert "detail" in data
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_friend_request_duplicate_returns_400(client, auth):
     user1_email = f"dupreq1-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=user1_email, password="dupreq1pw", nickname="dupreq1")
@@ -202,7 +202,7 @@ async def test_send_friend_request_duplicate_returns_400(client, auth):
         assert resp2.status_code == 400
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_friend_request_to_nonexistent_user_returns_404(client, auth):
     email = f"reqnoexist-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="reqnoexistpw", nickname="reqnoexist")
@@ -213,7 +213,7 @@ async def test_send_friend_request_to_nonexistent_user_returns_404(client, auth)
     assert resp.status_code == 404
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_friend_request_without_auth_returns_401(client):
     resp = await client.post(
         "/api/friend-requests", json={"friend_id": str(uuid.uuid4())}

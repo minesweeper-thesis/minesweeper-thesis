@@ -6,7 +6,7 @@ import pytest
 from backend.tests.singleplayer.helpers import create_game
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_reveal_one_returns_response(
     client, auth_ws, ws_client, session
 ):
@@ -31,7 +31,7 @@ async def test_websocket_reveal_one_returns_response(
         assert isinstance(data["revealed_cells"], list)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_reveal_start_field_is_safe(
     client, auth_ws, ws_client, session
 ):
@@ -57,7 +57,7 @@ async def test_websocket_reveal_start_field_is_safe(
             assert data["type"] == "reveal"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_reveal_returns_valid_cell_values(
     client, auth_ws, ws_client, session
 ):
@@ -83,7 +83,7 @@ async def test_websocket_reveal_returns_valid_cell_values(
                     assert 0 <= val <= 8, f"Invalid cell value: {val}"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_flag_returns_response(client, auth_ws, ws_client, session):
     email = f"ws-flag-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flag")
@@ -103,7 +103,7 @@ async def test_websocket_flag_returns_response(client, auth_ws, ws_client, sessi
         assert data["game_status"] in ["not_started", "in_progress", "finished"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_remove_flag_returns_response(
     client, auth_ws, ws_client, session
 ):
@@ -127,7 +127,7 @@ async def test_websocket_remove_flag_returns_response(
         assert "game_status" in data
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_flag_and_unflag_same_cell(client, auth_ws, ws_client, session):
     email = f"ws-flagunflag-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flagunflag")
@@ -148,7 +148,7 @@ async def test_websocket_flag_and_unflag_same_cell(client, auth_ws, ws_client, s
         assert unflag_resp["type"] == "remove_flag"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_flag_shows_in_state(client, auth_ws, ws_client, session):
     email = f"ws-flagstate-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flagstate")
@@ -171,7 +171,7 @@ async def test_websocket_flag_shows_in_state(client, auth_ws, ws_client, session
         assert cell_value == -4, f"Cell should be flagged (-4), got {cell_value}"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_use_hint_action(client, auth_ws, ws_client, session):
     email = f"ws-hint-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_hint")
@@ -189,7 +189,7 @@ async def test_websocket_use_hint_action(client, auth_ws, ws_client, session):
         assert data["type"] in ["hint", "error", "reveal", "game_state"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_reveal_out_of_bounds(client, auth_ws, ws_client, session):
     from anyio import EndOfStream
     from starlette.websockets import WebSocketDisconnect
@@ -214,7 +214,7 @@ async def test_websocket_reveal_out_of_bounds(client, auth_ws, ws_client, sessio
         pass
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_flag_revealed_cell(client, auth_ws, ws_client, session):
     email = f"ws-flagrev-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flagrev")
@@ -236,7 +236,7 @@ async def test_websocket_flag_revealed_cell(client, auth_ws, ws_client, session)
         assert data["type"] in ["flag", "error", "game_over"]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_normal_mode(client, auth_ws, ws_client, session):
     email = f"ws-normal-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_normal")

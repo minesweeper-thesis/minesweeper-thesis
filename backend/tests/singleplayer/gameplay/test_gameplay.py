@@ -6,7 +6,7 @@ import pytest
 from backend.schemas.game.single_schemas import NewGameResponse
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_start_game_validates_response(client, auth):
     email = f"sp-start-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="pw", nickname="sp_start")
@@ -29,7 +29,7 @@ async def test_start_game_validates_response(client, auth):
     uuid.UUID(str(game_response.gameplay_id))
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_start_game_invalid_board_returns_404(client, auth):
     email = f"sp-invalid-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="pw", nickname="sp_invalid")
@@ -42,7 +42,7 @@ async def test_start_game_invalid_board_returns_404(client, auth):
     assert resp.status_code == 404
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_start_game_works_without_auth(client):
     resp = await client.post(
         "/api/game/single",
@@ -56,7 +56,7 @@ async def test_start_game_works_without_auth(client):
     assert "gameplay_id" in resp.json()
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_start_game_validates_difficulty_level(client, auth):
     email = f"sp-diff-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="pw", nickname="sp_diff")
@@ -72,7 +72,7 @@ async def test_start_game_validates_difficulty_level(client, auth):
     assert resp.status_code == 422
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_start_game_validates_generator_type(client, auth):
     email = f"sp-gen-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="pw", nickname="sp_gen")
@@ -88,7 +88,7 @@ async def test_start_game_validates_generator_type(client, auth):
     assert resp.status_code == 422
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_invalid_gameplay_returns_error(client, auth):
     email = f"ws-invalid-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="pw", nickname="ws_invalid")

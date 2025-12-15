@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from backend.main import app
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_accept_friend_request_success(client, auth):
     user1_email = f"acceptsender-{uuid.uuid4().hex[:8]}@example.com"
     user2_email = f"acceptreceiver-{uuid.uuid4().hex[:8]}@example.com"
@@ -53,7 +53,7 @@ async def test_accept_friend_request_success(client, auth):
                 assert accept_resp.status_code in [200, 204]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_accept_nonexistent_request_returns_404(client, auth):
     email = f"acceptnoexist-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="acceptnoexistpw", nickname="acceptnoexist")
@@ -64,7 +64,7 @@ async def test_accept_nonexistent_request_returns_404(client, auth):
     assert resp.status_code == 404
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_reject_friend_request_success(client, auth):
     user1_email = f"rejectsender-{uuid.uuid4().hex[:8]}@example.com"
     user2_email = f"rejectreceiver-{uuid.uuid4().hex[:8]}@example.com"
@@ -111,7 +111,7 @@ async def test_reject_friend_request_success(client, auth):
                 assert reject_resp.status_code in [200, 204]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_reject_nonexistent_request_returns_404(client, auth):
     email = f"rejectnoexist-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="rejectnoexistpw", nickname="rejectnoexist")

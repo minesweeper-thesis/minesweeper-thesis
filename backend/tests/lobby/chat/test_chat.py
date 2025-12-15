@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_chat_message_success(client, auth):
     email = f"chatlobby-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="chatlobbypw", nickname="chatlobbyhost")
@@ -20,7 +20,7 @@ async def test_send_chat_message_success(client, auth):
     assert resp.status_code in [200, 204]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_empty_chat_message(client, auth):
     email = f"emptychat-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="emptychatpw", nickname="emptychathost")
@@ -35,10 +35,10 @@ async def test_send_empty_chat_message(client, auth):
         },
     )
 
-    assert resp.status_code in [200, 204, 422]
+    assert resp.status_code in [200, 204]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_send_chat_message_without_auth_returns_401(client):
     resp = await client.post(
         f"/api/lobbies/{uuid.uuid4()}/chat-messages",
@@ -49,7 +49,7 @@ async def test_send_chat_message_without_auth_returns_401(client):
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_chat_messages_returns_list(client, auth):
     email = f"getchat-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="getchatpw", nickname="getchathost")
@@ -94,7 +94,7 @@ async def test_get_chat_messages_returns_list(client, auth):
         assert isinstance(msg["timestamp"], int)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_chat_messages_without_auth_returns_401(client):
     resp = await client.get(f"/api/lobbies/{uuid.uuid4()}/chat-messages")
     assert resp.status_code == 401

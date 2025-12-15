@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_update_lobby_config_success(client, auth):
     email = f"updatelobby-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="updatelobbypw", nickname="updatelobbyhost")
@@ -30,7 +30,7 @@ async def test_update_lobby_config_success(client, auth):
     assert resp.status_code in [200, 204]
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_update_lobby_config_without_auth_returns_401(client):
     resp = await client.put(
         f"/api/lobbies/{uuid.uuid4()}",

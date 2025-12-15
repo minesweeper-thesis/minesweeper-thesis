@@ -1,7 +1,7 @@
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_users_global_ranking_by_win_rate(client):
     resp = await client.get(
         "/api/stats/users/global",
@@ -20,7 +20,7 @@ async def test_get_users_global_ranking_by_win_rate(client):
     assert "total" in data
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_users_global_ranking_by_average_time(client):
     resp = await client.get(
         "/api/stats/users/global",
@@ -38,7 +38,7 @@ async def test_get_users_global_ranking_by_average_time(client):
     assert "items" in data
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_users_global_ranking_validates_schema(client):
     resp = await client.get(
         "/api/stats/users/global",
@@ -71,7 +71,7 @@ async def test_get_users_global_ranking_validates_schema(client):
         assert "nickname" in user
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_users_global_ranking_invalid_compare_by_returns_422(client):
     resp = await client.get(
         "/api/stats/users/global",

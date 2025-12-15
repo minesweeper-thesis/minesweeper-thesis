@@ -13,7 +13,7 @@ from backend.tests.multiplayer.ws_helpers import (
 from backend.tests.utils.cookies import using_auth_cookie, using_auth_cookie_sync
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_multiplayer_single_player_flow(client, auth, ws_client, fake_scheduler):
     random.seed(0)
 

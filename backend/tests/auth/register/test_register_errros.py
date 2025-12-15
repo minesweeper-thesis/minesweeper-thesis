@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_register_duplicate_email_returns_400(client):
     email = f"dup-{uuid.uuid4().hex[:8]}@example.com"
     payload = {
@@ -25,7 +25,7 @@ async def test_register_duplicate_email_returns_400(client):
     assert data["detail"] == "REGISTER_USER_ALREADY_EXISTS"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_register_missing_required_field_returns_422(client):
     payload = {
         "email": f"nopw-{uuid.uuid4().hex[:8]}@example.com",
@@ -44,7 +44,7 @@ async def test_register_missing_required_field_returns_422(client):
     assert "password" in field_names
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_register_invalid_email_format_returns_422(client):
     payload = {
         "email": "not-an-email",

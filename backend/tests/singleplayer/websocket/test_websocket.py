@@ -6,7 +6,7 @@ import pytest
 from backend.tests.singleplayer.helpers import create_game
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_initial_game_state_schema(client, auth_ws, ws_client, session):
     email = f"ws-init-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_init")
@@ -39,7 +39,7 @@ async def test_websocket_initial_game_state_schema(client, auth_ws, ws_client, s
         assert data.get("result") is None
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_game_over_loss_schema(client, auth_ws, ws_client, session):
     from starlette.websockets import WebSocketDisconnect
 
@@ -81,7 +81,7 @@ async def test_websocket_game_over_loss_schema(client, auth_ws, ws_client, sessi
         assert isinstance(game_over["full_board"], list)
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_get_game_state_returns_current_state(
     client, auth_ws, ws_client, session
 ):
@@ -112,7 +112,7 @@ async def test_websocket_get_game_state_returns_current_state(
             assert len(row) == 5
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_websocket_board_state_shows_revealed_cell(
     client, auth_ws, ws_client, session
 ):

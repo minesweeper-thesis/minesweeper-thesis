@@ -106,7 +106,7 @@ class FakeScheduler:
         asyncio.run_coroutine_threadsafe(_run(), self._loop).result(timeout=10)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def board_generator_override():
     from backend.lib.board_generator import LocalBoardGenerator
 

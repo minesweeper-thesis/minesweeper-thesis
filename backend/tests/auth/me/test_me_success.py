@@ -5,7 +5,7 @@ import pytest
 from backend.schemas.user import CurrentUserResponse
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_me_returns_current_user_response(client, auth):
     """GET /me returns full CurrentUserResponse for logged in user."""
     email = f"getme-{uuid.uuid4().hex[:8]}@example.com"
@@ -21,7 +21,7 @@ async def test_get_me_returns_current_user_response(client, auth):
     assert user.nickname == "getmeuser"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_patch_me_updates_nickname(client, auth):
     """PATCH /me updates user nickname."""
     email = f"patchme-{uuid.uuid4().hex[:8]}@example.com"
@@ -41,7 +41,7 @@ async def test_patch_me_updates_nickname(client, auth):
     assert user.nickname == "newnickname"
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_patch_me_updates_settings(client, auth):
     """PATCH /me updates user settings."""
     email = f"patchsettings-{uuid.uuid4().hex[:8]}@example.com"

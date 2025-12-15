@@ -26,7 +26,7 @@ from backend.main import app
 from backend.repositories.orm import Base
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(autouse=True)
 async def test_db():
     async with engine.begin() as conn:
         await conn.execute(text("PRAGMA journal_mode=WAL"))

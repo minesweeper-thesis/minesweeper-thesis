@@ -15,7 +15,7 @@ from backend.tests.multiplayer.ws_helpers import (
 from backend.tests.utils.cookies import using_auth_cookie, using_auth_cookie_sync
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_multiplayer_full_flow_many_players(
     client, auth, fake_scheduler, ws_client
 ):

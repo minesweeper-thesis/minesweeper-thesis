@@ -12,7 +12,7 @@ json_files = glob.glob(os.path.join(MESSAGES_DIR, "*.json"))
 
 
 @pytest.mark.parametrize("json_file", json_files)
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_replay_game(client, auth_ws, ws_client, json_file, session):
     with open(json_file, "r") as f:
         messages = json.load(f)

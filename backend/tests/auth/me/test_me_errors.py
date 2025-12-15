@@ -3,16 +3,14 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_me_without_auth_returns_401(client):
-    """GET /me without auth returns 401."""
     resp = await client.get("/api/auth/me")
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_patch_me_without_auth_returns_401(client):
-    """PATCH /me without auth returns 401."""
     resp = await client.patch(
         "/api/auth/me",
         json={
@@ -23,7 +21,7 @@ async def test_patch_me_without_auth_returns_401(client):
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_user_by_id_requires_superuser(client, auth):
     """DELETE /auth/{id} requires superuser - regular users get 403."""
     email = f"deleteme-{uuid.uuid4().hex[:8]}@example.com"
@@ -37,8 +35,7 @@ async def test_delete_user_by_id_requires_superuser(client, auth):
     assert resp.status_code == 403
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_me_without_auth_returns_401(client):
-    """DELETE /me without auth returns 401."""
     resp = await client.delete("/api/auth/me")
     assert resp.status_code == 401

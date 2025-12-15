@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_gameplays_friends_ranking_requires_auth(client):
     resp = await client.get(
         "/api/stats/gameplays/friends",
@@ -16,7 +16,7 @@ async def test_get_gameplays_friends_ranking_requires_auth(client):
     assert resp.status_code == 401
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_get_gameplays_friends_ranking_returns_paginated_response(client, auth):
     email = f"friendsrank-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="friendsrankpw", nickname="friendsrankuser")

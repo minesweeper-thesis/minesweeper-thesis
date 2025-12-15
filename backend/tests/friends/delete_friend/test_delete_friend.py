@@ -6,7 +6,7 @@ from httpx import ASGITransport, AsyncClient
 from backend.main import app
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_friend_removes_friendship(client, auth):
 
     user1_email = f"delfriend1-{uuid.uuid4().hex[:8]}@example.com"
@@ -56,7 +56,7 @@ async def test_delete_friend_removes_friendship(client, auth):
             assert user2_id not in friend_ids
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_non_friend_returns_400(client, auth):
     email = f"delnonfriend-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="delnonfriendpw", nickname="delnonfriend")
@@ -69,7 +69,7 @@ async def test_delete_non_friend_returns_400(client, auth):
     assert "detail" in data
 
 
-@pytest.mark.anyio
+@pytest.mark.asyncio
 async def test_delete_friend_without_auth_returns_401(client):
     resp = await client.delete(f"/api/friends/{uuid.uuid4()}")
     assert resp.status_code == 401
