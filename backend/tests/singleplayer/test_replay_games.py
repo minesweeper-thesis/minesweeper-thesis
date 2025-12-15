@@ -5,10 +5,7 @@ import uuid
 
 import pytest
 
-from backend.tests.singleplayer.helpers import (
-    create_board_from_full_board_sync,
-    create_game,
-)
+from backend.tests.singleplayer.helpers import create_board_from_full_board, create_game
 
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "messages")
 json_files = glob.glob(os.path.join(MESSAGES_DIR, "*.json"))
@@ -16,7 +13,7 @@ json_files = glob.glob(os.path.join(MESSAGES_DIR, "*.json"))
 
 @pytest.mark.parametrize("json_file", json_files)
 @pytest.mark.anyio
-async def test_replay_game(client, auth_ws, ws_client, json_file):
+async def test_replay_game(client, auth_ws, ws_client, json_file, session):
     with open(json_file, "r") as f:
         messages = json.load(f)
 
@@ -40,9 +37,10 @@ async def test_replay_game(client, auth_ws, ws_client, json_file):
 
     start_field = tuple(first_message_data["start_field"])
 
-    board_id = create_board_from_full_board_sync(full_board, start_field)
+    board_id = await create_board_from_full_board(session, full_board, start_field)
 
     unique_id = uuid.uuid4().hex[:8]
+
     auth_ws(
         email=f"replay-{unique_id}@example.com",
         password="pw",

@@ -7,11 +7,15 @@ from backend.tests.singleplayer.helpers import create_game
 
 
 @pytest.mark.anyio
-async def test_websocket_reveal_one_returns_response(client, auth_ws, ws_client):
+async def test_websocket_reveal_one_returns_response(
+    client, auth_ws, ws_client, session
+):
     email = f"ws-reveal-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_reveal")
 
-    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=5, columns=5, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -28,11 +32,15 @@ async def test_websocket_reveal_one_returns_response(client, auth_ws, ws_client)
 
 
 @pytest.mark.anyio
-async def test_websocket_reveal_start_field_is_safe(client, auth_ws, ws_client):
+async def test_websocket_reveal_start_field_is_safe(
+    client, auth_ws, ws_client, session
+):
     email = f"ws-startsafe-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_startsafe")
 
-    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=3, columns=3, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -50,11 +58,15 @@ async def test_websocket_reveal_start_field_is_safe(client, auth_ws, ws_client):
 
 
 @pytest.mark.anyio
-async def test_websocket_reveal_returns_valid_cell_values(client, auth_ws, ws_client):
+async def test_websocket_reveal_returns_valid_cell_values(
+    client, auth_ws, ws_client, session
+):
     email = f"ws-cellval-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_cellval")
 
-    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=5, columns=5, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -72,11 +84,13 @@ async def test_websocket_reveal_returns_valid_cell_values(client, auth_ws, ws_cl
 
 
 @pytest.mark.anyio
-async def test_websocket_flag_returns_response(client, auth_ws, ws_client):
+async def test_websocket_flag_returns_response(client, auth_ws, ws_client, session):
     email = f"ws-flag-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flag")
 
-    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=5, columns=5, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -90,11 +104,15 @@ async def test_websocket_flag_returns_response(client, auth_ws, ws_client):
 
 
 @pytest.mark.anyio
-async def test_websocket_remove_flag_returns_response(client, auth_ws, ws_client):
+async def test_websocket_remove_flag_returns_response(
+    client, auth_ws, ws_client, session
+):
     email = f"ws-unflag-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_unflag")
 
-    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=5, columns=5, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -110,11 +128,13 @@ async def test_websocket_remove_flag_returns_response(client, auth_ws, ws_client
 
 
 @pytest.mark.anyio
-async def test_websocket_flag_and_unflag_same_cell(client, auth_ws, ws_client):
+async def test_websocket_flag_and_unflag_same_cell(client, auth_ws, ws_client, session):
     email = f"ws-flagunflag-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flagunflag")
 
-    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(
+        client, rows=3, columns=3, mine_count=1, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -129,11 +149,13 @@ async def test_websocket_flag_and_unflag_same_cell(client, auth_ws, ws_client):
 
 
 @pytest.mark.anyio
-async def test_websocket_flag_shows_in_state(client, auth_ws, ws_client):
+async def test_websocket_flag_shows_in_state(client, auth_ws, ws_client, session):
     email = f"ws-flagstate-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flagstate")
 
-    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(
+        client, rows=3, columns=3, mine_count=1, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -150,11 +172,13 @@ async def test_websocket_flag_shows_in_state(client, auth_ws, ws_client):
 
 
 @pytest.mark.anyio
-async def test_websocket_use_hint_action(client, auth_ws, ws_client):
+async def test_websocket_use_hint_action(client, auth_ws, ws_client, session):
     email = f"ws-hint-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_hint")
 
-    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=5, columns=5, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         ws.receive_text()
@@ -166,14 +190,16 @@ async def test_websocket_use_hint_action(client, auth_ws, ws_client):
 
 
 @pytest.mark.anyio
-async def test_websocket_reveal_out_of_bounds(client, auth_ws, ws_client):
+async def test_websocket_reveal_out_of_bounds(client, auth_ws, ws_client, session):
     from anyio import EndOfStream
     from starlette.websockets import WebSocketDisconnect
 
     email = f"ws-oob-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_oob")
 
-    gameplay_id = await create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(
+        client, rows=3, columns=3, mine_count=1, session=session
+    )
 
     try:
         with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
@@ -189,11 +215,13 @@ async def test_websocket_reveal_out_of_bounds(client, auth_ws, ws_client):
 
 
 @pytest.mark.anyio
-async def test_websocket_flag_revealed_cell(client, auth_ws, ws_client):
+async def test_websocket_flag_revealed_cell(client, auth_ws, ws_client, session):
     email = f"ws-flagrev-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_flagrev")
 
-    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=5, columns=5, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         initial = json.loads(ws.receive_text())
@@ -209,11 +237,13 @@ async def test_websocket_flag_revealed_cell(client, auth_ws, ws_client):
 
 
 @pytest.mark.anyio
-async def test_websocket_normal_mode(client, auth_ws, ws_client):
+async def test_websocket_normal_mode(client, auth_ws, ws_client, session):
     email = f"ws-normal-{uuid.uuid4().hex[:8]}@example.com"
     auth_ws(email=email, password="pw", nickname="ws_normal")
 
-    gameplay_id = await create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        client, rows=5, columns=5, mine_count=2, session=session
+    )
 
     with ws_client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
         data = json.loads(ws.receive_text())

@@ -3,9 +3,6 @@ import random
 from typing import Any, Iterable
 
 import anyio
-from fastapi.testclient import TestClient
-
-from backend.tests.singleplayer.helpers import create_board_sync
 
 
 def ws_receive_json(ws, *, timeout_s: float = 10.0) -> dict[str, Any]:
@@ -98,22 +95,3 @@ def random_cell(
     if exclude is not None:
         cells = [c for c in cells if c != exclude]
     return random.choice(cells)
-
-
-def seed_boards(
-    client: TestClient,
-    *,
-    count: int,
-    rows: int,
-    cols: int,
-    mines: int,
-    mode: str,
-    generator_type: str = "random",
-    generator_settings: Any = None,
-) -> None:
-    assert mode == "normal"
-    assert generator_type == "random"
-    assert generator_settings is None
-
-    for _ in range(count):
-        create_board_sync(rows=rows, columns=cols, mine_count=mines)

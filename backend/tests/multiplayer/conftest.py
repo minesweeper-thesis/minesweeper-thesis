@@ -121,7 +121,7 @@ def board_generator_override():
 
 
 @pytest.fixture
-async def client(test_db, board_generator_override):
+async def client(test_db, board_generator_override, override_dependency):
     from httpx import ASGITransport, AsyncClient
 
     async with AsyncClient(
