@@ -1,13 +1,9 @@
-import uuid
-
 import pytest
 
 
 @pytest.mark.asyncio
-async def test_logout_clears_auth_cookie(client, auth):
-    email = f"logout-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="logoutpw", nickname="logoutuser")
-
+async def test_logout_clears_auth_cookie(authenticated_clients):
+    client = authenticated_clients[0]
     assert "auth" in client.cookies
 
     resp = await client.post("/api/auth/logout")

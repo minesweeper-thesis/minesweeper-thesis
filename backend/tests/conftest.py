@@ -104,17 +104,56 @@ def ws_client(test_db, override_dependency):
 
 
 @pytest.fixture
-def auth(client):
-    from backend.tests.utils.helpers import AuthFixture
-
-    return AuthFixture(client)
-
-
-@pytest.fixture
 def auth_ws(ws_client):
     from backend.tests.utils.helpers import AuthFixtureSync
 
     return AuthFixtureSync(ws_client)
+
+
+@pytest.fixture
+async def authenticated_clients(request, test_db, override_dependency):
+    if hasattr(request, "param"):
+        users_data = request.param
+    else:
+        users_data = [
+            {"email": "test@example.com", "password": "pw", "nickname": "test"}
+        ]
+
+    clients = []
+    for user_data in users_data:
+        async_client = AsyncClient(
+            transport=ASGITransport(app), base_url="https://testserver"
+        )
+
+        reg_resp = await async_client.post(
+            "/api/auth/register",
+            json={
+                "email": user_data["email"],
+                "password": user_data["password"],
+                "nickname": user_data["nickname"],
+                "settings": {},
+            },
+        )
+        assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
+
+        login_resp = await async_client.post(
+            "/api/auth/login",
+            data={"username": user_data["email"], "password": user_data["password"]},
+        )
+        assert login_resp.status_code in [200, 204], f"Login failed: {login_resp.text}"
+
+        auth_cookie = login_resp.cookies.get("auth")
+        assert auth_cookie, "Login did not set 'auth' cookie"
+
+        domain = "testserver.local"
+        async_client.cookies.set("auth", auth_cookie, domain=domain, path="/")
+
+        clients.append(async_client)
+
+    yield clients
+
+    for client in clients:
+        await client.aclose()
 
 
 @pytest.fixture(autouse=True)

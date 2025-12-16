@@ -4,10 +4,8 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
-    email = f"gameplays-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="gameplayspw", nickname="gameplaysuser")
-
+async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_clients):
+    client = authenticated_clients[0]
     resp = await client.get("/api/gameplays")
 
     assert resp.status_code == 200
@@ -23,10 +21,8 @@ async def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
 
 
 @pytest.mark.asyncio
-async def test_get_gameplays_validates_gameplay_response_schema(client, auth):
-    email = f"gpschema-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="gpschemapw", nickname="gpschemauser")
-
+async def test_get_gameplays_validates_gameplay_response_schema(authenticated_clients):
+    client = authenticated_clients[0]
     from backend.core.board import Board, DifficultyLevel, GenerationSettings
     from backend.db.db import async_session_maker
     from backend.repositories.board_repo import BoardRepository

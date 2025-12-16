@@ -1,5 +1,4 @@
 import io
-import uuid
 from urllib.parse import urlparse
 
 import pytest
@@ -18,10 +17,8 @@ TEST_AVATAR = (
 
 
 @pytest.mark.asyncio
-async def test_upload_avatar_success(client, auth):
-    email = f"avatar-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="avatarpw", nickname="avataruser")
-
+async def test_upload_avatar_success(authenticated_clients):
+    client = authenticated_clients[0]
     resp = await client.post(
         "/api/avatar",
         files={"file": ("avatar.png", io.BytesIO(TEST_AVATAR), "image/png")},
@@ -37,10 +34,8 @@ async def test_upload_avatar_success(client, auth):
 
 
 @pytest.mark.asyncio
-async def test_upload_avatar_invalid_file_type_returns_400(client, auth):
-    email = f"badavatar-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="badavatarpw", nickname="badavataruser")
-
+async def test_upload_avatar_invalid_file_type_returns_400(authenticated_clients):
+    client = authenticated_clients[0]
     resp = await client.post(
         "/api/avatar",
         files={"file": ("test.txt", io.BytesIO(b"not an image"), "text/plain")},
@@ -65,10 +60,8 @@ async def test_upload_avatar_without_auth_returns_401(client):
 
 
 @pytest.mark.asyncio
-async def test_delete_avatar_success(client, auth):
-    email = f"delavatar-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="delavatarpw", nickname="delavataruser")
-
+async def test_delete_avatar_success(authenticated_clients):
+    client = authenticated_clients[0]
     await client.post(
         "/api/avatar",
         files={"file": ("avatar.png", io.BytesIO(TEST_AVATAR), "image/png")},

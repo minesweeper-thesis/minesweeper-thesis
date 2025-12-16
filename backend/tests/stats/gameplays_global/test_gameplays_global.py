@@ -1,5 +1,3 @@
-import uuid
-
 import pytest
 
 
@@ -27,11 +25,8 @@ async def test_get_gameplays_global_ranking_returns_paginated_response(client):
 
 
 @pytest.mark.asyncio
-async def test_get_gameplays_global_ranking_validates_schema(client, auth):
-
-    email = f"globalrank-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="globalrankpw", nickname="globalrankuser")
-
+async def test_get_gameplays_global_ranking_validates_schema(authenticated_clients):
+    client = authenticated_clients[0]
     resp = await client.get(
         "/api/stats/gameplays/global",
         params={

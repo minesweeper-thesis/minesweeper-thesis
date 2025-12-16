@@ -4,10 +4,8 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_create_lobby_returns_lobby_response(client, auth):
-    email = f"lobbyhost-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="lobbyhostpw", nickname="lobbyhost")
-
+async def test_create_lobby_returns_lobby_response(authenticated_clients):
+    client = authenticated_clients[0]
     resp = await client.post("/api/lobbies")
 
     assert resp.status_code == 200
@@ -24,7 +22,7 @@ async def test_create_lobby_returns_lobby_response(client, auth):
     host = data["host"]
     assert "id" in host
     assert "nickname" in host
-    assert host["nickname"] == "lobbyhost"
+    assert host["nickname"] == "test"
 
     config = data["game_config"]
     assert "rounds" in config

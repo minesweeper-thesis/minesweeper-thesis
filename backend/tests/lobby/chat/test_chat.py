@@ -4,10 +4,8 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_send_chat_message_success(client, auth):
-    email = f"chatlobby-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="chatlobbypw", nickname="chatlobbyhost")
-
+async def test_send_chat_message_success(authenticated_clients):
+    client = authenticated_clients[0]
     create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
@@ -21,10 +19,8 @@ async def test_send_chat_message_success(client, auth):
 
 
 @pytest.mark.asyncio
-async def test_send_empty_chat_message(client, auth):
-    email = f"emptychat-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="emptychatpw", nickname="emptychathost")
-
+async def test_send_empty_chat_message(authenticated_clients):
+    client = authenticated_clients[0]
     create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
@@ -50,10 +46,8 @@ async def test_send_chat_message_without_auth_returns_401(client):
 
 
 @pytest.mark.asyncio
-async def test_get_chat_messages_returns_list(client, auth):
-    email = f"getchat-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="getchatpw", nickname="getchathost")
-
+async def test_get_chat_messages_returns_list(authenticated_clients):
+    client = authenticated_clients[0]
     create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 

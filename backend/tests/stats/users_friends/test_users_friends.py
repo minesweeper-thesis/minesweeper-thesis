@@ -1,5 +1,3 @@
-import uuid
-
 import pytest
 
 
@@ -18,12 +16,10 @@ async def test_get_users_friends_ranking_requires_auth(client):
 
 
 @pytest.mark.asyncio
-async def test_get_users_friends_ranking_returns_paginated_response(client, auth):
-    email = f"userfriendsrank-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(
-        email=email, password="userfriendsrankpw", nickname="userfriendsrankuser"
-    )
-
+async def test_get_users_friends_ranking_returns_paginated_response(
+    authenticated_clients,
+):
+    client = authenticated_clients[0]
     resp = await client.get(
         "/api/stats/users/friends",
         params={
@@ -43,10 +39,8 @@ async def test_get_users_friends_ranking_returns_paginated_response(client, auth
 
 
 @pytest.mark.asyncio
-async def test_get_users_friends_ranking_by_average_time(client, auth):
-    email = f"friendsavgtime-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="friendsavgtimepw", nickname="friendsavgtimeuser")
-
+async def test_get_users_friends_ranking_by_average_time(authenticated_clients):
+    client = authenticated_clients[0]
     resp = await client.get(
         "/api/stats/users/friends",
         params={

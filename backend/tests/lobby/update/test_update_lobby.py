@@ -4,10 +4,8 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_update_lobby_config_success(client, auth):
-    email = f"updatelobby-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="updatelobbypw", nickname="updatelobbyhost")
-
+async def test_update_lobby_config_success(authenticated_clients):
+    client = authenticated_clients[0]
     create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 

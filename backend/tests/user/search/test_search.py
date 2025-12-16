@@ -1,16 +1,12 @@
-import uuid
-
 import pytest
 
 from backend.schemas.user import UserResponse
 
 
 @pytest.mark.asyncio
-async def test_search_users_returns_paginated_user_response(client, auth):
-    email = f"searchable-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="searchpw", nickname="searchableuser")
-
-    resp = await client.get("/api/search", params={"query": "searchable"})
+async def test_search_users_returns_paginated_user_response(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.get("/api/search", params={"query": "te"})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -33,23 +29,18 @@ async def test_search_users_returns_paginated_user_response(client, auth):
         assert user.nickname is not None
         assert user.email is not None
 
-        uuid.UUID(str(user.id))
-
 
 @pytest.mark.asyncio
-async def test_search_users_finds_matching_user(client, auth):
-    unique_name = f"unique{uuid.uuid4().hex[:8]}"
-    email = f"{unique_name}@example.com"
-    await auth(email=email, password="findpw", nickname=unique_name)
-
-    resp = await client.get("/api/search", params={"query": unique_name[:10]})
+async def test_search_users_finds_matching_user(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.get("/api/search", params={"query": "te"})
 
     assert resp.status_code == 200
     data = resp.json()
 
     assert data["total"] >= 1
     nicknames = [item["nickname"] for item in data["items"]]
-    assert unique_name in nicknames
+    assert "test" in nicknames
 
 
 @pytest.mark.asyncio
