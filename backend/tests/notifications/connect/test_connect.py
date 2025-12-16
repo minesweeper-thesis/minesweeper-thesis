@@ -1,22 +1,16 @@
 import json
-import uuid
 
 import pytest
-
-from backend.tests.utils.cookies import using_auth_cookie_sync
+from fastapi import WebSocketDisconnect
 
 
 @pytest.mark.asyncio
 async def test_notifications_websocket_connect_returns_current_lobby_response(
-    auth_ws, ws_client
+    authenticated_clients,
 ):
-    email = f"notif-connect-{uuid.uuid4().hex[:8]}@example.com"
-    user = auth_ws(email=email, password="notifconnectpw", nickname="notifconnect")
+    bundle = authenticated_clients[0]
 
-    with (
-        using_auth_cookie_sync(ws_client, user["auth_cookie"]),
-        ws_client.websocket_connect("/api/ws") as ws,
-    ):
+    with bundle.get_ws() as ws:
         data = json.loads(ws.receive_text())
 
     assert data["type"] == "current_lobby"
@@ -31,22 +25,16 @@ async def test_notifications_websocket_connect_returns_current_lobby_response(
 
 
 @pytest.mark.asyncio
-async def test_notifications_websocket_connect_with_active_lobby(
-    client, auth_ws, ws_client
-):
+async def test_notifications_websocket_connect_with_active_lobby(authenticated_clients):
     from backend.tests.utils.cookies import using_auth_cookie
 
-    email = f"notif-lobby-{uuid.uuid4().hex[:8]}@example.com"
-    user = auth_ws(email=email, password="notiflobbypw", nickname="notiflobby")
+    bundle = authenticated_clients[0]
 
-    async with using_auth_cookie(client, user["auth_cookie"]):
-        create_resp = await client.post("/api/lobbies")
+    async with using_auth_cookie(bundle.http, bundle.auth_cookie):
+        create_resp = await bundle.http.post("/api/lobbies")
         lobby_id = create_resp.json()["id"]
 
-    with (
-        using_auth_cookie_sync(ws_client, user["auth_cookie"]),
-        ws_client.websocket_connect("/api/ws") as ws,
-    ):
+    with bundle.get_ws() as ws:
         data = json.loads(ws.receive_text())
 
     assert data["type"] == "current_lobby"
@@ -54,14 +42,11 @@ async def test_notifications_websocket_connect_with_active_lobby(
     lobby = data["lobby"]
     if lobby is not None:
         assert lobby["id"] == lobby_id
-        assert lobby["host"]["nickname"] == "notiflobby"
+        assert lobby["host"]["nickname"] == "test"
 
 
 @pytest.mark.asyncio
-async def test_notifications_websocket_without_auth_fails(ws_client):
-    try:
-        with ws_client.websocket_connect("/api/ws") as ws:
-            data = ws.receive_text()
-            parsed = json.loads(data)
-    except Exception:
-        pass
+async def test_notifications_websocket_without_auth_fails(ws_client_no_auth):
+    with pytest.raises(WebSocketDisconnect):
+        with ws_client_no_auth.websocket_connect("/api/ws"):
+            pass

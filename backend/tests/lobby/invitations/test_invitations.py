@@ -92,6 +92,6 @@ async def test_reject_invitation_success(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_reject_invitation_without_auth_returns_401(client):
-    resp = await client.delete(f"/api/invitations/{uuid.uuid4()}")
+async def test_reject_invitation_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.delete(f"/api/invitations/{uuid.uuid4()}")
     assert resp.status_code == 401

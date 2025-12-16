@@ -38,6 +38,6 @@ async def test_create_lobby_returns_lobby_response(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_create_lobby_without_auth_returns_401(client):
-    resp = await client.post("/api/lobbies")
+async def test_create_lobby_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.post("/api/lobbies")
     assert resp.status_code == 401

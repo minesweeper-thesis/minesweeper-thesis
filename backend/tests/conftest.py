@@ -26,6 +26,66 @@ from backend.main import app
 from backend.repositories.orm import Base
 
 
+class AuthenticatedClientBundle:
+    def __init__(
+        self,
+        http_client: AsyncClient,
+        ws_client,
+        user_data: dict,
+        auth_cookie: str = "",
+    ):
+        self.http = http_client
+        self._ws_client_template = ws_client
+        self._ws_client = None
+        self.user_data = user_data
+        self.auth_cookie = auth_cookie or http_client.cookies.get("auth")
+        self.user_id = None
+
+    async def set_user_id(self):
+        if not self.user_id:
+            resp = await self.http.get("/api/auth/me")
+            if resp.status_code == 200:
+                self.user_id = resp.json().get("id")
+        return self.user_id
+
+    def _get_auth_ws_client(self):
+        if self._ws_client is None:
+            from fastapi.testclient import TestClient
+
+            self._ws_client = TestClient(
+                self._ws_client_template.app, base_url="https://testserver"
+            )
+            if self.auth_cookie:
+                domain = "testserver.local"
+                self._ws_client.cookies.set(
+                    "auth", self.auth_cookie, domain=domain, path="/"
+                )
+        return self._ws_client
+
+    def get_ws(self):
+        return self._get_auth_ws_client().websocket_connect("/api/ws")
+
+    def get_ws_game(self, game_id: str):
+        return self._ws_client_template.websocket_connect(f"/api/game/single/{game_id}")
+
+    def get_ws_multi_game(self, session_id: str):
+        return self._ws_client_template.websocket_connect(
+            f"/api/game/multi/{session_id}"
+        )
+
+    def get_ws_client(self):
+        return self._get_auth_ws_client()
+
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, *args):
+        return await self.http.__aexit__(*args)
+
+    def __getattr__(self, name):
+        return getattr(self.http, name)
+
+
 @pytest.fixture(autouse=True)
 async def test_db():
     async with engine.begin() as conn:
@@ -88,7 +148,7 @@ async def override_dependency(session):
 
 
 @pytest.fixture
-async def client(test_db, override_dependency):
+async def client_no_auth(test_db, override_dependency):
     async with AsyncClient(
         transport=ASGITransport(app), base_url="https://testserver"
     ) as ac:
@@ -96,7 +156,7 @@ async def client(test_db, override_dependency):
 
 
 @pytest.fixture
-def ws_client(test_db, override_dependency):
+def ws_client_no_auth(test_db, override_dependency):
     from fastapi.testclient import TestClient
 
     with TestClient(app, base_url="https://testserver") as c:
@@ -104,14 +164,9 @@ def ws_client(test_db, override_dependency):
 
 
 @pytest.fixture
-def auth_ws(ws_client):
-    from backend.tests.utils.helpers import AuthFixtureSync
-
-    return AuthFixtureSync(ws_client)
-
-
-@pytest.fixture
-async def authenticated_clients(request, test_db, override_dependency):
+async def authenticated_clients(
+    request, test_db, override_dependency, ws_client_no_auth
+):
     if hasattr(request, "param"):
         users_data = request.param
     else:
@@ -119,7 +174,7 @@ async def authenticated_clients(request, test_db, override_dependency):
             {"email": "test@example.com", "password": "pw", "nickname": "test"}
         ]
 
-    clients = []
+    bundles = []
     for user_data in users_data:
         async_client = AsyncClient(
             transport=ASGITransport(app), base_url="https://testserver"
@@ -148,12 +203,16 @@ async def authenticated_clients(request, test_db, override_dependency):
         domain = "testserver.local"
         async_client.cookies.set("auth", auth_cookie, domain=domain, path="/")
 
-        clients.append(async_client)
+        bundle = AuthenticatedClientBundle(
+            async_client, ws_client_no_auth, user_data, auth_cookie
+        )
+        await bundle.set_user_id()
+        bundles.append(bundle)
 
-    yield clients
+    yield bundles
 
-    for client in clients:
-        await client.aclose()
+    for bundle in bundles:
+        await bundle.http.aclose()
 
 
 @pytest.fixture(autouse=True)

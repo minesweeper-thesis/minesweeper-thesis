@@ -12,6 +12,6 @@ async def test_logout_clears_auth_cookie(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_logout_without_auth_returns_401(client):
-    resp = await client.post("/api/auth/logout")
+async def test_logout_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.post("/api/auth/logout")
     assert resp.status_code == 401

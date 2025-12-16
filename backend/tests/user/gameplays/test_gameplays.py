@@ -77,6 +77,6 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
 
 @pytest.mark.asyncio
-async def test_get_gameplays_without_auth_returns_401(client):
-    resp = await client.get("/api/gameplays")
+async def test_get_gameplays_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.get("/api/gameplays")
     assert resp.status_code == 401

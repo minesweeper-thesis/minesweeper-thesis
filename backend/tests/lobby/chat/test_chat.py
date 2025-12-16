@@ -35,8 +35,8 @@ async def test_send_empty_chat_message(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_send_chat_message_without_auth_returns_401(client):
-    resp = await client.post(
+async def test_send_chat_message_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.post(
         f"/api/lobbies/{uuid.uuid4()}/chat-messages",
         json={
             "content": "Hello!",
@@ -89,6 +89,6 @@ async def test_get_chat_messages_returns_list(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_get_chat_messages_without_auth_returns_401(client):
-    resp = await client.get(f"/api/lobbies/{uuid.uuid4()}/chat-messages")
+async def test_get_chat_messages_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.get(f"/api/lobbies/{uuid.uuid4()}/chat-messages")
     assert resp.status_code == 401

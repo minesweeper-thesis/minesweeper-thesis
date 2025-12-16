@@ -57,6 +57,6 @@ async def test_delete_non_friend_returns_400(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_delete_friend_without_auth_returns_401(client: AsyncClient):
-    resp = await client.delete(f"/api/friends/{uuid.uuid4()}")
+async def test_delete_friend_without_auth_returns_401(client_no_auth: AsyncClient):
+    resp = await client_no_auth.delete(f"/api/friends/{uuid.uuid4()}")
     assert resp.status_code == 401

@@ -29,8 +29,8 @@ async def test_update_lobby_config_success(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_update_lobby_config_without_auth_returns_401(client):
-    resp = await client.put(
+async def test_update_lobby_config_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.put(
         f"/api/lobbies/{uuid.uuid4()}",
         json={
             "rounds": 3,

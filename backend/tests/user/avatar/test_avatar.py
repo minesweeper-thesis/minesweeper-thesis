@@ -48,10 +48,10 @@ async def test_upload_avatar_invalid_file_type_returns_400(authenticated_clients
 
 
 @pytest.mark.asyncio
-async def test_upload_avatar_without_auth_returns_401(client):
+async def test_upload_avatar_without_auth_returns_401(client_no_auth):
     png_data = b"\x89PNG\r\n\x1a\n..."
 
-    resp = await client.post(
+    resp = await client_no_auth.post(
         "/api/avatar",
         files={"file": ("avatar.png", io.BytesIO(png_data), "image/png")},
     )
@@ -82,6 +82,6 @@ async def test_delete_avatar_success(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_delete_avatar_without_auth_returns_401(client):
-    resp = await client.delete("/api/avatar")
+async def test_delete_avatar_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.delete("/api/avatar")
     assert resp.status_code == 401

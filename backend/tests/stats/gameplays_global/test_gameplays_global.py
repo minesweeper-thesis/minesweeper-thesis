@@ -2,8 +2,8 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_get_gameplays_global_ranking_returns_paginated_response(client):
-    resp = await client.get(
+async def test_get_gameplays_global_ranking_returns_paginated_response(client_no_auth):
+    resp = await client_no_auth.get(
         "/api/stats/gameplays/global",
         params={
             "rows": 10,
@@ -55,6 +55,6 @@ async def test_get_gameplays_global_ranking_validates_schema(authenticated_clien
 
 
 @pytest.mark.asyncio
-async def test_get_gameplays_global_ranking_missing_params_returns_422(client):
-    resp = await client.get("/api/stats/gameplays/global")
+async def test_get_gameplays_global_ranking_missing_params_returns_422(client_no_auth):
+    resp = await client_no_auth.get("/api/stats/gameplays/global")
     assert resp.status_code == 422

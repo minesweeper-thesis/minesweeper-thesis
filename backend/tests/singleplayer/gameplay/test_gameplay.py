@@ -39,8 +39,8 @@ async def test_start_game_invalid_board_returns_404(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_start_game_works_without_auth(client):
-    resp = await client.post(
+async def test_start_game_works_without_auth(client_no_auth):
+    resp = await client_no_auth.post(
         "/api/game/single",
         json={
             "mode": "normal",

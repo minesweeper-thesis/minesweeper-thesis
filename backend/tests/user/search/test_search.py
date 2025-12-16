@@ -44,7 +44,7 @@ async def test_search_users_finds_matching_user(authenticated_clients):
 
 
 @pytest.mark.asyncio
-async def test_search_users_no_auth_returns_401(client):
-    resp = await client.get("/api/search", params={"query": "test"})
+async def test_search_users_no_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.get("/api/search", params={"query": "test"})
 
     assert resp.status_code == 401

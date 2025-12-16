@@ -2,8 +2,8 @@ import pytest
 
 
 @pytest.mark.asyncio
-async def test_get_gameplays_friends_ranking_requires_auth(client):
-    resp = await client.get(
+async def test_get_gameplays_friends_ranking_requires_auth(client_no_auth):
+    resp = await client_no_auth.get(
         "/api/stats/gameplays/friends",
         params={
             "rows": 10,

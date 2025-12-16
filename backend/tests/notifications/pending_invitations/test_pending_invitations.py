@@ -1,66 +1,88 @@
 import json
-import uuid
 
 import pytest
 
-from backend.tests.utils.cookies import using_auth_cookie_sync
-from backend.tests.utils.helpers import create_second_user_and_login
 
-
+@pytest.mark.parametrize(
+    "authenticated_clients",
+    [
+        [
+            {
+                "email": "notif-pending@example.com",
+                "password": "pw",
+                "nickname": "notifpending",
+            },
+            {
+                "email": "notif-guest@example.com",
+                "password": "pw",
+                "nickname": "notifguest",
+            },
+        ]
+    ],
+    indirect=True,
+)
 @pytest.mark.asyncio
-async def test_notifications_websocket_pending_invitations_request(auth_ws, ws_client):
-    email = f"notif-pending-{uuid.uuid4().hex[:8]}@example.com"
-    user = auth_ws(email=email, password="notifpendingpw", nickname="notifpending")
+async def test_notifications_websocket_pending_invitations_request(
+    authenticated_clients,
+):
+    bundle = authenticated_clients[0]
 
-    with using_auth_cookie_sync(ws_client, user["auth_cookie"]):
-        with ws_client.websocket_connect("/api/ws") as ws:
-            ws.receive_text()
+    with bundle.get_ws() as ws:
+        ws.receive_text()
 
-            ws.send_json({"type": "pending_invitations"})
+        ws.send_json({"type": "pending_invitations"})
 
-            data = json.loads(ws.receive_text())
+        data = json.loads(ws.receive_text())
 
     assert data["type"] == "pending_invitations"
     assert "invitations" in data
     assert isinstance(data["invitations"], list)
 
 
+@pytest.mark.parametrize(
+    "authenticated_clients",
+    [
+        [
+            {
+                "email": "notif-host@example.com",
+                "password": "pw",
+                "nickname": "notifhost",
+            },
+            {
+                "email": "notif-guest2@example.com",
+                "password": "pw",
+                "nickname": "notifguest2",
+            },
+        ]
+    ],
+    indirect=True,
+)
 @pytest.mark.asyncio
 async def test_notifications_websocket_pending_invitations_has_invitation(
-    client, auth_ws, ws_client
+    authenticated_clients,
 ):
     from backend.tests.utils.cookies import using_auth_cookie
 
-    host_email = f"notif-host-{uuid.uuid4().hex[:8]}@example.com"
-    guest_email = f"notif-guest-{uuid.uuid4().hex[:8]}@example.com"
+    host_bundle = authenticated_clients[0]
+    guest_bundle = authenticated_clients[1]
 
-    user = auth_ws(email=host_email, password="notifhostpw", nickname="notifhost")
-    async with using_auth_cookie(client, user["auth_cookie"]):
-        create_resp = await client.post("/api/lobbies")
+    async with using_auth_cookie(host_bundle.http, host_bundle.auth_cookie):
+        create_resp = await host_bundle.http.post("/api/lobbies")
         lobby_id = create_resp.json()["id"]
 
-    with create_second_user_and_login(
-        guest_email, "notifguestpw", "notifguest"
-    ) as guest_client:
-        guest_me = guest_client.get("/api/auth/me")
+    async with using_auth_cookie(host_bundle.http, host_bundle.auth_cookie):
+        guest_me = await guest_bundle.http.get("/api/auth/me")
         guest_id = guest_me.json()["id"]
 
-        async with using_auth_cookie(client, user["auth_cookie"]):
-            await client.post(
-                f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
-            )
-
-        guest_auth_cookie = next(
-            (c.value for c in guest_client.cookies.jar if c.name == "auth"), None
+        await host_bundle.http.post(
+            f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
         )
-        assert guest_auth_cookie, "Guest login did not set 'auth' cookie"
 
-        with using_auth_cookie_sync(ws_client, guest_auth_cookie):
-            with ws_client.websocket_connect("/api/ws") as ws:
-                ws.receive_text()
+    with guest_bundle.get_ws() as ws:
+        ws.receive_text()
 
-                ws.send_json({"type": "pending_invitations"})
-                data = json.loads(ws.receive_text())
+        ws.send_json({"type": "pending_invitations"})
+        data = json.loads(ws.receive_text())
 
         assert data["type"] == "pending_invitations"
         invitations = data["invitations"]

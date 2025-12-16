@@ -6,7 +6,7 @@ from backend.schemas.user import CurrentUserResponse
 
 
 @pytest.mark.asyncio
-async def test_register_success_validates_current_user_response(client):
+async def test_register_success_validates_current_user_response(client_no_auth):
     email = f"reg-{uuid.uuid4().hex[:8]}@example.com"
     payload = {
         "email": email,
@@ -15,7 +15,7 @@ async def test_register_success_validates_current_user_response(client):
         "settings": {"theme": "dark"},
     }
 
-    resp = await client.post("/api/auth/register", json=payload)
+    resp = await client_no_auth.post("/api/auth/register", json=payload)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -34,10 +34,10 @@ async def test_register_success_validates_current_user_response(client):
 
 
 @pytest.mark.asyncio
-async def test_login_success_sets_auth_cookie(client):
+async def test_login_success_sets_auth_cookie(client_no_auth):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
-    await client.post(
+    await client_no_auth.post(
         "/api/auth/register",
         json={
             "email": email,
@@ -47,7 +47,7 @@ async def test_login_success_sets_auth_cookie(client):
         },
     )
 
-    resp = await client.post(
+    resp = await client_no_auth.post(
         "/api/auth/login",
         data={
             "username": email,
@@ -56,4 +56,4 @@ async def test_login_success_sets_auth_cookie(client):
     )
 
     assert resp.status_code == 204 or resp.status_code == 200
-    assert "auth" in client.cookies
+    assert "auth" in client_no_auth.cookies
