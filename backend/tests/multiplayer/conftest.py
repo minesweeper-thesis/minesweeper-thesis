@@ -1,45 +1,59 @@
 import pytest
-from fastapi.testclient import TestClient
 
-from backend.main import api, app
-from backend.tests.utils.helpers import AuthFixture, AuthFixtureSync
+from backend.main import api
 
 
-class ImmediateBoardGenerator:
-    def __init__(self):
-        self._statuses = {}
+@pytest.fixture
+def board_generator_override():
+    from backend.lib.board_generator import LocalBoardGenerator
 
-    async def generate_board(self, settings, on_completed):
-        import random
-        import uuid
+    class ImmediateBoardGenerator:
+        def __init__(self):
+            self._statuses = {}
 
-        from backend.core.board import Board
+        async def generate_board(self, settings, on_completed):
+            import random
+            import uuid
 
-        generation_id = uuid.uuid4()
-        self._statuses[generation_id] = "completed"
+            from backend.core.board import Board
 
-        rows = settings.difficulty_level.rows
-        cols = settings.difficulty_level.columns
-        mines = settings.difficulty_level.mine_count
+            generation_id = uuid.uuid4()
+            self._statuses[generation_id] = "completed"
 
-        start_field = (0, 0)
-        cells = [
-            (i, j) for i in range(rows) for j in range(cols) if (i, j) != start_field
-        ]
-        rng = random.Random(int.from_bytes(generation_id.bytes, "big"))
-        minefields = rng.sample(cells, k=mines)
+            rows = settings.difficulty_level.rows
+            cols = settings.difficulty_level.columns
+            mines = settings.difficulty_level.mine_count
 
-        board = Board(
-            id=uuid.uuid4(),
-            minefields=minefields,
-            start_field=start_field,
-            generation_settings=settings,
-        )
-        await on_completed(generation_id, board)
-        return generation_id
+            start_field = (0, 0)
+            cells = [
+                (i, j)
+                for i in range(rows)
+                for j in range(cols)
+                if (i, j) != start_field
+            ]
+            rng = random.Random(int.from_bytes(generation_id.bytes, "big"))
+            minefields = rng.sample(cells, k=mines)
 
-    async def get_generation_status(self, generation_id):
-        return self._statuses.get(generation_id, "completed")
+            board = Board(
+                id=uuid.uuid4(),
+                minefields=minefields,
+                start_field=start_field,
+                generation_settings=settings,
+            )
+            await on_completed(generation_id, board)
+            return generation_id
+
+        async def get_generation_status(self, generation_id):
+            return self._statuses.get(generation_id, "completed")
+
+    generator = ImmediateBoardGenerator()
+
+    def _override():
+        return generator
+
+    api.dependency_overrides[LocalBoardGenerator] = _override
+    yield
+    api.dependency_overrides.pop(LocalBoardGenerator, None)
 
 
 class FakeScheduler:
@@ -107,50 +121,9 @@ class FakeScheduler:
 
 
 @pytest.fixture
-def board_generator_override():
-    from backend.lib.board_generator import LocalBoardGenerator
-
-    generator = ImmediateBoardGenerator()
-
-    def _override():
-        return generator
-
-    api.dependency_overrides[LocalBoardGenerator] = _override
-    yield
-    api.dependency_overrides.pop(LocalBoardGenerator, None)
-
-
-@pytest.fixture
-async def client(test_db, board_generator_override, override_dependency):
-    from httpx import ASGITransport, AsyncClient
-
-    async with AsyncClient(
-        transport=ASGITransport(app), base_url="https://testserver"
-    ) as ac:
-        yield ac
-
-
-@pytest.fixture
-def auth(client):
-    return AuthFixture(client)
-
-
-@pytest.fixture
-def ws_client(test_db):
-    with TestClient(app, base_url="https://testserver") as c:
-        yield c
-
-
-@pytest.fixture
-def auth_ws(ws_client):
-    return AuthFixtureSync(ws_client)
-
-
-@pytest.fixture
 def fake_scheduler(monkeypatch):
-    fake = FakeScheduler()
-
     import backend.lib.scheduler as scheduler_module
 
+    fake = FakeScheduler()
     monkeypatch.setattr(scheduler_module, "_scheduler_instance", fake)
     return fake

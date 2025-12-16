@@ -26,13 +26,10 @@ async def test_notifications_websocket_connect_returns_current_lobby_response(
 
 @pytest.mark.asyncio
 async def test_notifications_websocket_connect_with_active_lobby(authenticated_clients):
-    from backend.tests.utils.cookies import using_auth_cookie
-
     bundle = authenticated_clients[0]
 
-    async with using_auth_cookie(bundle.http, bundle.auth_cookie):
-        create_resp = await bundle.http.post("/api/lobbies")
-        lobby_id = create_resp.json()["id"]
+    create_resp = await bundle.http.post("/api/lobbies")
+    lobby_id = create_resp.json()["id"]
 
     with bundle.get_ws() as ws:
         data = json.loads(ws.receive_text())

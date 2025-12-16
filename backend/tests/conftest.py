@@ -2,6 +2,7 @@ import os
 import tempfile
 
 import pytest
+from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -30,12 +31,12 @@ class AuthenticatedClientBundle:
     def __init__(
         self,
         http_client: AsyncClient,
-        ws_client,
+        ws_client_no_auth: TestClient,
         user_data: dict,
         auth_cookie: str = "",
     ):
         self.http = http_client
-        self._ws_client_template = ws_client
+        self._ws_client_template = ws_client_no_auth
         self._ws_client = None
         self.user_data = user_data
         self.auth_cookie = auth_cookie or http_client.cookies.get("auth")
@@ -69,7 +70,7 @@ class AuthenticatedClientBundle:
         return self._ws_client_template.websocket_connect(f"/api/game/single/{game_id}")
 
     def get_ws_multi_game(self, session_id: str):
-        return self._ws_client_template.websocket_connect(
+        return self._get_auth_ws_client().websocket_connect(
             f"/api/game/multi/{session_id}"
         )
 
@@ -164,9 +165,7 @@ def ws_client_no_auth(test_db, override_dependency):
 
 
 @pytest.fixture
-async def authenticated_clients(
-    request, test_db, override_dependency, ws_client_no_auth
-):
+async def authenticated_clients(request, test_db, override_dependency):
     if hasattr(request, "param"):
         users_data = request.param
     else:
@@ -195,7 +194,7 @@ async def authenticated_clients(
             "/api/auth/login",
             data={"username": user_data["email"], "password": user_data["password"]},
         )
-        assert login_resp.status_code in [200, 204], f"Login failed: {login_resp.text}"
+        assert login_resp.status_code == 204, f"Login failed: {login_resp.text}"
 
         auth_cookie = login_resp.cookies.get("auth")
         assert auth_cookie, "Login did not set 'auth' cookie"
@@ -203,6 +202,7 @@ async def authenticated_clients(
         domain = "testserver.local"
         async_client.cookies.set("auth", auth_cookie, domain=domain, path="/")
 
+        ws_client_no_auth = TestClient(app, base_url="https://testserver")
         bundle = AuthenticatedClientBundle(
             async_client, ws_client_no_auth, user_data, auth_cookie
         )

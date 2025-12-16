@@ -61,22 +61,18 @@ async def test_notifications_websocket_pending_invitations_request(
 async def test_notifications_websocket_pending_invitations_has_invitation(
     authenticated_clients,
 ):
-    from backend.tests.utils.cookies import using_auth_cookie
-
     host_bundle = authenticated_clients[0]
     guest_bundle = authenticated_clients[1]
 
-    async with using_auth_cookie(host_bundle.http, host_bundle.auth_cookie):
-        create_resp = await host_bundle.http.post("/api/lobbies")
-        lobby_id = create_resp.json()["id"]
+    create_resp = await host_bundle.http.post("/api/lobbies")
+    lobby_id = create_resp.json()["id"]
 
-    async with using_auth_cookie(host_bundle.http, host_bundle.auth_cookie):
-        guest_me = await guest_bundle.http.get("/api/auth/me")
-        guest_id = guest_me.json()["id"]
+    guest_me = await guest_bundle.http.get("/api/auth/me")
+    guest_id = guest_me.json()["id"]
 
-        await host_bundle.http.post(
-            f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
-        )
+    await host_bundle.http.post(
+        f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
+    )
 
     with guest_bundle.get_ws() as ws:
         ws.receive_text()

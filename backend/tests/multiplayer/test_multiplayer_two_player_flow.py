@@ -1,6 +1,5 @@
 import json
 import random
-import uuid
 from contextlib import ExitStack
 
 import pytest
@@ -13,78 +12,65 @@ from backend.tests.multiplayer.ws_helpers import (
     recv_until_all,
     ws_receive_json,
 )
-from backend.tests.utils.cookies import using_auth_cookie, using_auth_cookie_sync
 
 
+@pytest.mark.parametrize(
+    "authenticated_clients",
+    [
+        [
+            {"email": "mp-host@example.com", "password": "pw", "nickname": "mp_host"},
+            {"email": "mp-guest@example.com", "password": "pw", "nickname": "mp_guest"},
+        ]
+    ],
+    indirect=True,
+)
 @pytest.mark.asyncio
-async def test_multiplayer_two_player_flow(client, auth, fake_scheduler, ws_client):
+async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler, board_generator_override):
     random.seed(0)
 
-    host = await auth(
-        email=f"mp-host-{uuid.uuid4().hex[:8]}@example.com",
-        password="pw",
-        nickname="mp_host",
-    )
-    guest = await auth(
-        email=f"mp-guest-{uuid.uuid4().hex[:8]}@example.com",
-        password="pw",
-        nickname="mp_guest",
-    )
+    host_bundle = authenticated_clients[0]
+    guest_bundle = authenticated_clients[1]
 
-    host_cookie = host["auth_cookie"]
-    guest_cookie = guest["auth_cookie"]
-    guest_id = guest["user_id"]
+    guest_id = guest_bundle.user_id
 
-    async with using_auth_cookie(client, host_cookie):
-        create_resp = await client.post("/api/lobbies")
+    create_resp = await host_bundle.http.post("/api/lobbies")
     assert create_resp.status_code == 200
     lobby_id = create_resp.json()["id"]
     session_id = lobby_id
 
-    async with using_auth_cookie(client, host_cookie):
-        update_resp = await client.put(
-            f"/api/lobbies/{lobby_id}",
-            json={
-                "rounds": 3,
-                "max_round_time": 2,
-                "difficulty_level": {"rows": 3, "columns": 3, "mine_count": 3},
-                "game_mode": "normal",
-                "generator": {"type": "random", "settings": None},
-            },
-        )
+    update_resp = await host_bundle.http.put(
+        f"/api/lobbies/{lobby_id}",
+        json={
+            "rounds": 3,
+            "max_round_time": 2,
+            "difficulty_level": {"rows": 3, "columns": 3, "mine_count": 3},
+            "game_mode": "normal",
+            "generator": {"type": "random", "settings": None},
+        },
+    )
     assert update_resp.status_code in [200, 204]
 
     with ExitStack() as stack:
-        with using_auth_cookie_sync(ws_client, host_cookie):
-            host_notif = stack.enter_context(ws_client.websocket_connect("/api/ws"))
-        with using_auth_cookie_sync(ws_client, guest_cookie):
-            guest_notif = stack.enter_context(ws_client.websocket_connect("/api/ws"))
+        host_notif = stack.enter_context(host_bundle.get_ws())
+        guest_notif = stack.enter_context(guest_bundle.get_ws())
         assert json.loads(host_notif.receive_text())["type"] == "current_lobby"
         assert json.loads(guest_notif.receive_text())["type"] == "current_lobby"
 
-        async with using_auth_cookie(client, host_cookie):
-            inv_resp = await client.post(
-                f"/api/lobbies/{lobby_id}/invitations",
-                json={"user_id": guest_id},
-            )
+        inv_resp = await host_bundle.http.post(
+            f"/api/lobbies/{lobby_id}/invitations",
+            json={"user_id": guest_id},
+        )
         assert inv_resp.status_code in [200, 204]
 
         invitation = recv_until(guest_notif, {"invitation"})
-        async with using_auth_cookie(client, guest_cookie):
-            join_resp = await client.post(
-                f"/api/lobbies/{lobby_id}/join",
-                json={"invitation_id": invitation["id"]},
-            )
+        join_resp = await guest_bundle.http.post(
+            f"/api/lobbies/{lobby_id}/join",
+            json={"invitation_id": invitation["id"]},
+        )
         assert join_resp.status_code == 200
 
-        with using_auth_cookie_sync(ws_client, host_cookie):
-            host_game = stack.enter_context(
-                ws_client.websocket_connect(f"/api/game/multi/{session_id}")
-            )
-        with using_auth_cookie_sync(ws_client, guest_cookie):
-            guest_game = stack.enter_context(
-                ws_client.websocket_connect(f"/api/game/multi/{session_id}")
-            )
+        host_game = stack.enter_context(host_bundle.get_ws_multi_game(session_id))
+        guest_game = stack.enter_context(guest_bundle.get_ws_multi_game(session_id))
 
         host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):

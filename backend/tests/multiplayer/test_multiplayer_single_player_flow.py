@@ -1,8 +1,8 @@
 import random
-import uuid
 
 import pytest
 
+from backend.tests.conftest import AuthenticatedClientBundle
 from backend.tests.multiplayer.ws_helpers import (
     drain_ws,
     random_cell,
@@ -10,43 +10,47 @@ from backend.tests.multiplayer.ws_helpers import (
     recv_until,
     ws_receive_json,
 )
-from backend.tests.utils.cookies import using_auth_cookie, using_auth_cookie_sync
 
 
+@pytest.mark.parametrize(
+    "authenticated_clients",
+    [
+        [
+            {"email": "mp-host@example.com", "password": "pw", "nickname": "mp_host"},
+        ]
+    ],
+    indirect=True,
+)
 @pytest.mark.asyncio
-async def test_multiplayer_single_player_flow(client, auth, ws_client, fake_scheduler):
+async def test_multiplayer_single_player_flow(
+    authenticated_clients: list[AuthenticatedClientBundle], fake_scheduler, board_generator_override
+):
     random.seed(0)
 
-    host = await auth(
-        email=f"mp-host-{uuid.uuid4().hex[:8]}@example.com",
-        password="pw",
-        nickname="mp_host",
+    host_bundle = authenticated_clients[0]
+
+    create_resp = await host_bundle.http.post("/api/lobbies")
+    assert create_resp.status_code == 200
+    lobby_id = create_resp.json()["id"]
+    session_id = lobby_id
+
+    update_resp = await host_bundle.http.put(
+        f"/api/lobbies/{lobby_id}",
+        json={
+            "rounds": 3,
+            "max_round_time": 2,
+            "difficulty_level": {"rows": 3, "columns": 3, "mine_count": 3},
+            "game_mode": "normal",
+            "generator": {"type": "random", "settings": None},
+        },
     )
-    host_cookie = host["auth_cookie"]
+    assert update_resp.status_code in [200, 204]
 
-    async with using_auth_cookie(client, host_cookie):
-        create_resp = await client.post("/api/lobbies")
-        assert create_resp.status_code == 200
-        lobby_id = create_resp.json()["id"]
-        session_id = lobby_id
+    from contextlib import ExitStack
 
-        update_resp = await client.put(
-            f"/api/lobbies/{lobby_id}",
-            json={
-                "rounds": 3,
-                "max_round_time": 2,
-                "difficulty_level": {"rows": 3, "columns": 3, "mine_count": 3},
-                "game_mode": "normal",
-                "generator": {"type": "random", "settings": None},
-            },
-        )
-        assert update_resp.status_code in [200, 204]
-
-    with (
-        using_auth_cookie_sync(ws_client, host_cookie),
-        ws_client.websocket_connect("/api/ws") as notif_ws,
-        ws_client.websocket_connect(f"/api/game/multi/{session_id}") as game_ws,
-    ):
+    with ExitStack() as stack:
+        notif_ws = stack.enter_context(host_bundle.get_ws())
+        game_ws = stack.enter_context(host_bundle.get_ws_multi_game(session_id))
         game_ws.send_json({"type": "ready"})
         assert recv_until(notif_ws, {"user_ready"})["value"] is True
 
