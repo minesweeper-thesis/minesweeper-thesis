@@ -10,6 +10,7 @@ from backend.core.game import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
+from backend.di.session_lock import SessionLockDep
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
@@ -32,6 +33,7 @@ class StartRoundService:
         readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
         pending_board_waiter: Annotated[PendingBoardWaiter, Depends()],
         boards_preparer: Annotated[SessionBoardsPreparer, Depends()],
+        session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
         self.background_tasks = background_tasks
@@ -41,6 +43,7 @@ class StartRoundService:
         self.boards_preparer = boards_preparer
         self.notification_system = notification_system
         self.readiness_notifier = readiness_notifier
+        self.session_lock = session_lock
 
     def _ensure_user_in_session(self, session: MultiplayerSession, user: User):
         if user.id not in session.player_ids:
@@ -59,30 +62,42 @@ class StartRoundService:
             await self.set_user_ready(session_id, user)
 
     async def cancel_user_ready(self, session_id: uuid.UUID, user: User):
-        session = await self.multi_repo.get_session(session_id)
-        self._ensure_user_in_session(session, user)
+        should_notify = False
 
-        if session.is_user_ready(user.id) and not session.ready_locked:
-            session.cancel_ready(user.id)
-            await self.multi_repo.save_session(session)
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
+            self._ensure_user_in_session(session, user)
+
+            if session.is_user_ready(user.id) and not session.ready_locked:
+                session.cancel_ready(user.id)
+                await self.multi_repo.save_session(session)
+                should_notify = True
+
+        if should_notify:
             await self.readiness_notifier.send_user_not_ready(
                 self.notification_system.notify, session, user
             )
 
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
-        session = await self.multi_repo.get_session(session_id)
-        self._ensure_user_in_session(session, user)
+        should_notify = False
+        all_ready = False
 
-        if not session.is_user_ready(user.id) and not session.ready_locked:
-            print(user.id in session.player_ids, "co jest")
-            session.set_ready(user.id)
-            await self.multi_repo.save_session(session)
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
+            self._ensure_user_in_session(session, user)
 
+            if not session.is_user_ready(user.id) and not session.ready_locked:
+                session.set_ready(user.id)
+                await self.multi_repo.save_session(session)
+                should_notify = True
+                all_ready = session.all_players_ready()
+
+        if should_notify:
             await self.readiness_notifier.send_user_ready(
                 self.notification_system.notify, session, user
             )
 
-            if session.all_players_ready():
+            if all_ready:
                 await self._on_all_ready(session)
 
     async def _on_all_ready(self, session: MultiplayerSession):

@@ -153,10 +153,9 @@ async def play_multi(
         await websocket.accept()
         session_websockets.add(session_id, user.id, websocket)
 
-        await play.set_session(session_id, user)
-
         while True:
             data = await websocket.receive_json()
+            await play.set_session(session_id, user)
             await handle_multi(user, session_id, data, play, start)
 
             if play.is_session_over():

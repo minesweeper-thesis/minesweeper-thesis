@@ -32,7 +32,11 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         logger.debug(f"get_session(session_id={session_id})")
         pending_data = await self.redis.get(f"{self.pending_prefix}{session_id}")
         if pending_data:
-            return pickle.loads(pending_data)
+            session = pickle.loads(pending_data)
+            logger.debug(
+                f"Retrieved pending session {session_id}, current_round_index={session.current_round_index}"
+            )
+            return session
 
         data = await self.redis.get(f"{self.prefix}{session_id}")
         if not data:
@@ -40,14 +44,21 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             raise MultiplayerSessionNotFound(
                 f"Multiplayer session with id {session_id} not found"
             )
-        logger.debug(f"Retrieved multiplayer session {session_id}")
-        return pickle.loads(data)
+        session = pickle.loads(data)
+        logger.debug(
+            f"Retrieved multiplayer session {session_id}, current_round_index={session.current_round_index}"
+        )
+        return session
 
     async def save_session(self, session: MultiplayerSession):
-        logger.debug(f"save_session(session_id={session.id})")
+        logger.debug(
+            f"save_session(session_id={session.id}, current_round_index={session.current_round_index})"
+        )
         data = pickle.dumps(session)
         await self.redis.set(f"{self.prefix}{session.id}", data)
-        logger.info(f"Multiplayer session {session.id} saved")
+        logger.info(
+            f"Multiplayer session {session.id} saved with current_round_index={session.current_round_index}"
+        )
 
         if session.is_over():
             await self._save_to_db(session)

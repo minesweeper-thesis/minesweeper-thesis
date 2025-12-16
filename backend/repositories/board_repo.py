@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
-from backend.db.db import DBSession
+from backend.db import DBSession
 
 from .exceptions import *
 from .orm import *

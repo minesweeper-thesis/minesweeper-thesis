@@ -147,6 +147,8 @@ class MultiplayerSession:
         session_scores = {item.user_id: item.score for item in self.scoreboard.items}
         self._current_round.start(start_at, session_scores)
         self._consume_round_events()
+        self.clear_ready_players()
+        self.ready_locked = False
 
     def is_over(self) -> bool:
         return (

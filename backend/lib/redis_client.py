@@ -24,8 +24,8 @@ def reset_test_redis():
     global _test_redis_instance
     _test_redis_instance = None
 
+
 def decode_redis_value(value):
-    """Decode bytes to str for compatibility with FakeAsyncRedis"""
     if isinstance(value, bytes):
-        return value.decode('utf-8')
+        return value.decode("utf-8")
     return value

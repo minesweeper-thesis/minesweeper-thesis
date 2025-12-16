@@ -13,6 +13,10 @@ class OpponentState:
     result: Optional[GameResult]
 
 
+class GameplayNotInProgress(Exception):
+    pass
+
+
 class MultiplayerGameplay(Gameplay):
     def __init__(
         self,
@@ -83,25 +87,25 @@ class MultiplayerGameplay(Gameplay):
 
     def reveal_one(self, cell: Cell):
         if self.status != "in_progress":
-            raise RuntimeError("Game is not in progress")
+            raise GameplayNotInProgress()
 
         return self._gameplay.reveal_one(cell)
 
     def reveal_many(self, cell: Cell):
         if self.status != "in_progress":
-            raise RuntimeError("Game is not in progress")
+            raise GameplayNotInProgress()
 
         return self._gameplay.reveal_many(cell)
 
     def flag(self, cell: Cell):
         if self.status != "in_progress":
-            raise RuntimeError("Game is not in progress")
+            raise GameplayNotInProgress()
 
         return self._gameplay.flag(cell)
 
     def remove_flag(self, cell: Cell):
         if self.status != "in_progress":
-            raise RuntimeError("Game is not in progress")
+            raise GameplayNotInProgress()
 
         return self._gameplay.remove_flag(cell)
 
@@ -119,6 +123,6 @@ class MultiplayerGameplay(Gameplay):
 
     def finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
         if self.status != "in_progress":
-            raise RuntimeError("Game is not in progress")
+            raise GameplayNotInProgress()
 
         self._gameplay._finish_game(result, loss_cause)
