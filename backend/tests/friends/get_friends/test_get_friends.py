@@ -51,40 +51,36 @@ async def test_get_friends_shows_accepted_friend(client, auth):
                 "settings": {},
             },
         )
-        if resp.status_code == 201:
-            user2_id = resp.json()["id"]
-        else:
-            user2_id = None
+        assert resp.status_code == 201
+        user2_id = resp.json()["id"]
 
-    if user2_id:
-        req_resp = await client.post(
-            "/api/friend-requests", json={"friend_id": user2_id}
+    req_resp = await client.post("/api/friend-requests", json={"friend_id": user2_id})
+
+    assert req_resp.status_code == 200
+    friend_request_id = req_resp.json()["id"]
+
+    async with AsyncClient(
+        transport=ASGITransport(app), base_url="https://testserver"
+    ) as client2:
+        await client2.post(
+            "/api/auth/login",
+            data={
+                "username": user2_email,
+                "password": "user2pw",
+            },
+        )
+        accept_resp = await client2.post(
+            f"/api/friend-requests/{friend_request_id}/accept"
         )
 
-        if req_resp.status_code == 200:
-            friend_request_id = req_resp.json()["id"]
+        assert accept_resp.status_code in [200, 204]
+        friends_resp = await client.get("/api/friends")
+        assert friends_resp.status_code == 200
+        data = friends_resp.json()
 
-            async with AsyncClient(
-                transport=ASGITransport(app), base_url="https://testserver"
-            ) as client2:
-                await client2.post(
-                    "/api/auth/login",
-                    data={
-                        "username": user2_email,
-                        "password": "user2pw",
-                    },
-                )
-                accept_resp = await client2.post(
-                    f"/api/friend-requests/{friend_request_id}/accept"
-                )
-
-                if accept_resp.status_code in [200, 204]:
-                    friends_resp = await client.get("/api/friends")
-                    assert friends_resp.status_code == 200
-                    data = friends_resp.json()
-
-                    if data["total"] >= 1:
-                        for item in data["items"]:
-                            user = UserResponse(**item)
-                            assert user.id is not None
-                            assert user.nickname is not None
+        assert data["total"] >= 1
+        for item in data["items"]:
+            user = UserResponse(**item)
+            assert user.id == uuid.UUID(user2_id)
+            assert user.email == user2_email
+            assert user.nickname == "user2friend"

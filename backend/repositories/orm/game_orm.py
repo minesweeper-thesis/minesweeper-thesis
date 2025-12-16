@@ -178,7 +178,6 @@ class MultiplayerGameplayORM(Base):
 
 @event.listens_for(Session, "before_flush")
 def validate_rounds_count(session, flush_context, instances):
-    """Validate that each session has exactly rounds_number rounds with correct numbering."""
     for obj in session.dirty | session.new:
         if isinstance(obj, MultiplayerSessionORM):
             if obj.rounds_number is not None:

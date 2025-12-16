@@ -53,16 +53,7 @@ async def test_search_users_finds_matching_user(client, auth):
 
 
 @pytest.mark.asyncio
-async def test_search_users_empty_query_works(client, auth):
-    email = f"emptysearch-{uuid.uuid4().hex[:8]}@example.com"
-    await auth(email=email, password="emptypw", nickname="emptyquery")
-
-    resp = await client.get("/api/search", params={"query": ""})
-    assert resp.status_code in [200, 422]
-
-
-@pytest.mark.asyncio
-async def test_search_users_no_auth_works(client):
+async def test_search_users_no_auth_returns_401(client):
     resp = await client.get("/api/search", params={"query": "test"})
 
-    assert resp.status_code in [200, 401]
+    assert resp.status_code == 401

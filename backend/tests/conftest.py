@@ -97,7 +97,6 @@ async def client(test_db, override_dependency):
 
 @pytest.fixture
 def ws_client(test_db, override_dependency):
-    """Synchronous client for WebSocket tests"""
     from fastapi.testclient import TestClient
 
     with TestClient(app, base_url="https://testserver") as c:
@@ -106,7 +105,6 @@ def ws_client(test_db, override_dependency):
 
 @pytest.fixture
 def auth(client):
-    """Async auth fixture for AsyncClient (HTTP tests)"""
     from backend.tests.utils.helpers import AuthFixture
 
     return AuthFixture(client)
@@ -114,7 +112,6 @@ def auth(client):
 
 @pytest.fixture
 def auth_ws(ws_client):
-    """Synchronous auth fixture for WebSocket tests"""
     from backend.tests.utils.helpers import AuthFixtureSync
 
     return AuthFixtureSync(ws_client)

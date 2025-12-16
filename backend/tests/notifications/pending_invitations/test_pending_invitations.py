@@ -4,7 +4,7 @@ import uuid
 import pytest
 
 from backend.tests.utils.cookies import using_auth_cookie_sync
-from backend.tests.utils.test_helpers import create_second_user_and_login
+from backend.tests.utils.helpers import create_second_user_and_login
 
 
 @pytest.mark.asyncio

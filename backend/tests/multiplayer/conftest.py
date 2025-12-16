@@ -137,14 +137,12 @@ def auth(client):
 
 @pytest.fixture
 def ws_client(test_db):
-    """Synchronous client for WebSocket tests"""
     with TestClient(app, base_url="https://testserver") as c:
         yield c
 
 
 @pytest.fixture
 def auth_ws(ws_client):
-    """Synchronous auth fixture for WebSocket tests"""
     return AuthFixtureSync(ws_client)
 
 

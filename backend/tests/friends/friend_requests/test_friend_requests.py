@@ -39,34 +39,34 @@ async def test_get_pending_requests_shows_incoming_request(client, auth):
                 "settings": {},
             },
         )
-        user2_id = reg_resp.json()["id"] if reg_resp.status_code == 201 else None
+        assert reg_resp.status_code == 201
+        user2_id = reg_resp.json()["id"]
 
-    if user2_id:
-        await auth(email=user1_email, password="senderpw", nickname="sender")
-        async with AsyncClient(
-            transport=ASGITransport(app), base_url="https://testserver"
-        ) as client2:
-            await client2.post(
-                "/api/auth/login",
-                data={
-                    "username": user2_email,
-                    "password": "receiverpw",
-                },
-            )
+    await auth(email=user1_email, password="senderpw", nickname="sender")
+    async with AsyncClient(
+        transport=ASGITransport(app), base_url="https://testserver"
+    ) as client2:
+        await client2.post(
+            "/api/auth/login",
+            data={
+                "username": user2_email,
+                "password": "receiverpw",
+            },
+        )
 
-            await client.post("/api/friend-requests", json={"friend_id": user2_id})
-            pending_resp = await client2.get("/api/friend-requests/pending")
-            assert pending_resp.status_code == 200
-            data = pending_resp.json()
+        await client.post("/api/friend-requests", json={"friend_id": user2_id})
+        pending_resp = await client2.get("/api/friend-requests/pending")
+        assert pending_resp.status_code == 200
+        data = pending_resp.json()
 
-            if data["total"] >= 1:
-                for item in data["items"]:
-                    fr = FriendRequestResponse(**item)
-                    assert fr.id is not None
-                    assert fr.ws_type == "friend_request"
-                    assert fr.user is not None
-                    assert fr.friend is not None
-                    assert fr.status.value in ["pending", "accepted", "rejected"]
+        assert data["total"] >= 1
+        for item in data["items"]:
+            fr = FriendRequestResponse(**item)
+            assert fr.id is not None
+            assert fr.ws_type == "friend_request"
+            assert fr.user is not None
+            assert fr.friend is not None
+            assert fr.status.value in ["pending", "accepted", "rejected"]
 
 
 @pytest.mark.asyncio
@@ -107,18 +107,18 @@ async def test_get_sent_requests_shows_outgoing_request(client, auth):
                 "settings": {},
             },
         )
-        user2_id = resp.json()["id"] if resp.status_code == 201 else None
+        assert resp.status_code == 201
+        user2_id = resp.json()["id"]
 
-    if user2_id:
-        await client.post("/api/friend-requests", json={"friend_id": user2_id})
+    await client.post("/api/friend-requests", json={"friend_id": user2_id})
 
-        sent_resp = await client.get("/api/friend-requests/sent")
-        assert sent_resp.status_code == 200
-        data = sent_resp.json()
+    sent_resp = await client.get("/api/friend-requests/sent")
+    assert sent_resp.status_code == 200
+    data = sent_resp.json()
 
-        assert data["total"] >= 1
-        friend_ids = [item["friend"]["id"] for item in data["items"]]
-        assert user2_id in friend_ids
+    assert data["total"] >= 1
+    friend_ids = [item["friend"]["id"] for item in data["items"]]
+    assert user2_id in friend_ids
 
 
 @pytest.mark.asyncio
@@ -139,24 +139,24 @@ async def test_send_friend_request_returns_friend_request_response(client, auth)
                 "settings": {},
             },
         )
-        user2_id = resp.json()["id"] if resp.status_code == 201 else None
+        assert resp.status_code == 201
+        user2_id = resp.json()["id"]
 
-    if user2_id:
-        resp = await client.post("/api/friend-requests", json={"friend_id": user2_id})
+    resp = await client.post("/api/friend-requests", json={"friend_id": user2_id})
 
-        assert resp.status_code == 200
-        data = resp.json()
+    assert resp.status_code == 200
+    data = resp.json()
 
-        fr = FriendRequestResponse(**data)
-        assert fr.id is not None
-        assert fr.ws_type == "friend_request"
-        assert fr.user is not None
-        assert fr.friend is not None
-        assert str(fr.friend.id) == user2_id
-        assert fr.status.value == "pending"
+    fr = FriendRequestResponse(**data)
+    assert fr.id is not None
+    assert fr.ws_type == "friend_request"
+    assert fr.user is not None
+    assert fr.friend is not None
+    assert str(fr.friend.id) == user2_id
+    assert fr.status.value == "pending"
 
-        assert fr.user.nickname == "reqsender"
-        assert fr.friend.nickname == "reqreceiver"
+    assert fr.user.nickname == "reqsender"
+    assert fr.friend.nickname == "reqreceiver"
 
 
 @pytest.mark.asyncio
@@ -192,14 +192,14 @@ async def test_send_friend_request_duplicate_returns_400(client, auth):
                 "settings": {},
             },
         )
-        user2_id = resp.json()["id"] if resp.status_code == 201 else None
+        assert resp.status_code == 201
+        user2_id = resp.json()["id"]
 
-    if user2_id:
-        resp1 = await client.post("/api/friend-requests", json={"friend_id": user2_id})
-        assert resp1.status_code == 200
+    resp1 = await client.post("/api/friend-requests", json={"friend_id": user2_id})
+    assert resp1.status_code == 200
 
-        resp2 = await client.post("/api/friend-requests", json={"friend_id": user2_id})
-        assert resp2.status_code == 400
+    resp2 = await client.post("/api/friend-requests", json={"friend_id": user2_id})
+    assert resp2.status_code == 400
 
 
 @pytest.mark.asyncio

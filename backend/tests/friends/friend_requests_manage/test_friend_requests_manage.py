@@ -23,34 +23,29 @@ async def test_accept_friend_request_success(client, auth):
                 "settings": {},
             },
         )
-        user2_id = reg_resp.json()["id"] if reg_resp.status_code == 201 else None
+        assert reg_resp.status_code == 201
+        user2_id = reg_resp.json()["id"]
 
-    if user2_id:
+    await auth(email=user1_email, password="acceptsenderpw", nickname="acceptsender")
+    req_resp = await client.post("/api/friend-requests", json={"friend_id": user2_id})
 
-        await auth(
-            email=user1_email, password="acceptsenderpw", nickname="acceptsender"
+    assert req_resp.status_code == 200
+    friend_request_id = req_resp.json()["id"]
+
+    async with AsyncClient(
+        transport=ASGITransport(app), base_url="https://testserver"
+    ) as client2:
+        await client2.post(
+            "/api/auth/login",
+            data={
+                "username": user2_email,
+                "password": "acceptreceiverpw",
+            },
         )
-        req_resp = await client.post(
-            "/api/friend-requests", json={"friend_id": user2_id}
+        accept_resp = await client2.post(
+            f"/api/friend-requests/{friend_request_id}/accept"
         )
-
-        if req_resp.status_code == 200:
-            friend_request_id = req_resp.json()["id"]
-
-            async with AsyncClient(
-                transport=ASGITransport(app), base_url="https://testserver"
-            ) as client2:
-                await client2.post(
-                    "/api/auth/login",
-                    data={
-                        "username": user2_email,
-                        "password": "acceptreceiverpw",
-                    },
-                )
-                accept_resp = await client2.post(
-                    f"/api/friend-requests/{friend_request_id}/accept"
-                )
-                assert accept_resp.status_code in [200, 204]
+        assert accept_resp.status_code in [200, 204]
 
 
 @pytest.mark.asyncio
@@ -81,34 +76,29 @@ async def test_reject_friend_request_success(client, auth):
                 "settings": {},
             },
         )
-        user2_id = reg_resp.json()["id"] if reg_resp.status_code == 201 else None
+        assert reg_resp.status_code == 201
+        user2_id = reg_resp.json()["id"]
 
-    if user2_id:
+    await auth(email=user1_email, password="rejectsenderpw", nickname="rejectsender")
+    req_resp = await client.post("/api/friend-requests", json={"friend_id": user2_id})
 
-        await auth(
-            email=user1_email, password="rejectsenderpw", nickname="rejectsender"
+    assert req_resp.status_code == 200
+    friend_request_id = req_resp.json()["id"]
+
+    async with AsyncClient(
+        transport=ASGITransport(app), base_url="https://testserver"
+    ) as client2:
+        await client2.post(
+            "/api/auth/login",
+            data={
+                "username": user2_email,
+                "password": "rejectreceiverpw",
+            },
         )
-        req_resp = await client.post(
-            "/api/friend-requests", json={"friend_id": user2_id}
+        reject_resp = await client2.post(
+            f"/api/friend-requests/{friend_request_id}/reject"
         )
-
-        if req_resp.status_code == 200:
-            friend_request_id = req_resp.json()["id"]
-
-            async with AsyncClient(
-                transport=ASGITransport(app), base_url="https://testserver"
-            ) as client2:
-                await client2.post(
-                    "/api/auth/login",
-                    data={
-                        "username": user2_email,
-                        "password": "rejectreceiverpw",
-                    },
-                )
-                reject_resp = await client2.post(
-                    f"/api/friend-requests/{friend_request_id}/reject"
-                )
-                assert reject_resp.status_code in [200, 204]
+        assert reject_resp.status_code in [200, 204]
 
 
 @pytest.mark.asyncio

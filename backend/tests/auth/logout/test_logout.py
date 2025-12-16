@@ -5,7 +5,6 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_logout_clears_auth_cookie(client, auth):
-    """POST /logout clears auth cookie."""
     email = f"logout-{uuid.uuid4().hex[:8]}@example.com"
     await auth(email=email, password="logoutpw", nickname="logoutuser")
 

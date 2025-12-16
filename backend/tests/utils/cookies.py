@@ -39,7 +39,6 @@ async def using_auth_cookie(
 
 @contextmanager
 def using_auth_cookie_sync(client: TestClient, auth_cookie: str) -> Iterator[None]:
-    """Synchronous version of using_auth_cookie for TestClient (WebSocket tests)"""
     previous_auth_cookies = [c for c in client.cookies.jar if c.name == "auth"]
 
     client.cookies.set("auth", auth_cookie)

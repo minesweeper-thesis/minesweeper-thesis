@@ -4,7 +4,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from backend.main import app
-from backend.tests.utils.test_helpers import create_second_user_and_login
+from backend.tests.utils.helpers import create_second_user_and_login
 
 
 @pytest.mark.asyncio
