@@ -1,5 +1,6 @@
 import os
 import tempfile
+from contextlib import ExitStack
 
 import pytest
 from fastapi.testclient import TestClient
@@ -36,7 +37,8 @@ class AuthenticatedClientBundle:
         auth_cookie: str = "",
     ):
         self.http = http_client
-        self._ws_client_template = ws_client_no_auth
+        self._stack = ExitStack()
+        self._ws_client_template = self._stack.enter_context(ws_client_no_auth)
         self._ws_client = None
         self.user_data = user_data
         self.auth_cookie = auth_cookie or http_client.cookies.get("auth")
@@ -53,8 +55,8 @@ class AuthenticatedClientBundle:
         if self._ws_client is None:
             from fastapi.testclient import TestClient
 
-            self._ws_client = TestClient(
-                self._ws_client_template.app, base_url="https://testserver"
+            self._ws_client = self._stack.enter_context(
+                TestClient(self._ws_client_template.app, base_url="https://testserver")
             )
             if self.auth_cookie:
                 domain = "testserver.local"
@@ -76,6 +78,9 @@ class AuthenticatedClientBundle:
 
     def get_ws_client(self):
         return self._get_auth_ws_client()
+
+    def close(self):
+        self._stack.close()
 
     async def __aenter__(self):
         return self
@@ -213,6 +218,7 @@ async def authenticated_clients(request, test_db, override_dependency):
 
     for bundle in bundles:
         await bundle.http.aclose()
+        bundle.close()
 
 
 @pytest.fixture(autouse=True)
