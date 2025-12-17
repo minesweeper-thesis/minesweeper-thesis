@@ -8,6 +8,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend import protocols

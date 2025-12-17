@@ -10,8 +10,8 @@ from backend.di.dependencies import (
     BoardRepositoryDep,
     PendingBoardsStoreDep,
 )
+from backend.protocols.board_repo_protocol import UnsolvedBoardNotFound
 from backend.protocols.pending_boards import PendingBoardMetadata
-from backend.repositories.exceptions import UnsolvedBoardNotFound
 from backend.services.multi.round_scheduler import RoundScheduler
 
 

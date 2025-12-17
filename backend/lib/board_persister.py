@@ -5,8 +5,8 @@ from backend.core.board import Board
 from backend.db.db import async_session_maker
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis
+from backend.protocols.board_repo_protocol import BoardNotFound
 from backend.repositories import BoardRepository
-from backend.repositories.exceptions import BoardNotFound
 
 logger = logging.getLogger(__name__)
 

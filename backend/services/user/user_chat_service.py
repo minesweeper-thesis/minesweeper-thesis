@@ -4,7 +4,7 @@ from datetime import datetime
 
 from fastapi_pagination import Params
 
-from backend.repositories.exceptions import UserNotFound
+from backend.protocols.user_repo_protocol import UserNotFound
 from backend.services.exceptions import UserNotExists
 
 logger = logging.getLogger(__name__)

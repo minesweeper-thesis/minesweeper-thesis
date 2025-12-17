@@ -6,6 +6,10 @@ from fastapi_pagination import Page, Params
 from backend.core.user import User, UserChatMessage
 
 
+class UserNotFound(Exception):
+    pass
+
+
 class UserRepository(Protocol):
     async def set_user_online(self, user_id: uuid.UUID) -> None: ...
 
