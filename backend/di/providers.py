@@ -4,6 +4,7 @@ from fastapi import Depends
 
 from backend import protocols as p
 from backend.db.db import get_async_session
+from backend.lib.background_handler import BackgroundRoundHandler
 from backend.lib.board_generator import LocalBoardGenerator
 from backend.lib.board_persister import BackgroundBoardPersister
 from backend.lib.pending_boards import RedisPendingStore
@@ -52,6 +53,7 @@ registry: dict[type, Callable] = {
     p.GameTransportFactory: _get_game_transport_factory,
     p.Scheduler: get_scheduler,
     BackgroundBoardPersister: BackgroundBoardPersister,
+    BackgroundRoundHandler: BackgroundRoundHandler,
 }
 
 for protocol, impl in registry.items():

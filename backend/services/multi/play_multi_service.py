@@ -20,8 +20,6 @@ from backend.services.exceptions import *
 class PlayMultiService:
     def __init__(
         self,
-        board_repo: BoardRepositoryDep,
-        lobby_repo: LobbyRepositoryDep,
         multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
         notification_system: NotificationSystemDep,
@@ -30,8 +28,6 @@ class PlayMultiService:
         session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
-        self.board_repo = board_repo
-        self.lobby_repo = lobby_repo
         self.background_tasks = background_tasks
         self.notification_system = notification_system
         self.scheduler = scheduler

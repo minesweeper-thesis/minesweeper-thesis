@@ -193,7 +193,7 @@ def validate_rounds_count(session, flush_context, instances):
                     expected_numbers = set(range(obj.rounds_number))
                     if round_indexes != expected_numbers:
                         raise ValueError(
-                            f"Round numbers must be 0 to {obj.rounds_number-1}, "
+                            f"Round indexes must be 0 to {obj.rounds_number-1}, "
                             f"but got {sorted(round_indexes)}"
                         )
 
@@ -211,7 +211,7 @@ def validate_rounds_count(session, flush_context, instances):
             if session_obj and session_obj.rounds_number is not None:
                 if obj.round_index >= session_obj.rounds_number:
                     raise ValueError(
-                        f"Round number {obj.round_index} must be < {session_obj.rounds_number}"
+                        f"Round index {obj.round_index} must be < {session_obj.rounds_number}"
                     )
 
             if session_obj and obj.board:
