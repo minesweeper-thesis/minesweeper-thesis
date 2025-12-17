@@ -12,17 +12,6 @@ conn = op.get_bind()
 
 def upgrade() -> None:
     with op.batch_alter_table("multiplayer_gameplays") as batch:
-        batch.add_column(sa.Column("round_index", sa.Integer(), nullable=True))
-        batch.add_column(sa.Column("flagged_cells", sa.JSON(), nullable=True))
-
-    op.execute(
-        """
-        UPDATE multiplayer_gameplays 
-        SET round_index = round_number, flagged_cells = '[]'
-    """
-    )
-
-    with op.batch_alter_table("multiplayer_gameplays") as batch:
         if conn.dialect.name == "postgresql":
             batch.drop_constraint(
                 "multiplayer_gameplays_session_id_round_number_fkey", type_="foreignkey"
@@ -30,18 +19,20 @@ def upgrade() -> None:
 
     with op.batch_alter_table("multiplayer_rounds") as batch:
         batch.drop_constraint("check_round_number_non_negative", type_="check")
-        batch.drop_column("round_number")
-        batch.add_column(sa.Column("round_index", sa.Integer(), nullable=True))
+        batch.alter_column("round_number", new_column_name="round_index")
         batch.create_check_constraint(
             "check_round_index_non_negative", "round_index >= 0"
         )
 
     with op.batch_alter_table("multiplayer_gameplays") as batch:
-        batch.drop_column("round_number")
+        batch.add_column(
+            sa.Column("flagged_cells", sa.JSON(), nullable=False, server_default="[]")
+        )
 
     with op.batch_alter_table("multiplayer_gameplays") as batch:
-        batch.alter_column("round_index", existing_type=sa.Integer(), nullable=False)
-        batch.alter_column("flagged_cells", existing_type=sa.JSON(), nullable=False)
+        batch.alter_column("round_number", new_column_name="round_index")
+
+    with op.batch_alter_table("multiplayer_gameplays") as batch:
         batch.create_foreign_key(
             "multiplayer_gameplays_session_id_round_index_fkey",
             "multiplayer_rounds",
@@ -51,16 +42,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    with op.batch_alter_table("multiplayer_gameplays") as batch:
-        batch.add_column(sa.Column("round_number", sa.Integer(), nullable=True))
-
-    op.execute(
-        """
-        UPDATE multiplayer_gameplays 
-        SET round_number = round_index
-    """
-    )
-
+    # Drop foreign key in multiplayer_gameplays
     with op.batch_alter_table("multiplayer_gameplays") as batch:
         if conn.dialect.name == "postgresql":
             batch.drop_constraint(
@@ -69,18 +51,18 @@ def downgrade() -> None:
 
     with op.batch_alter_table("multiplayer_rounds") as batch:
         batch.drop_constraint("check_round_index_non_negative", type_="check")
-        batch.drop_column("round_index")
-        batch.add_column(sa.Column("round_number", sa.Integer(), nullable=True))
+        batch.alter_column("round_index", new_column_name="round_number")
         batch.create_check_constraint(
             "check_round_number_non_negative", "round_number >= 0"
         )
 
     with op.batch_alter_table("multiplayer_gameplays") as batch:
         batch.drop_column("flagged_cells")
-        batch.drop_column("round_index")
 
     with op.batch_alter_table("multiplayer_gameplays") as batch:
-        batch.alter_column("round_number", existing_type=sa.Integer(), nullable=False)
+        batch.alter_column("round_index", new_column_name="round_number")
+
+    with op.batch_alter_table("multiplayer_gameplays") as batch:
         batch.create_foreign_key(
             "multiplayer_gameplays_session_id_round_number_fkey",
             "multiplayer_rounds",
