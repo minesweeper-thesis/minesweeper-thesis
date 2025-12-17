@@ -1,6 +1,5 @@
 import os
 import tempfile
-from contextlib import ExitStack
 
 import pytest
 from fastapi.testclient import TestClient
@@ -32,14 +31,12 @@ class AuthenticatedClientBundle:
     def __init__(
         self,
         http_client: AsyncClient,
-        ws_client_no_auth: TestClient,
+        ws_client: TestClient,
         user_data: dict,
         auth_cookie: str = "",
     ):
         self.http = http_client
-        self._stack = ExitStack()
-        self._ws_client_template = self._stack.enter_context(ws_client_no_auth)
-        self._ws_client = None
+        self.ws_client = ws_client
         self.user_data = user_data
         self.auth_cookie = auth_cookie or http_client.cookies.get("auth")
         self.user_id = None
@@ -51,36 +48,25 @@ class AuthenticatedClientBundle:
                 self.user_id = resp.json().get("id")
         return self.user_id
 
-    def _get_auth_ws_client(self):
-        if self._ws_client is None:
-            from fastapi.testclient import TestClient
-
-            self._ws_client = self._stack.enter_context(
-                TestClient(self._ws_client_template.app, base_url="https://testserver")
-            )
-            if self.auth_cookie:
-                domain = "testserver.local"
-                self._ws_client.cookies.set(
-                    "auth", self.auth_cookie, domain=domain, path="/"
-                )
-        return self._ws_client
-
     def get_ws(self):
-        return self._get_auth_ws_client().websocket_connect("/api/ws")
+        return self.ws_client.websocket_connect(
+            "/api/ws", headers={"Cookie": f"auth={self.auth_cookie}"}
+        )
 
     def get_ws_game(self, game_id: str):
-        return self._ws_client_template.websocket_connect(f"/api/game/single/{game_id}")
+        return self.ws_client.websocket_connect(
+            f"/api/game/single/{game_id}",
+            headers={"Cookie": f"auth={self.auth_cookie}"},
+        )
 
     def get_ws_multi_game(self, session_id: str):
-        return self._get_auth_ws_client().websocket_connect(
-            f"/api/game/multi/{session_id}"
+        return self.ws_client.websocket_connect(
+            f"/api/game/multi/{session_id}",
+            headers={"Cookie": f"auth={self.auth_cookie}"},
         )
 
     def get_ws_client(self):
-        return self._get_auth_ws_client()
-
-    def close(self):
-        self._stack.close()
+        return self.ws_client
 
     async def __aenter__(self):
         return self
@@ -178,47 +164,49 @@ async def authenticated_clients(request, test_db, override_dependency):
             {"email": "test@example.com", "password": "pw", "nickname": "test"}
         ]
 
-    bundles = []
-    for user_data in users_data:
-        async_client = AsyncClient(
-            transport=ASGITransport(app), base_url="https://testserver"
-        )
+    with TestClient(app, base_url="https://testserver") as shared_ws_client:
+        bundles = []
+        for user_data in users_data:
+            async_client = AsyncClient(
+                transport=ASGITransport(app), base_url="https://testserver"
+            )
 
-        reg_resp = await async_client.post(
-            "/api/auth/register",
-            json={
-                "email": user_data["email"],
-                "password": user_data["password"],
-                "nickname": user_data["nickname"],
-                "settings": {},
-            },
-        )
-        assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
+            reg_resp = await async_client.post(
+                "/api/auth/register",
+                json={
+                    "email": user_data["email"],
+                    "password": user_data["password"],
+                    "nickname": user_data["nickname"],
+                    "settings": {},
+                },
+            )
+            assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
 
-        login_resp = await async_client.post(
-            "/api/auth/login",
-            data={"username": user_data["email"], "password": user_data["password"]},
-        )
-        assert login_resp.status_code == 204, f"Login failed: {login_resp.text}"
+            login_resp = await async_client.post(
+                "/api/auth/login",
+                data={
+                    "username": user_data["email"],
+                    "password": user_data["password"],
+                },
+            )
+            assert login_resp.status_code == 204, f"Login failed: {login_resp.text}"
 
-        auth_cookie = login_resp.cookies.get("auth")
-        assert auth_cookie, "Login did not set 'auth' cookie"
+            auth_cookie = login_resp.cookies.get("auth")
+            assert auth_cookie, "Login did not set 'auth' cookie"
 
-        domain = "testserver.local"
-        async_client.cookies.set("auth", auth_cookie, domain=domain, path="/")
+            domain = "testserver.local"
+            async_client.cookies.set("auth", auth_cookie, domain=domain, path="/")
 
-        ws_client_no_auth = TestClient(app, base_url="https://testserver")
-        bundle = AuthenticatedClientBundle(
-            async_client, ws_client_no_auth, user_data, auth_cookie
-        )
-        await bundle.set_user_id()
-        bundles.append(bundle)
+            bundle = AuthenticatedClientBundle(
+                async_client, shared_ws_client, user_data, auth_cookie
+            )
+            await bundle.set_user_id()
+            bundles.append(bundle)
 
-    yield bundles
+        yield bundles
 
-    for bundle in bundles:
-        await bundle.http.aclose()
-        bundle.close()
+        for bundle in bundles:
+            await bundle.http.aclose()
 
 
 @pytest.fixture(autouse=True)
