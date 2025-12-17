@@ -1,10 +1,9 @@
 import uuid
 from typing import Protocol
 
-from fastapi_pagination import Params
+from fastapi_pagination import Page, Params
 
-from backend.core.user import User
-from backend.core.user.chat import UserChatMessage
+from backend.core.user import User, UserChatMessage
 
 
 class UserRepository(Protocol):
@@ -18,7 +17,7 @@ class UserRepository(Protocol):
 
     async def set_avatar(self, user_id: uuid.UUID, content: bytes | None) -> User: ...
 
-    async def search_users(self, query: str, params: Params): ...
+    async def search_users(self, query: str, params: Params) -> Page[User]: ...
 
     async def add_message(self, message: UserChatMessage) -> None: ...
 

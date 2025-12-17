@@ -4,6 +4,9 @@ from datetime import datetime
 
 from fastapi_pagination import Params
 
+from backend.repositories.exceptions import UserNotFound
+from backend.services.exceptions import UserNotExists
+
 logger = logging.getLogger(__name__)
 
 from backend.core.user import User, UserChatMessage
@@ -50,8 +53,10 @@ class UserChatService:
         pagination_params: Params,
     ):
         logger.debug(f"get_chat_messages(user_id={user.id}, to_id={to_id})")
-        to_user = await self.user_repo.get_user(to_id)
-        if not to_user:
-            raise ValueError("User not found")
+        try:
+            await self.user_repo.get_user(to_id)
+        except UserNotFound:
+            logger.warning(f"User with id {to_id} does not exist")
+            raise UserNotExists() from None
 
         return await self.user_repo.get_messages(user.id, to_id, pagination_params)

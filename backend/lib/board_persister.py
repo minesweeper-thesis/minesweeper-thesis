@@ -1,12 +1,10 @@
 import logging
 import uuid
 
-import redis.asyncio as redis
-
-from backend.config import REDIS_URL
 from backend.core.board import Board
 from backend.db.db import async_session_maker
 from backend.lib.pending_boards import RedisPendingStore
+from backend.lib.redis_client import get_redis
 from backend.repositories import BoardRepository
 from backend.repositories.exceptions import BoardNotFound
 
@@ -28,6 +26,6 @@ class BackgroundBoardPersister:
             except BoardNotFound:
                 await board_repo.add_board(board)
 
-        async with redis.from_url(REDIS_URL) as redis_client:
+        async for redis_client in get_redis():
             pending_store = RedisPendingStore(redis_client)
             await pending_store.mark_ready(generation_id, board.id)

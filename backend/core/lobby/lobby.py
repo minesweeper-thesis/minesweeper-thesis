@@ -22,6 +22,10 @@ class UserConnectionUpdated:
     status: Literal["connected", "disconnected"]
 
 
+class UserNotInLobby(Exception):
+    pass
+
+
 class Lobby:
     id: uuid.UUID
     host: User
@@ -41,7 +45,7 @@ class Lobby:
 
     def remove_user(self, user: User) -> UserConnectionUpdated:
         if user not in self.users:
-            raise ValueError("User not in lobby.")
+            raise UserNotInLobby()
 
         self.users.remove(user)
 

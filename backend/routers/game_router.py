@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.core.game.game_actions import *
+from backend.core.multi.session import ReadyChangeLocked
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.session_websockets import session_websockets
@@ -27,6 +28,11 @@ game_exceptions = {
         400, "Gameplay is already finished"
     ),
     exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
+    exceptions.UserNotInSession: HTTPException(403, "User not in multiplayer session"),
+    exceptions.SessionAlreadyOver: HTTPException(
+        400, "Multiplayer session is already over"
+    ),
+    ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
 }
 
 

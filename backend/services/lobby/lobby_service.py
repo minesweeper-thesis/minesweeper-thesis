@@ -1,6 +1,8 @@
 import logging
 import uuid
 
+from backend.services.exceptions import UserNotExists
+
 logger = logging.getLogger(__name__)
 
 from backend.config import BACKEND_URL
@@ -78,7 +80,7 @@ class LobbyService:
             logger.warning(
                 f"User {user.id} not authorized to join lobby via invitation {invitation_id}"
             )
-            raise PermissionError("User not authorized to join this lobby")
+            raise InvitationNotExists()
 
         data = lobby.add_user(user)
         await self.lobby_repo.save_lobby(lobby)
@@ -138,7 +140,7 @@ class LobbyService:
 
         target_user = await self.user_repo.get_user(target_user_id)
         if not target_user:
-            raise ValueError("Target user not found")
+            raise UserNotExists()
 
         ensure_user_in_lobby(lobby, target_user)
 

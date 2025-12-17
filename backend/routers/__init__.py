@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from .auth_router import auth_router
 from .friends_router import friend_requests_router, friends_exceptions, friends_router
 from .game_router import game_exceptions, game_router
-from .lobby_router import invitations_router, lobby_router
+from .lobby_router import invitations_router, lobby_exceptions, lobby_router
 from .notifications_router import notifications_router
 from .stats_router import stats_router
 from .user_router import user_exceptions, user_router
@@ -12,6 +12,7 @@ _exceptions: dict[type[Exception], HTTPException] = {
     **user_exceptions,
     **friends_exceptions,
     **game_exceptions,
+    **lobby_exceptions,
 }
 
 

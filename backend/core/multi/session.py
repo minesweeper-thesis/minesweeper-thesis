@@ -17,6 +17,14 @@ class SessionOver:
     scoreboard: SessionScoreboard
 
 
+class ReadyChangeLocked(Exception):
+    pass
+
+
+class RoundNotAvailable(Exception):
+    pass
+
+
 class MultiplayerSession:
     def __init__(
         self,
@@ -78,13 +86,13 @@ class MultiplayerSession:
     @property
     def _current_round(self) -> MultiplayerRound:
         if self.current_round_index == -1:
-            raise RuntimeError("No round is currently active")
+            raise RoundNotAvailable()
         return self.rounds[self.current_round_index]
 
     @property
     def next_round(self) -> MultiplayerRound:
         if self.current_round_index + 1 >= len(self.rounds):
-            raise RuntimeError("No next round available")
+            raise RoundNotAvailable()
         return self.rounds[self.current_round_index + 1]
 
     @property
@@ -93,12 +101,12 @@ class MultiplayerSession:
 
     def set_ready(self, user_id: uuid.UUID):
         if self.ready_locked:
-            raise ValueError("Ready state is locked")
+            raise ReadyChangeLocked()
         self.ready_players.add(user_id)
 
     def cancel_ready(self, user_id: uuid.UUID):
         if self.ready_locked:
-            raise ValueError("Ready state is locked")
+            raise ReadyChangeLocked()
         self.ready_players.discard(user_id)
 
     def all_players_ready(self) -> bool:
@@ -141,7 +149,7 @@ class MultiplayerSession:
     def start_next_round(self, start_at: datetime):
         if self.current_round_index != -1:
             if not self._current_round.all_gameplays_finished():
-                raise RuntimeError("Previous round is not over yet")
+                raise RoundNotAvailable()
 
         self.current_round_index += 1
         session_scores = {item.user_id: item.score for item in self.scoreboard.items}

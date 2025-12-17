@@ -35,6 +35,12 @@ class ScoreUpdate:
 type RoundState = Literal["not_started", "playing", "ended"]
 
 
+class InvalidRoundState(Exception):
+    def __init__(self, current_state: RoundState):
+        self.current_state = current_state
+        super().__init__(f"Invalid round state: {current_state}")
+
+
 class MultiplayerRound:
     def __init__(
         self,
@@ -74,7 +80,7 @@ class MultiplayerRound:
 
     def start(self, start_at: datetime, session_scores: dict[uuid.UUID, float]) -> None:
         if self.state != "not_started":
-            raise RuntimeError("Round is started or ended already")
+            raise InvalidRoundState(current_state=self.state)
 
         self.start_at = start_at
         self.end_at = self.start_at + self.round_time
@@ -102,7 +108,7 @@ class MultiplayerRound:
 
     def end(self) -> None:
         if self.state != "playing":
-            raise RuntimeError("Round is not in playing state")
+            raise InvalidRoundState(current_state=self.state)
 
         self.state = "ended"
 

@@ -49,6 +49,30 @@ class GameplayNotExists(Exception):
     pass
 
 
+class UserNotExists(Exception):
+    pass
+
+
+class UserNotHost(Exception):
+    pass
+
+
+class LobbyNotExists(Exception):
+    pass
+
+
+class UserNotInSession(Exception):
+    pass
+
+
+class SessionAlreadyOver(Exception):
+    pass
+
+
+class InvitationNotExists(Exception):
+    pass
+
+
 __all__ = [
     "UsersNotFriends",
     "FriendRequestNotExists",
@@ -60,4 +84,10 @@ __all__ = [
     "SolvedAllBoards",
     "GameplayAlreadyFinished",
     "GameplayNotExists",
+    "UserNotExists",
+    "UserNotHost",
+    "LobbyNotExists",
+    "UserNotInSession",
+    "SessionAlreadyOver",
+    "InvitationNotExists",
 ]

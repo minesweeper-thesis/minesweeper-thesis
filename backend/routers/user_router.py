@@ -8,12 +8,15 @@ from fastapi_pagination import Page, Params
 from backend import services
 from backend.lib.auth import CurrentUser
 from backend.schemas.user import *
+from backend.services.exceptions import UserNotExists
 
 PaginationParams = Annotated[Params, Depends()]
 UserService = Annotated[services.UserService, Depends()]
 UserChatService = Annotated[services.UserChatService, Depends()]
 
-user_exceptions: dict[type[Exception], HTTPException] = {}
+user_exceptions: dict[type[Exception], HTTPException] = {
+    UserNotExists: HTTPException(status_code=404, detail="User not found."),
+}
 
 user_router = APIRouter(tags=["user"])
 

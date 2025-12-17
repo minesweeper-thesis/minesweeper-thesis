@@ -2,13 +2,11 @@ import logging
 import uuid
 from datetime import timedelta
 
-import redis.asyncio as redis
-
-from backend.config import REDIS_URL
 from backend.core.board import Board
 from backend.core.multi import create_multiplayer_round
 from backend.db import async_session_maker
 from backend.lib.pending_boards import RedisPendingStore
+from backend.lib.redis_client import get_redis
 from backend.protocols import SessionNotFound
 from backend.repositories.exceptions import BoardNotFound
 
@@ -26,7 +24,7 @@ class BackgroundRoundHandler:
         )
 
         async with async_session_maker() as db_session:
-            async with redis.from_url(REDIS_URL) as redis_client:
+            async for redis_client in get_redis():
                 board_repo = BoardRepository(db_session)
                 multi_repo = RedisMultiplayerRepository(db_session, redis_client)
                 pending_store = RedisPendingStore(redis_client)
