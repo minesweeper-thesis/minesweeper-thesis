@@ -2,6 +2,7 @@ from typing import Annotated
 
 import backend.protocols as p
 from backend.di.providers import registry
+from backend.lib.board_persister import BackgroundBoardPersister
 
 BoardRepositoryDep = Annotated[p.BoardRepository, registry[p.BoardRepository]]
 SingleplayerRepositoryDep = Annotated[
@@ -23,6 +24,10 @@ GameTransportFactoryDep = Annotated[
 ]
 SchedulerDep = Annotated[p.Scheduler, registry[p.Scheduler]]
 
+BoardPersisterDep = Annotated[
+    BackgroundBoardPersister, registry[BackgroundBoardPersister]
+]
+
 __all__ = [
     "BoardRepositoryDep",
     "SingleplayerRepositoryDep",
@@ -36,4 +41,5 @@ __all__ = [
     "NotificationSystemDep",
     "GameTransportFactoryDep",
     "SchedulerDep",
+    "BoardPersisterDep",
 ]

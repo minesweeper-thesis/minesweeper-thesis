@@ -97,6 +97,8 @@ class RedisPendingStore(protocols.PendingBoardsStore):
         logger.debug(f"get_pending_gameplay(id={id})")
         gen_id_str = await self.redis.get(f"{self.prefix}lookup:gameplay:{id}")
         if gen_id_str:
+            if isinstance(gen_id_str, bytes):
+                gen_id_str = gen_id_str.decode("utf-8")
             data = await self.redis.get(f"{self.prefix}{gen_id_str}")
             if data:
                 return pickle.loads(data)
@@ -112,6 +114,8 @@ class RedisPendingStore(protocols.PendingBoardsStore):
             f"{self.prefix}lookup:round:{session_id}:{round_index}"
         )
         if gen_id_str:
+            if isinstance(gen_id_str, bytes):
+                gen_id_str = gen_id_str.decode("utf-8")
             data = await self.redis.get(f"{self.prefix}{gen_id_str}")
             if data:
                 return pickle.loads(data)

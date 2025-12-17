@@ -10,6 +10,7 @@ from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
 from backend.di.dependencies import (
     BoardGeneratorDep,
+    BoardPersisterDep,
     BoardRepositoryDep,
     PendingBoardsStoreDep,
     SingleplayerRepositoryDep,
@@ -28,11 +29,13 @@ class CreateSingleGameplayService:
         game_repo: SingleplayerRepositoryDep,
         board_generator: BoardGeneratorDep,
         pending_store: PendingBoardsStoreDep,
+        board_persister: BoardPersisterDep,
     ):
         self.game_repo = game_repo
         self.board_repo = board_repo
         self.board_generator = board_generator
         self.pending_store = pending_store
+        self.board_persister = board_persister
 
     async def create_singleplayer_gameplay(
         self,
@@ -155,24 +158,13 @@ class CreateSingleGameplayService:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
 
-        async def on_board_generated(generation_id: uuid.UUID, board: Board):
-            try:
-                existing_board = await self.board_repo.get_board(
-                    board.difficulty_level, board.minefields
-                )
-                board = existing_board
-            except BoardNotFound:
-                await self.board_repo.add_board(board)
-
-            await self.pending_store.mark_ready(generation_id, board.id)
-
         generation_id = await self.board_generator.generate_board(
             GenerationSettings(
                 type=game_settings.generator.generator_type,
                 difficulty_level=game_settings.difficulty_level,
                 settings=game_settings.generator.settings,
             ),
-            on_completed=on_board_generated,
+            on_completed=self.board_persister.on_board_generated,
         )
 
         await self.pending_store.create_pending(

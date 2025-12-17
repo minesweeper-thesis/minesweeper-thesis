@@ -5,6 +5,7 @@ from fastapi import Depends
 from backend import protocols as p
 from backend.db.db import get_async_session
 from backend.lib.board_generator import LocalBoardGenerator
+from backend.lib.board_persister import BackgroundBoardPersister
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis
 from backend.lib.scheduler import get_scheduler
@@ -50,6 +51,7 @@ registry: dict[type, Callable] = {
     p.NotificationSystem: _get_notification_system,
     p.GameTransportFactory: _get_game_transport_factory,
     p.Scheduler: get_scheduler,
+    BackgroundBoardPersister: BackgroundBoardPersister,
 }
 
 for protocol, impl in registry.items():
