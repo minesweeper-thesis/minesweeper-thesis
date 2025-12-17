@@ -5,6 +5,7 @@ from fastapi import Depends
 from backend.core.board import Board
 from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import (
+    BackgroundRoundHandlerDep,
     BoardGeneratorDep,
     BoardRepositoryDep,
     PendingBoardsStoreDep,
@@ -21,11 +22,13 @@ class SessionBoardsPreparer:
         board_generator: BoardGeneratorDep,
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
+        background_handler: BackgroundRoundHandlerDep,
     ):
         self.board_repo = board_repo
         self.board_generator = board_generator
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
+        self.background_handler = background_handler
 
     async def prepare(self, session: MultiplayerSession):
         to_generate = session.rounds_number - len(session.rounds)
@@ -62,7 +65,7 @@ class SessionBoardsPreparer:
         game_config = session.game_config
         generation_id = await self.board_generator.generate_board(
             game_config.generation_settings,
-            on_completed=lambda generation_id, board: self.round_scheduler.on_board_generated(
+            on_completed=lambda generation_id, board: self.background_handler.on_board_generated(
                 session.id, generation_id, board
             ),
         )
