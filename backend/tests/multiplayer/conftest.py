@@ -1,10 +1,32 @@
 import pytest
 
+from typing import Annotated
+
+from fastapi import Depends
+
+from backend.lib.background_handler import BackgroundRoundHandler
+from backend.services.multi.round_scheduler import RoundScheduler
 from backend.main import api
 
 
 @pytest.fixture
-def board_generator_override():
+def background_handler_override():
+    class TestBackgroundRoundHandler:
+        def __init__(self, round_scheduler: Annotated[RoundScheduler, Depends()]):
+            self.round_scheduler = round_scheduler
+
+        async def on_board_generated(self, session_id, generation_id, board):
+            await self.round_scheduler.on_board_generated(
+                session_id, generation_id, board
+            )
+
+    api.dependency_overrides[BackgroundRoundHandler] = TestBackgroundRoundHandler
+    yield
+    api.dependency_overrides.pop(BackgroundRoundHandler, None)
+
+
+@pytest.fixture
+def board_generator_override(background_handler_override):
     from backend.lib.board_generator import LocalBoardGenerator
 
     class ImmediateBoardGenerator:

@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import pickle
-import time
 import uuid
 from typing import Optional
 
@@ -58,6 +57,7 @@ class RedisPendingStore(protocols.PendingBoardsStore):
     async def mark_ready(self, generation_id: uuid.UUID, board_id: uuid.UUID) -> None:
         logger.debug(f"mark_ready(generation_id={generation_id}, board_id={board_id})")
         key = f"{self.prefix}{generation_id}"
+        channel = f"{self.prefix}ready:{generation_id}"
         data = await self.redis.get(key)
         if data:
             pending = pickle.loads(data)
@@ -66,6 +66,7 @@ class RedisPendingStore(protocols.PendingBoardsStore):
             ttl = await self.redis.ttl(key)
             if ttl > 0:
                 await self.redis.set(key, pickle.dumps(pending), ex=ttl)
+                await self.redis.publish(channel, "ready")
         logger.info(
             f"Pending board {generation_id} marked as ready with board_id {board_id}"
         )
@@ -76,22 +77,36 @@ class RedisPendingStore(protocols.PendingBoardsStore):
         logger.debug(
             f"wait_for_ready(generation_id={generation_id}, timeout={timeout})"
         )
-        start_time = time.time()
         key = f"{self.prefix}{generation_id}"
+        channel = f"{self.prefix}ready:{generation_id}"
 
-        while True:
-            data = await self.redis.get(key)
-            if not data:
-                return None
+        data = await self.redis.get(key)
+        if not data:
+            return None
 
-            pending = pickle.loads(data)
-            if pending.board_id:
-                return pending
+        pending = pickle.loads(data)
+        if pending.board_id:
+            return pending
 
-            if timeout is not None and (time.time() - start_time) >= timeout:
-                return None
+        pubsub = self.redis.pubsub()
+        try:
+            await pubsub.subscribe(channel)
 
-            await asyncio.sleep(0.1)
+            async def wait():
+                async for message in pubsub.listen():
+                    if message["type"] == "message":
+                        data = await self.redis.get(key)
+                        return pickle.loads(data) if data else None
+
+            if timeout is not None:
+                result = await asyncio.wait_for(wait(), timeout=timeout)
+            else:
+                result = await wait()
+            return result
+        except asyncio.TimeoutError:
+            return None
+        finally:
+            await pubsub.close()
 
     async def get_pending_gameplay(self, id: uuid.UUID) -> Optional[PendingBoard]:
         logger.debug(f"get_pending_gameplay(id={id})")
