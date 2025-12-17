@@ -13,7 +13,6 @@ async def create_session(id: uuid.UUID, lobby: Lobby) -> MultiplayerSession:
         lobby_id=lobby.id,
         difficulty_level=game_config.difficulty_level,
         game_config=game_config,
-        max_round_time=game_config.max_round_time,
         player_ids=player_ids,
         rounds_number=game_config.rounds,
     )

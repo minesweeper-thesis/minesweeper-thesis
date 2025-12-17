@@ -43,7 +43,7 @@ class AsyncScheduler(Scheduler):
             job_defaults={
                 "coalesce": False,
                 "max_instances": 10,
-                "misfire_grace_time": 30,  # 30 seconds grace time
+                "misfire_grace_time": 30,
             }
         )
         self._scheduler.start()
@@ -54,7 +54,7 @@ class AsyncScheduler(Scheduler):
         """Shutdown the scheduler gracefully."""
         if self._scheduler and self._initialized:
             try:
-                self._scheduler.shutdown(wait=False)
+                self._scheduler.shutdown(wait=True)
                 logger.info("Scheduler shutdown complete")
             except Exception as e:
                 logger.warning(f"Scheduler shutdown warning: {e}")
@@ -90,15 +90,14 @@ class AsyncScheduler(Scheduler):
         if job_id is None:
             job_id = str(uuid.uuid4())
 
-        # Capture loop reference for the closure
         loop = self._loop
 
         def run_in_loop():
             """Run the coroutine in the main event loop."""
             try:
                 future = asyncio.run_coroutine_threadsafe(func(*args, **kwargs), loop)
-                # Wait for completion and propagate any exceptions
-                future.result(timeout=300)  # 5 minute timeout
+
+                future.result(timeout=300)
             except Exception as e:
                 logger.error(f"Job {job_id} failed: {e}")
                 import traceback
@@ -129,10 +128,9 @@ class AsyncScheduler(Scheduler):
                 self._scheduler.remove_job(job_id)
                 logger.info(f"Cancelled job {job_id}")
             except Exception:
-                pass  # Job may have already run or been removed
+                pass
 
 
-# Global singleton
 _scheduler_instance: AsyncScheduler | None = None
 
 

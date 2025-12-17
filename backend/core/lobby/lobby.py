@@ -61,18 +61,6 @@ class Lobby:
             return False
         return self.id == value.id
 
-    def set_user_ready(self, user: User) -> None:
-        self._ready_users.add(user.id)
-
-    def is_user_ready(self, user: User) -> bool:
-        return user.id in self._ready_users
-
-    def set_user_not_ready(self, user: User) -> None:
-        self._ready_users.discard(user.id)
-
-    def all_users_ready(self) -> bool:
-        return all(user.id in self._ready_users for user in self.users)
-
     def update_game_config(self, new_config: GameConfig):
         self.game_config = new_config
 

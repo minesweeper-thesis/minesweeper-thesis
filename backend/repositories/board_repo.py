@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
-from backend.db.db import DBSession
+from backend.db import DBSession
 
 from .exceptions import *
 from .orm import *
@@ -164,8 +164,8 @@ class BoardRepository(protocols.BoardRepository):
                             == MultiplayerRoundORM.session_id
                         )
                         & (
-                            MultiplayerGameplayORM.round_number
-                            == MultiplayerRoundORM.round_number
+                            MultiplayerGameplayORM.round_index
+                            == MultiplayerRoundORM.round_index
                         )
                         & (MultiplayerGameplayORM.user_id.in_(user_ids)),
                     )

@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Annotated, Any
+from typing import Annotated
 
 from fastapi import BackgroundTasks, Depends
 
@@ -10,13 +10,14 @@ from backend.core.game import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
+from backend.di.session_lock import SessionLockDep
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.multi.helpers import (
-    send_round_ready,
-    send_user_not_ready,
-    send_user_ready,
+from backend.services.multi.components import (
+    PendingBoardWaiter,
+    RoundReadinessNotifier,
+    SessionBoardsPreparer,
 )
 from backend.services.multi.round_scheduler import RoundScheduler
 
@@ -24,111 +25,102 @@ from backend.services.multi.round_scheduler import RoundScheduler
 class StartRoundService:
     def __init__(
         self,
-        board_repo: BoardRepositoryDep,
-        lobby_repo: LobbyRepositoryDep,
         multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
         notification_system: NotificationSystemDep,
-        scheduler: SchedulerDep,
         game_transport_factory: GameTransportFactoryDep,
-        pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
+        readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
+        pending_board_waiter: Annotated[PendingBoardWaiter, Depends()],
+        boards_preparer: Annotated[SessionBoardsPreparer, Depends()],
+        session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
-        self.board_repo = board_repo
-        self.lobby_repo = lobby_repo
         self.background_tasks = background_tasks
-        self.notification_system = notification_system
-        self.scheduler = scheduler
         self.game_transport_factory = game_transport_factory
-        self.pending_store = pending_store
         self.round_scheduler = round_scheduler
-
-        self.messages: list[tuple[uuid.UUID, Any]] = []
+        self.pending_board_waiter = pending_board_waiter
+        self.boards_preparer = boards_preparer
+        self.notification_system = notification_system
+        self.readiness_notifier = readiness_notifier
+        self.session_lock = session_lock
 
     def _ensure_user_in_session(self, session: MultiplayerSession, user: User):
         if user.id not in session.player_ids:
             raise PermissionError("User is not part of this session")
 
-        if session.is_session_over():
+        if session.is_over():
             raise ValueError("Session is already over")
 
     async def toggle_user_ready(self, session_id: uuid.UUID, user: User):
         logger.debug(f"User {user.id} toggling ready status in session {session_id}")
         session = await self.multi_repo.get_session(session_id)
         self._ensure_user_in_session(session, user)
-        if session.is_user_ready(user):
-            await self._cancel_user_ready(session, user)
+        if session.is_user_ready(user.id):
+            await self.cancel_user_ready(session_id, user)
         else:
             await self.set_user_ready(session_id, user)
 
     async def cancel_user_ready(self, session_id: uuid.UUID, user: User):
-        session = await self.multi_repo.get_session(session_id)
-        self._ensure_user_in_session(session, user)
-        await self._cancel_user_ready(session, user)
+        should_notify = False
 
-    async def _cancel_user_ready(self, session: MultiplayerSession, user: User):
-        self._ensure_user_in_session(session, user)
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
+            self._ensure_user_in_session(session, user)
 
-        if session.ready_locked:
-            return
+            if session.is_user_ready(user.id) and not session.ready_locked:
+                session.cancel_ready(user.id)
+                await self.multi_repo.save_session(session)
+                should_notify = True
 
-        if not session.is_user_ready(user):
-            return
-
-        session.cancel_ready(user.id)
-
-        transport = self.game_transport_factory.create(session.id)
-        await send_user_not_ready(self.notification_system.notify, session, user)
-
-        await self.multi_repo.save_session(session)
+        if should_notify:
+            await self.readiness_notifier.send_user_not_ready(
+                self.notification_system.notify, session, user
+            )
 
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
-        session = await self.multi_repo.get_session(session_id)
+        should_notify = False
+        all_ready = False
 
-        self._ensure_user_in_session(session, user)
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
+            self._ensure_user_in_session(session, user)
 
-        if session.ready_locked:
-            return
+            if not session.is_user_ready(user.id) and not session.ready_locked:
+                session.set_ready(user.id)
+                await self.multi_repo.save_session(session)
+                should_notify = True
+                all_ready = session.all_players_ready()
 
-        if session.is_user_ready(user):
-            return
+        if should_notify:
+            await self.readiness_notifier.send_user_ready(
+                self.notification_system.notify, session, user
+            )
 
-        session.set_ready(user.id)
+            if all_ready:
+                await self._on_all_ready(session)
 
-        transport = self.game_transport_factory.create(session_id)
-        await send_user_ready(self.notification_system.notify, session, user)
+    async def _on_all_ready(self, session: MultiplayerSession):
+        logger.info(f"All players ready in session {session.id}, starting round")
+        transport = self.game_transport_factory.create(session.id)
 
-        if session.all_players_ready():
-            logger.info(f"All players ready in session {session_id}, starting round")
-            await send_round_ready(transport.send, session)
+        if session.current_round_index == -1 and len(session.rounds) == 0:
+            await self.readiness_notifier.send_round_ready(
+                self.notification_system.notify, session
+            )
+            await self.boards_preparer.prepare(session)
+            session = await self.multi_repo.get_session(session.id)
+        else:
+            await self.readiness_notifier.send_round_ready(transport.send, session)
 
-            if session.is_next_round_available:
-                await self.round_scheduler.schedule_start(session)
-            else:
-                self.background_tasks.add_task(
-                    self._wait_for_generation_and_start_round, session
-                )
-
-        await self.multi_repo.save_session(session)
-
-    async def _wait_for_generation_and_start_round(self, session: MultiplayerSession):
-        next_round_index = session.current_round_index + 1
-
-        pending = await self.pending_store.get_pending_round(
-            session.id, next_round_index
-        )
-        if pending is None:
-            raise RuntimeError("Pending board not found")
-
-        await self.pending_store.wait_for_ready(pending.generation_id, 24 * 3600)
-
-        await self.round_scheduler.schedule_start(session)
-
-    def collect_messages(self) -> list[tuple[uuid.UUID, Any]]:
-        msgs = self.messages
-        self.messages = []
-        return msgs
+        if session.is_next_round_available:
+            await self.round_scheduler.schedule_start(session)
+        else:
+            self.background_tasks.add_task(
+                self.pending_board_waiter.wait_and_schedule_next_round,
+                session.id,
+                24 * 3600,
+            )
 
 
 __all__ = ["StartRoundService"]

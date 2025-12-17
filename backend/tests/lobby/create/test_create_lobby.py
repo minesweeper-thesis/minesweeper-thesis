@@ -1,11 +1,12 @@
-
 import uuid
 
-def test_create_lobby_returns_lobby_response(client, auth):
-    email = f"lobbyhost-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="lobbyhostpw", nickname="lobbyhost")
+import pytest
 
-    resp = client.post("/api/lobbies")
+
+@pytest.mark.asyncio
+async def test_create_lobby_returns_lobby_response(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.post("/api/lobbies")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -21,7 +22,7 @@ def test_create_lobby_returns_lobby_response(client, auth):
     host = data["host"]
     assert "id" in host
     assert "nickname" in host
-    assert host["nickname"] == "lobbyhost"
+    assert host["nickname"] == "test"
 
     config = data["game_config"]
     assert "rounds" in config
@@ -35,6 +36,8 @@ def test_create_lobby_returns_lobby_response(client, auth):
     assert "columns" in dl
     assert "mine_count" in dl
 
-def test_create_lobby_without_auth_returns_401(client):
-    resp = client.post("/api/lobbies")
+
+@pytest.mark.asyncio
+async def test_create_lobby_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.post("/api/lobbies")
     assert resp.status_code == 401

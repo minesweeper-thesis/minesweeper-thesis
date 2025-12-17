@@ -3,8 +3,10 @@ import uuid
 
 logger = logging.getLogger(__name__)
 
+from . import OnlineUsersStore
 
-class LocalOnlineUsersStore:
+
+class LocalOnlineUsersStore(OnlineUsersStore):
     def __init__(self) -> None:
         self.online_users: set[uuid.UUID] = set()
 

@@ -1,14 +1,15 @@
 import json
 import uuid
 
-from backend.routers.schemas.game.single_schemas import NewGameResponse
+import pytest
+
+from backend.schemas.game.single_schemas import NewGameResponse
 
 
-def test_start_game_validates_response(client, auth):
-    email = f"sp-start-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="sp_start")
-
-    resp = client.post(
+@pytest.mark.asyncio
+async def test_start_game_validates_response(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.post(
         "/api/game/single",
         json={
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 2},
@@ -26,20 +27,20 @@ def test_start_game_validates_response(client, auth):
     uuid.UUID(str(game_response.gameplay_id))
 
 
-def test_start_game_invalid_board_returns_404(client, auth):
-    email = f"sp-invalid-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="sp_invalid")
-
+@pytest.mark.asyncio
+async def test_start_game_invalid_board_returns_404(authenticated_clients):
+    client = authenticated_clients[0]
     fake_board_id = str(uuid.uuid4())
-    resp = client.post(
+    resp = await client.post(
         "/api/game/single",
         json={"board_id": fake_board_id, "mode": "normal"},
     )
     assert resp.status_code == 404
 
 
-def test_start_game_works_without_auth(client):
-    resp = client.post(
+@pytest.mark.asyncio
+async def test_start_game_works_without_auth(client_no_auth):
+    resp = await client_no_auth.post(
         "/api/game/single",
         json={
             "mode": "normal",
@@ -51,11 +52,10 @@ def test_start_game_works_without_auth(client):
     assert "gameplay_id" in resp.json()
 
 
-def test_start_game_validates_difficulty_level(client, auth):
-    email = f"sp-diff-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="sp_diff")
-
-    resp = client.post(
+@pytest.mark.asyncio
+async def test_start_game_validates_difficulty_level(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.post(
         "/api/game/single",
         json={
             "difficulty_level": {"rows": 5},
@@ -66,11 +66,10 @@ def test_start_game_validates_difficulty_level(client, auth):
     assert resp.status_code == 422
 
 
-def test_start_game_validates_generator_type(client, auth):
-    email = f"sp-gen-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="sp_gen")
-
-    resp = client.post(
+@pytest.mark.asyncio
+async def test_start_game_validates_generator_type(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.post(
         "/api/game/single",
         json={
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 2},
@@ -81,10 +80,9 @@ def test_start_game_validates_generator_type(client, auth):
     assert resp.status_code == 422
 
 
-def test_websocket_invalid_gameplay_returns_error(client, auth):
-    email = f"ws-invalid-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_invalid")
-
+@pytest.mark.asyncio
+async def test_websocket_invalid_gameplay_returns_error(authenticated_clients):
+    client = authenticated_clients[0]
     fake_gameplay_id = str(uuid.uuid4())
 
     try:

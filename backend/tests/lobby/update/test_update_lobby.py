@@ -1,11 +1,12 @@
-
 import uuid
 
-def test_update_lobby_config_success(client, auth):
-    email = f"updatelobby-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="updatelobbypw", nickname="updatelobbyhost")
+import pytest
 
-    create_resp = client.post("/api/lobbies")
+
+@pytest.mark.asyncio
+async def test_update_lobby_config_success(authenticated_clients):
+    client = authenticated_clients[0]
+    create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
     new_config = {
@@ -23,11 +24,13 @@ def test_update_lobby_config_success(client, auth):
         },
     }
 
-    resp = client.put(f"/api/lobbies/{lobby_id}", json=new_config)
+    resp = await client.put(f"/api/lobbies/{lobby_id}", json=new_config)
     assert resp.status_code in [200, 204]
 
-def test_update_lobby_config_without_auth_returns_401(client):
-    resp = client.put(
+
+@pytest.mark.asyncio
+async def test_update_lobby_config_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.put(
         f"/api/lobbies/{uuid.uuid4()}",
         json={
             "rounds": 3,

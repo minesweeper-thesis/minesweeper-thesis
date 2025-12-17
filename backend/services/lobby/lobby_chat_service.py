@@ -26,7 +26,7 @@ class LobbyChatService:
         logger.debug(
             f"send_chat_message(lobby_id={lobby_id}, user_id={user.id}, content_len={len(content)})"
         )
-        lobby = self.lobby_repo.get_lobby(lobby_id)
+        lobby = await self.lobby_repo.get_lobby(lobby_id)
 
         ensure_lobby_exists(lobby)
         ensure_user_in_lobby(lobby, user)
@@ -38,7 +38,7 @@ class LobbyChatService:
             timestamp=datetime.now(),
         )
 
-        self.lobby_repo.add_message(message)
+        await self.lobby_repo.add_message(message)
 
         for lobby_user in lobby.users:
             await self.notification_system.notify(lobby_user.id, message)
@@ -49,11 +49,11 @@ class LobbyChatService:
         self, lobby_id: uuid.UUID, user: User, pagination_params: Params
     ):
         logger.debug(f"get_chat_messages(lobby_id={lobby_id}, user_id={user.id})")
-        lobby = self.lobby_repo.get_lobby(lobby_id)
+        lobby = await self.lobby_repo.get_lobby(lobby_id)
         ensure_lobby_exists(lobby)
         ensure_user_in_lobby(lobby, user)
 
-        return self.lobby_repo.get_messages(lobby_id, pagination_params)
+        return await self.lobby_repo.get_messages(lobby_id, pagination_params)
 
 
 __all__ = ["LobbyChatService"]

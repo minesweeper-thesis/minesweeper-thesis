@@ -1,14 +1,15 @@
-
 import uuid
 
-def test_send_chat_message_success(client, auth):
-    email = f"chatlobby-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="chatlobbypw", nickname="chatlobbyhost")
+import pytest
 
-    create_resp = client.post("/api/lobbies")
+
+@pytest.mark.asyncio
+async def test_send_chat_message_success(authenticated_clients):
+    client = authenticated_clients[0]
+    create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    resp = client.post(
+    resp = await client.post(
         f"/api/lobbies/{lobby_id}/chat-messages",
         json={
             "content": "Hello lobby!",
@@ -16,24 +17,26 @@ def test_send_chat_message_success(client, auth):
     )
     assert resp.status_code in [200, 204]
 
-def test_send_empty_chat_message(client, auth):
-    email = f"emptychat-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="emptychatpw", nickname="emptychathost")
 
-    create_resp = client.post("/api/lobbies")
+@pytest.mark.asyncio
+async def test_send_empty_chat_message(authenticated_clients):
+    client = authenticated_clients[0]
+    create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    resp = client.post(
+    resp = await client.post(
         f"/api/lobbies/{lobby_id}/chat-messages",
         json={
             "content": "",
         },
     )
 
-    assert resp.status_code in [200, 204, 422]
+    assert resp.status_code in [200, 204]
 
-def test_send_chat_message_without_auth_returns_401(client):
-    resp = client.post(
+
+@pytest.mark.asyncio
+async def test_send_chat_message_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.post(
         f"/api/lobbies/{uuid.uuid4()}/chat-messages",
         json={
             "content": "Hello!",
@@ -41,21 +44,21 @@ def test_send_chat_message_without_auth_returns_401(client):
     )
     assert resp.status_code == 401
 
-def test_get_chat_messages_returns_list(client, auth):
-    email = f"getchat-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="getchatpw", nickname="getchathost")
 
-    create_resp = client.post("/api/lobbies")
+@pytest.mark.asyncio
+async def test_get_chat_messages_returns_list(authenticated_clients):
+    client = authenticated_clients[0]
+    create_resp = await client.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    client.post(
+    await client.post(
         f"/api/lobbies/{lobby_id}/chat-messages",
         json={
             "content": "Test message",
         },
     )
 
-    resp = client.get(f"/api/lobbies/{lobby_id}/chat-messages")
+    resp = await client.get(f"/api/lobbies/{lobby_id}/chat-messages")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -84,6 +87,8 @@ def test_get_chat_messages_returns_list(client, auth):
         assert isinstance(msg["content"], str)
         assert isinstance(msg["timestamp"], int)
 
-def test_get_chat_messages_without_auth_returns_401(client):
-    resp = client.get(f"/api/lobbies/{uuid.uuid4()}/chat-messages")
+
+@pytest.mark.asyncio
+async def test_get_chat_messages_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.get(f"/api/lobbies/{uuid.uuid4()}/chat-messages")
     assert resp.status_code == 401

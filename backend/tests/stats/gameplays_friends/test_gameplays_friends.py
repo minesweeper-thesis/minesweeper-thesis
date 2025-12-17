@@ -1,8 +1,9 @@
+import pytest
 
-import uuid
 
-def test_get_gameplays_friends_ranking_requires_auth(client):
-    resp = client.get(
+@pytest.mark.asyncio
+async def test_get_gameplays_friends_ranking_requires_auth(client_no_auth):
+    resp = await client_no_auth.get(
         "/api/stats/gameplays/friends",
         params={
             "rows": 10,
@@ -12,11 +13,13 @@ def test_get_gameplays_friends_ranking_requires_auth(client):
     )
     assert resp.status_code == 401
 
-def test_get_gameplays_friends_ranking_returns_paginated_response(client, auth):
-    email = f"friendsrank-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="friendsrankpw", nickname="friendsrankuser")
 
-    resp = client.get(
+@pytest.mark.asyncio
+async def test_get_gameplays_friends_ranking_returns_paginated_response(
+    authenticated_clients,
+):
+    client = authenticated_clients[0]
+    resp = await client.get(
         "/api/stats/gameplays/friends",
         params={
             "rows": 10,

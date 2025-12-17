@@ -2,10 +2,12 @@ import os
 import tempfile
 from abc import ABC
 
-AWS_ACCESS_KEY_ID = os.getenv("BUCKETEER_AWS_ACCESS_KEY_ID")
-AWS_SECRET_ACCESS_KEY = os.getenv("BUCKETEER_AWS_SECRET_ACCESS_KEY")
-AWS_REGION = os.getenv("BUCKETEER_AWS_REGION")
-AWS_BUCKET_NAME = os.getenv("BUCKETEER_BUCKET_NAME")
+from backend.config import (
+    AWS_ACCESS_KEY_ID,
+    AWS_BUCKET_NAME,
+    AWS_REGION,
+    AWS_SECRET_ACCESS_KEY,
+)
 
 
 class _ModelLoaderABC(ABC):
@@ -45,9 +47,9 @@ class RemoteModelLoader(_ModelLoaderABC):
 
         s3 = boto3.client(
             "s3",
-            aws_access_key_id=AWS_ACCESS_KEY_ID,
-            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
-            region_name=AWS_REGION,
+            aws_access_key_id=str(AWS_ACCESS_KEY_ID),
+            aws_secret_access_key=str(AWS_SECRET_ACCESS_KEY),
+            region_name=str(AWS_REGION),
         )
 
         s3.download_file(AWS_BUCKET_NAME, self._path, path)  # type: ignore

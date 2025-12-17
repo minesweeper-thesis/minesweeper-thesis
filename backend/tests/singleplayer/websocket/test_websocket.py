@@ -1,16 +1,19 @@
 import json
-import uuid
+
+import pytest
 
 from backend.tests.singleplayer.helpers import create_game
 
 
-def test_websocket_initial_game_state_schema(client, auth):
-    email = f"ws-init-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_init")
+@pytest.mark.asyncio
+async def test_websocket_initial_game_state_schema(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         data = json.loads(ws.receive_text())
 
         assert data["type"] == "game_state"
@@ -34,17 +37,19 @@ def test_websocket_initial_game_state_schema(client, auth):
         assert data.get("result") is None
 
 
-def test_websocket_game_over_loss_schema(client, auth):
+@pytest.mark.asyncio
+async def test_websocket_game_over_loss_schema(authenticated_clients, session):
     from starlette.websockets import WebSocketDisconnect
 
-    email = f"ws-loss-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_loss")
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=7)
+    gameplay_id = await create_game(
+        bundle.http, rows=3, columns=3, mine_count=7, session=session
+    )
 
     game_over = None
     finished = False
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
@@ -73,13 +78,17 @@ def test_websocket_game_over_loss_schema(client, auth):
         assert isinstance(game_over["full_board"], list)
 
 
-def test_websocket_get_game_state_returns_current_state(client, auth):
-    email = f"ws-getstate-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_getstate")
+@pytest.mark.asyncio
+async def test_websocket_get_game_state_returns_current_state(
+    authenticated_clients, session
+):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=5)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=5, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
@@ -99,16 +108,20 @@ def test_websocket_get_game_state_returns_current_state(client, auth):
             assert len(row) == 5
 
 
-def test_websocket_board_state_shows_revealed_cell(client, auth):
+@pytest.mark.asyncio
+async def test_websocket_board_state_shows_revealed_cell(
+    authenticated_clients, session
+):
     from starlette.websockets import WebSocketDisconnect
 
-    email = f"ws-verify-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_verify")
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=3)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=3, session=session
+    )
 
     try:
-        with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+        with bundle.get_ws_game(gameplay_id) as ws:
             initial = json.loads(ws.receive_text())
             start_field = initial["start_field"]
 

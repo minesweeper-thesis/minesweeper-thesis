@@ -1,13 +1,12 @@
-import io
 import uuid
 
-from backend.routers.schemas.user import UserResponse
+import pytest
 
-def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
-    email = f"gameplays-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="gameplayspw", nickname="gameplaysuser")
 
-    resp = client.get("/api/gameplays")
+@pytest.mark.asyncio
+async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.get("/api/gameplays")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -20,12 +19,10 @@ def test_get_gameplays_returns_paginated_gameplay_response(client, auth):
 
     assert isinstance(data["items"], list)
 
-def test_get_gameplays_validates_gameplay_response_schema(client, auth):
-    email = f"gpschema-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="gpschemapw", nickname="gpschemauser")
 
-    import asyncio
-
+@pytest.mark.asyncio
+async def test_get_gameplays_validates_gameplay_response_schema(authenticated_clients):
+    client = authenticated_clients[0]
     from backend.core.board import Board, DifficultyLevel, GenerationSettings
     from backend.db.db import async_session_maker
     from backend.repositories.board_repo import BoardRepository
@@ -48,9 +45,9 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
                 pass
             return str(board.id)
 
-    board_id = asyncio.run(create_board())
+    board_id = await create_board()
 
-    game_resp = client.post(
+    game_resp = await client.post(
         "/api/game/singleplayer",
         json={
             "board_id": board_id,
@@ -60,7 +57,7 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
 
     if game_resp.status_code == 200:
 
-        resp = client.get("/api/gameplays")
+        resp = await client.get("/api/gameplays")
         assert resp.status_code == 200
         data = resp.json()
 
@@ -78,6 +75,8 @@ def test_get_gameplays_validates_gameplay_response_schema(client, auth):
                 assert item["status"] in ["not_started", "in_progress", "finished"]
                 assert isinstance(item["elapsed_time"], (int, float))
 
-def test_get_gameplays_without_auth_returns_401(client):
-    resp = client.get("/api/gameplays")
+
+@pytest.mark.asyncio
+async def test_get_gameplays_without_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.get("/api/gameplays")
     assert resp.status_code == 401

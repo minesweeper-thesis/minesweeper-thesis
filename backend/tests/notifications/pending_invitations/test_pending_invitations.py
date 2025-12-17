@@ -1,44 +1,80 @@
 import json
-import uuid
 
-from backend.tests.utils.test_helpers import create_second_user_and_login
+import pytest
 
 
-def test_notifications_websocket_pending_invitations_request(client, auth):
-    email = f"notif-pending-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="notifpendingpw", nickname="notifpending")
+@pytest.mark.parametrize(
+    "authenticated_clients",
+    [
+        [
+            {
+                "email": "notif-pending@example.com",
+                "password": "pw",
+                "nickname": "notifpending",
+            },
+            {
+                "email": "notif-guest@example.com",
+                "password": "pw",
+                "nickname": "notifguest",
+            },
+        ]
+    ],
+    indirect=True,
+)
+@pytest.mark.asyncio
+async def test_notifications_websocket_pending_invitations_request(
+    authenticated_clients,
+):
+    bundle = authenticated_clients[0]
 
-    with client.websocket_connect("/api/ws", cookies=dict(client.cookies)) as ws:
+    with bundle.get_ws() as ws:
         ws.receive_text()
 
         ws.send_json({"type": "pending_invitations"})
 
         data = json.loads(ws.receive_text())
 
-        assert data["type"] == "pending_invitations"
-        assert "invitations" in data
-        assert isinstance(data["invitations"], list)
+    assert data["type"] == "pending_invitations"
+    assert "invitations" in data
+    assert isinstance(data["invitations"], list)
 
 
-def test_notifications_websocket_pending_invitations_has_invitation(client, auth):
-    host_email = f"notif-host-{uuid.uuid4().hex[:8]}@example.com"
-    guest_email = f"notif-guest-{uuid.uuid4().hex[:8]}@example.com"
+@pytest.mark.parametrize(
+    "authenticated_clients",
+    [
+        [
+            {
+                "email": "notif-host@example.com",
+                "password": "pw",
+                "nickname": "notifhost",
+            },
+            {
+                "email": "notif-guest2@example.com",
+                "password": "pw",
+                "nickname": "notifguest2",
+            },
+        ]
+    ],
+    indirect=True,
+)
+@pytest.mark.asyncio
+async def test_notifications_websocket_pending_invitations_has_invitation(
+    authenticated_clients,
+):
+    host_bundle = authenticated_clients[0]
+    guest_bundle = authenticated_clients[1]
 
-    auth(email=host_email, password="notifhostpw", nickname="notifhost")
-    create_resp = client.post("/api/lobbies")
+    create_resp = await host_bundle.http.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_client = create_second_user_and_login(
-        guest_email, "notifguestpw", "notifguest"
-    )
-    guest_me = guest_client.get("/api/auth/me")
+    guest_me = await guest_bundle.http.get("/api/auth/me")
     guest_id = guest_me.json()["id"]
 
-    client.post(f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id})
+    await host_bundle.http.post(
+        f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
+    )
 
-    with guest_client.websocket_connect(
-        "/api/ws", cookies=dict(guest_client.cookies)
-    ) as ws:
+    with guest_bundle.get_ws() as ws:
         ws.receive_text()
 
         ws.send_json({"type": "pending_invitations"})

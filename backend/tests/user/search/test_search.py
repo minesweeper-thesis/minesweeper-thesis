@@ -1,13 +1,12 @@
-import io
-import uuid
+import pytest
 
-from backend.routers.schemas.user import UserResponse
+from backend.schemas.user import UserResponse
 
-def test_search_users_returns_paginated_user_response(client, auth):
-    email = f"searchable-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="searchpw", nickname="searchableuser")
 
-    resp = client.get("/api/search", params={"query": "searchable"})
+@pytest.mark.asyncio
+async def test_search_users_returns_paginated_user_response(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.get("/api/search", params={"query": "te"})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -30,31 +29,22 @@ def test_search_users_returns_paginated_user_response(client, auth):
         assert user.nickname is not None
         assert user.email is not None
 
-        uuid.UUID(str(user.id))
 
-def test_search_users_finds_matching_user(client, auth):
-    unique_name = f"unique{uuid.uuid4().hex[:8]}"
-    email = f"{unique_name}@example.com"
-    auth(email=email, password="findpw", nickname=unique_name)
-
-    resp = client.get("/api/search", params={"query": unique_name[:10]})
+@pytest.mark.asyncio
+async def test_search_users_finds_matching_user(authenticated_clients):
+    client = authenticated_clients[0]
+    resp = await client.get("/api/search", params={"query": "te"})
 
     assert resp.status_code == 200
     data = resp.json()
 
     assert data["total"] >= 1
     nicknames = [item["nickname"] for item in data["items"]]
-    assert unique_name in nicknames
+    assert "test" in nicknames
 
-def test_search_users_empty_query_works(client, auth):
-    email = f"emptysearch-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="emptypw", nickname="emptyquery")
 
-    resp = client.get("/api/search", params={"query": ""})
-    assert resp.status_code in [200, 422]
+@pytest.mark.asyncio
+async def test_search_users_no_auth_returns_401(client_no_auth):
+    resp = await client_no_auth.get("/api/search", params={"query": "test"})
 
-def test_search_users_no_auth_works(client):
-    resp = client.get("/api/search", params={"query": "test"})
-
-    assert resp.status_code in [200, 401]
-
+    assert resp.status_code == 401

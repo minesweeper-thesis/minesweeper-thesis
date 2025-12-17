@@ -1,12 +1,16 @@
 import logging
 import uuid
+from contextlib import suppress
 
 from fastapi import BackgroundTasks
+
+from backend.core.multi.gameplay import GameplayNotInProgress
 
 logger = logging.getLogger(__name__)
 
 from backend.core.game import *
 from backend.di.dependencies import *
+from backend.di.session_lock import SessionLockDep
 from backend.lib.auth import CurrentUser
 from backend.protocols.game_transport_protocol import GameTransport
 from backend.repositories.exceptions import *
@@ -23,6 +27,7 @@ class PlayMultiService:
         notification_system: NotificationSystemDep,
         scheduler: SchedulerDep,
         game_transport_factory: GameTransportFactoryDep,
+        session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
         self.board_repo = board_repo
@@ -31,6 +36,7 @@ class PlayMultiService:
         self.notification_system = notification_system
         self.scheduler = scheduler
         self.game_transport_factory = game_transport_factory
+        self.session_lock = session_lock
 
         self.transport: GameTransport = None  # type: ignore
 
@@ -50,7 +56,7 @@ class PlayMultiService:
             logger.warning(f"User {user.id} is not part of session {session_id}")
             raise ValueError("User is not part of this session")
 
-        if self.session.is_session_over():
+        if self.session.is_over():
             logger.warning(f"Attempted to join already finished session {session_id}")
             raise ValueError("Session is already over")
 
@@ -59,7 +65,7 @@ class PlayMultiService:
 
     def is_session_over(self) -> bool:
         logger.debug(f"is_session_over(session_id={self.session_id})")
-        return self.session.is_session_over()
+        return self.session.is_over()
 
     async def get_game_state(self):
         logger.debug(
@@ -75,13 +81,20 @@ class PlayMultiService:
         logger.debug(
             f"User {self.user.id} executing action in session {self.session_id}: {type(action).__name__}"
         )
-        self.session.execute_action_for_user(self.user.id, action)
 
-        for user_id, events in self.session.consume_events().items():
-            for event in events:
-                await self.transport.send(user_id, event)
+        async with self.session_lock.acquire(self.session_id):
+            self.session = await self.multi_repo.get_session(self.session_id)
 
-        await self.multi_repo.save_session(self.session)
+            with suppress(InvalidAction, GameplayNotInProgress):
+                self.session.execute_action_for_user(self.user.id, action)
+
+            events_by_user = self.session.consume_events()
+
+            await self.multi_repo.save_session(self.session)
+
+            for user_id, events in events_by_user.items():
+                for event in events:
+                    await self.transport.send(user_id, event)
 
 
 __all__ = ["PlayMultiService"]

@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
 from backend.lib.notification_system import get_notification_system
-from backend.routers.schemas import WSRequest
-from backend.routers.schemas.lobby import PendingInvitationsResponse
+from backend.schemas import WSRequest
+from backend.schemas.lobby import PendingInvitationsResponse
 
 UserConnectionService = Annotated[services.UserConnectionService, Depends()]
 LobbyInvitationService = Annotated[services.LobbyInvitationService, Depends()]

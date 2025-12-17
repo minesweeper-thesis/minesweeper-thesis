@@ -1,21 +1,20 @@
 import glob
 import json
 import os
-import uuid
 
 import pytest
 
-from backend.tests.singleplayer.helpers import (
-    create_board_from_full_board_sync,
-    create_game,
-)
+from backend.tests.singleplayer.helpers import create_board_from_full_board, create_game
 
 MESSAGES_DIR = os.path.join(os.path.dirname(__file__), "messages")
 json_files = glob.glob(os.path.join(MESSAGES_DIR, "*.json"))
 
 
 @pytest.mark.parametrize("json_file", json_files)
-def test_replay_game(client, auth, json_file):
+@pytest.mark.asyncio
+async def test_replay_game(authenticated_clients, json_file, session):
+    bundle = authenticated_clients[0]
+
     with open(json_file, "r") as f:
         messages = json.load(f)
 
@@ -39,18 +38,11 @@ def test_replay_game(client, auth, json_file):
 
     start_field = tuple(first_message_data["start_field"])
 
-    board_id = create_board_from_full_board_sync(full_board, start_field)
+    board_id = await create_board_from_full_board(session, full_board, start_field)
 
-    unique_id = uuid.uuid4().hex[:8]
-    auth(
-        email=f"replay-{unique_id}@example.com",
-        password="pw",
-        nickname=f"replay_{unique_id}",
-    )
+    gameplay_id = await create_game(bundle.http, board_id=board_id)
 
-    gameplay_id = create_game(client, board_id=board_id)
-
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         for i, message in enumerate(messages):
             msg_type = message["type"]
             msg_data = json.loads(message["data"])

@@ -24,7 +24,6 @@ class MultiplayerSession:
         lobby_id: uuid.UUID,
         difficulty_level: DifficultyLevel,
         game_config: GameConfig,
-        max_round_time: int,
         player_ids: list[uuid.UUID],
         rounds_number: int,
         rounds: list[MultiplayerRound] = None,  # type: ignore
@@ -36,7 +35,6 @@ class MultiplayerSession:
         self.lobby_id = lobby_id
         self.difficulty_level = difficulty_level
         self.game_config = game_config
-        self.max_round_time = max_round_time
         self.player_ids = player_ids
         self.rounds_number = rounds_number
         self.rounds: list[MultiplayerRound] = rounds
@@ -53,8 +51,29 @@ class MultiplayerSession:
             ]
         )
 
+    def is_started(self) -> bool:
+        return len(self.rounds) > 0 and self.rounds[0].state == "playing"
+
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
+
+    def set_player_ids(self, player_ids: list[uuid.UUID]) -> None:
+        if self.is_started() or self.current_round_index != -1 or len(self.rounds) > 0:
+            raise ValueError("Cannot change players after session setup")
+
+        self.player_ids = player_ids
+        self.ready_players.intersection_update(set(player_ids))
+
+        existing = {item.user_id for item in self.scoreboard.items}
+        removed = existing - set(player_ids)
+        if removed:
+            self.scoreboard.items = [
+                item for item in self.scoreboard.items if item.user_id not in removed
+            ]
+
+        added = set(player_ids) - existing
+        for user_id in added:
+            self.scoreboard.items.append(SessionScoreItem(user_id=user_id, score=0))
 
     @property
     def _current_round(self) -> MultiplayerRound:
@@ -63,7 +82,7 @@ class MultiplayerSession:
         return self.rounds[self.current_round_index]
 
     @property
-    def _next_round(self) -> MultiplayerRound:
+    def next_round(self) -> MultiplayerRound:
         if self.current_round_index + 1 >= len(self.rounds):
             raise RuntimeError("No next round available")
         return self.rounds[self.current_round_index + 1]
@@ -88,26 +107,31 @@ class MultiplayerSession:
     def clear_ready_players(self):
         self.ready_players.clear()
 
-    def is_user_ready(self, user: User) -> bool:
-        return user.id in self.ready_players
+    def is_user_ready(self, user_id: uuid.UUID) -> bool:
+        return user_id in self.ready_players
 
     def lock_ready(self):
         self.ready_locked = True
 
-    def end_current_round(self) -> None:
-        self._current_round.end()
+    def end_round(self, round_index: int) -> None:
+        round = self.rounds[round_index]
+
+        if round.state != "playing":
+            return
+
+        round.end()
         self._consume_round_events()
 
         self.clear_ready_players()
         self.ready_locked = False
 
-        for item in self._current_round.scoreboard.items:
+        for item in round.scoreboard.items:
             for session_item in self.scoreboard.items:
                 if session_item.user_id == item.user_id:
                     session_item.score += item.score
                     break
 
-        if self.is_session_over():
+        if self.is_over():
             self.scoreboard.sort()
             for user_id in self.player_ids:
                 self.events[user_id].append(
@@ -123,8 +147,10 @@ class MultiplayerSession:
         session_scores = {item.user_id: item.score for item in self.scoreboard.items}
         self._current_round.start(start_at, session_scores)
         self._consume_round_events()
+        self.clear_ready_players()
+        self.ready_locked = False
 
-    def is_session_over(self) -> bool:
+    def is_over(self) -> bool:
         return (
             len(self.rounds) == self.rounds_number
             and self.rounds[-1].all_gameplays_finished()
@@ -142,7 +168,7 @@ class MultiplayerSession:
             self.clear_ready_players()
             self.ready_locked = False
 
-        if self.is_session_over():
+        if self.is_over():
             self.scoreboard.sort()
             for user_id in self.player_ids:
                 self.events[user_id].append(

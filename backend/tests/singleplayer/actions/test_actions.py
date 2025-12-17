@@ -1,16 +1,20 @@
 import json
 import uuid
 
+import pytest
+
 from backend.tests.singleplayer.helpers import create_game
 
 
-def test_websocket_reveal_one_returns_response(client, auth):
-    email = f"ws-reveal-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_reveal")
+@pytest.mark.asyncio
+async def test_websocket_reveal_one_returns_response(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
@@ -24,13 +28,15 @@ def test_websocket_reveal_one_returns_response(client, auth):
         assert isinstance(data["revealed_cells"], list)
 
 
-def test_websocket_reveal_start_field_is_safe(client, auth):
-    email = f"ws-startsafe-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_startsafe")
+@pytest.mark.asyncio
+async def test_websocket_reveal_start_field_is_safe(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=3, columns=3, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
@@ -45,13 +51,15 @@ def test_websocket_reveal_start_field_is_safe(client, auth):
             assert data["type"] == "reveal"
 
 
-def test_websocket_reveal_returns_valid_cell_values(client, auth):
-    email = f"ws-cellval-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_cellval")
+@pytest.mark.asyncio
+async def test_websocket_reveal_returns_valid_cell_values(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
@@ -66,13 +74,15 @@ def test_websocket_reveal_returns_valid_cell_values(client, auth):
                     assert 0 <= val <= 8, f"Invalid cell value: {val}"
 
 
-def test_websocket_flag_returns_response(client, auth):
-    email = f"ws-flag-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flag")
+@pytest.mark.asyncio
+async def test_websocket_flag_returns_response(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         ws.receive_text()
 
         ws.send_json({"type": "flag", "cell": (0, 0)})
@@ -83,13 +93,15 @@ def test_websocket_flag_returns_response(client, auth):
         assert data["game_status"] in ["not_started", "in_progress", "finished"]
 
 
-def test_websocket_remove_flag_returns_response(client, auth):
-    email = f"ws-unflag-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_unflag")
+@pytest.mark.asyncio
+async def test_websocket_remove_flag_returns_response(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         ws.receive_text()
 
         ws.send_json({"type": "flag", "cell": (0, 0)})
@@ -102,13 +114,15 @@ def test_websocket_remove_flag_returns_response(client, auth):
         assert "game_status" in data
 
 
-def test_websocket_flag_and_unflag_same_cell(client, auth):
-    email = f"ws-flagunflag-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flagunflag")
+@pytest.mark.asyncio
+async def test_websocket_flag_and_unflag_same_cell(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(
+        bundle.http, rows=3, columns=3, mine_count=1, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         ws.receive_text()
 
         ws.send_json({"type": "flag", "cell": (1, 1)})
@@ -120,13 +134,15 @@ def test_websocket_flag_and_unflag_same_cell(client, auth):
         assert unflag_resp["type"] == "remove_flag"
 
 
-def test_websocket_flag_shows_in_state(client, auth):
-    email = f"ws-flagstate-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flagstate")
+@pytest.mark.asyncio
+async def test_websocket_flag_shows_in_state(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(
+        bundle.http, rows=3, columns=3, mine_count=1, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         ws.receive_text()
 
         ws.send_json({"type": "flag", "cell": (0, 0)})
@@ -140,13 +156,15 @@ def test_websocket_flag_shows_in_state(client, auth):
         assert cell_value == -4, f"Cell should be flagged (-4), got {cell_value}"
 
 
-def test_websocket_use_hint_action(client, auth):
-    email = f"ws-hint-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_hint")
+@pytest.mark.asyncio
+async def test_websocket_use_hint_action(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         ws.receive_text()
 
         ws.send_json({"type": "hint"})
@@ -155,17 +173,19 @@ def test_websocket_use_hint_action(client, auth):
         assert data["type"] in ["hint", "error", "reveal", "game_state"]
 
 
-def test_websocket_reveal_out_of_bounds(client, auth):
+@pytest.mark.asyncio
+async def test_websocket_reveal_out_of_bounds(authenticated_clients, session):
     from anyio import EndOfStream
     from starlette.websockets import WebSocketDisconnect
 
-    email = f"ws-oob-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_oob")
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=3, columns=3, mine_count=1)
+    gameplay_id = await create_game(
+        bundle.http, rows=3, columns=3, mine_count=1, session=session
+    )
 
     try:
-        with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+        with bundle.get_ws_game(gameplay_id) as ws:
             ws.receive_text()
 
             ws.send_json({"type": "reveal_one", "cell": (100, 100)})
@@ -177,13 +197,15 @@ def test_websocket_reveal_out_of_bounds(client, auth):
         pass
 
 
-def test_websocket_flag_revealed_cell(client, auth):
-    email = f"ws-flagrev-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_flagrev")
+@pytest.mark.asyncio
+async def test_websocket_flag_revealed_cell(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         initial = json.loads(ws.receive_text())
         start_field = initial["start_field"]
 
@@ -196,12 +218,14 @@ def test_websocket_flag_revealed_cell(client, auth):
         assert data["type"] in ["flag", "error", "game_over"]
 
 
-def test_websocket_normal_mode(client, auth):
-    email = f"ws-normal-{uuid.uuid4().hex[:8]}@example.com"
-    auth(email=email, password="pw", nickname="ws_normal")
+@pytest.mark.asyncio
+async def test_websocket_normal_mode(authenticated_clients, session):
+    bundle = authenticated_clients[0]
 
-    gameplay_id = create_game(client, rows=5, columns=5, mine_count=2)
+    gameplay_id = await create_game(
+        bundle.http, rows=5, columns=5, mine_count=2, session=session
+    )
 
-    with client.websocket_connect(f"/api/game/single/{gameplay_id}") as ws:
+    with bundle.get_ws_game(gameplay_id) as ws:
         data = json.loads(ws.receive_text())
         assert data["type"] == "game_state"

@@ -50,7 +50,7 @@ class MultiplayerRound:
         self.board = board
         self.gameplays = {gameplay.user_id: gameplay for gameplay in gameplays}
 
-        self._state: RoundState = "not_started"
+        self.state: RoundState = "not_started"
 
         self.start_at: Optional[datetime] = None
         self.end_at: Optional[datetime] = None
@@ -73,13 +73,13 @@ class MultiplayerRound:
         return all(gameplay.is_game_over() for gameplay in self.gameplays.values())
 
     def start(self, start_at: datetime, session_scores: dict[uuid.UUID, float]) -> None:
-        if self._state != "not_started":
+        if self.state != "not_started":
             raise RuntimeError("Round is started or ended already")
 
         self.start_at = start_at
         self.end_at = self.start_at + self.round_time
 
-        self._state = "playing"
+        self.state = "playing"
 
         for gameplay in self.gameplays.values():
             gameplay.start_game_if_not_started()
@@ -101,10 +101,10 @@ class MultiplayerRound:
             )
 
     def end(self) -> None:
-        if self._state != "playing":
+        if self.state != "playing":
             raise RuntimeError("Round is not in playing state")
 
-        self._state = "ended"
+        self.state = "ended"
 
         for gameplay in self.gameplays.values():
             if not gameplay.is_game_over():

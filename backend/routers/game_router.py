@@ -7,8 +7,8 @@ from backend import services
 from backend.core.game.game_actions import *
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
-from backend.lib.websockets.websockets_registry import session_websockets
-from backend.routers.schemas.game import NewGameRequest, NewGameResponse
+from backend.lib.websockets.session_websockets import session_websockets
+from backend.schemas.game import NewGameRequest, NewGameResponse
 from backend.services import exceptions
 from backend.services.single.single_exceptions import GenerationTimeout
 
@@ -153,10 +153,9 @@ async def play_multi(
         await websocket.accept()
         session_websockets.add(session_id, user.id, websocket)
 
-        await play.set_session(session_id, user)
-
         while True:
             data = await websocket.receive_json()
+            await play.set_session(session_id, user)
             await handle_multi(user, session_id, data, play, start)
 
             if play.is_session_over():
