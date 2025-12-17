@@ -1,93 +1,89 @@
+import logging
 import uuid
-from typing import Annotated
 
-from fastapi import Depends
-from fastapi_pagination import Params
+logger = logging.getLogger(__name__)
 
-from backend import repositories
-from backend.core.board import DifficultyLevel
+from backend.config import BACKEND_URL
+from backend.core.board import DifficultyLevel, GeneratorParams
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
+from backend.di.dependencies import *
 from backend.repositories.exceptions import *
 from backend.services.dto import KickedFromLobby
 from backend.services.exceptions import *
+from backend.services.lobby.helpers import *
 
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-UserRepository = Annotated[repositories.UserRepository, Depends()]
-BoardRepository = Annotated[repositories.BoardRepository, Depends()]
-MultiplayerRepository = Annotated[repositories.MultiplayerRepository, Depends()]
+DEV = "localhost" in BACKEND_URL
 
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
+
+DEFAULT_GAME_CONFIG = (
+    GameConfig(
+        rounds=3,
+        max_round_time=60,
+        difficulty_level=DifficultyLevel(3, 3, 3),
+        game_mode="normal",
+        generator=Generator(generator_type="random"),
+    )
+    if DEV
+    else GameConfig(
+        rounds=3,
+        max_round_time=60,
+        difficulty_level=DifficultyLevel(10, 10, 15),
+        game_mode="normal",
+        generator=Generator(
+            generator_type="ml",
+            settings=GeneratorParams(classifier="lightgbm"),
+        ),
+    )
+)
 
 
 class LobbyService:
     def __init__(
         self,
-        lobby_repo: LobbyRepository,
-        user_repo: UserRepository,
-        board_repo: BoardRepository,
-        multi_repo: MultiplayerRepository,
-        notification_system: NotificationSystem,
+        lobby_repo: LobbyRepositoryDep,
+        user_repo: UserRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
+        notification_system: NotificationSystemDep,
     ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo
-        self.board_repo = board_repo
         self.multi_repo = multi_repo
         self.notification_system = notification_system
 
     async def create_lobby(self, user: User) -> Lobby:
-        default_game_config = GameConfig(
-            rounds=3,
-            max_round_time=60,
-            difficulty_level=DifficultyLevel(3, 3, 3),
-            game_mode="normal",
-            generator=Generator(
-                generator_type="random",
-                settings=None,
-            ),
-        )
-
-        lobby = Lobby(id=uuid.uuid4(), host=user, game_config=default_game_config)
-        self.lobby_repo.save_lobby(lobby)
+        logger.debug(f"create_lobby(user_id={user.id})")
+        lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
+        if lobby_to_leave:
+            await self._remove_user(lobby_to_leave, user)
+        lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
+        await self.lobby_repo.save_lobby(lobby)
+        session = await create_session(lobby.id, lobby)
+        await self.multi_repo.save_session(session)
+        logger.info(f"Lobby {lobby.id} created by user {user.id}")
         return lobby
 
-    async def get_user_lobby(self, user: User) -> Optional[Lobby]:
-        if lobbies := self.lobby_repo.get_user_lobbies(user):
-            return lobbies[0]
-        return None
+    async def join_lobby(self, user: User, invitation_id: uuid.UUID):
+        logger.debug(f"join_lobby(user_id={user.id}, invitation_id={invitation_id})")
+        lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
+        if lobby_to_leave:
+            await self._remove_user(lobby_to_leave, user)
 
-    async def join_lobby(
-        self,
-        user: User,
-        invitation_id: uuid.UUID,
-    ):
-        user_lobby = self.lobby_repo.get_user_lobbies(user)
-        if user_lobby:
-            lobby_to_leave = user_lobby[0]
-            lobby_to_leave.remove_user(user)
-            if lobby_to_leave.is_empty():
-                self.lobby_repo.delete_lobby(lobby_to_leave.id)
-            else:
-                self.lobby_repo.save_lobby(lobby_to_leave)
-                data = UserConnectionUpdated(
-                    user=user, status="disconnected", lobby_id=lobby_to_leave.id
-                )
-                for lobby_user in lobby_to_leave.users:
-                    await self.notification_system.notify(lobby_user.id, data)
-
-        invitation = self.lobby_repo.get_invitation(invitation_id)
+        invitation = await self.lobby_repo.get_invitation(invitation_id)
         lobby = invitation.lobby
 
         if invitation.invitee != user or invitation.lobby != lobby:
+            logger.warning(
+                f"User {user.id} not authorized to join lobby via invitation {invitation_id}"
+            )
             raise PermissionError("User not authorized to join this lobby")
 
         data = lobby.add_user(user)
-        self.lobby_repo.save_lobby(lobby)
-        self.lobby_repo.delete_invitation(invitation.id)
+        await self.lobby_repo.save_lobby(lobby)
+        await self._sync_session_players(lobby)
+        await self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
         await self.notification_system.notify(invitation.inviter.id, response)
@@ -95,162 +91,81 @@ class LobbyService:
         for lobby_user in lobby.users:
             await self.notification_system.notify(lobby_user.id, data)
 
+        logger.info(f"User {user.id} joined lobby {lobby.id}")
         return lobby
 
     async def update_lobby(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-        game_config: GameConfig,
+        self, lobby_id: uuid.UUID, user: User, game_config: GameConfig
     ):
-        lobby = self.lobby_repo.get_lobby(lobby_id)
-        if not lobby:
-            raise ValueError("Lobby not found")
+        logger.debug(f"update_lobby(lobby_id={lobby_id}, user_id={user.id})")
+        lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-        if lobby.host != user:
-            raise PermissionError("User not authorized to update lobby")
+        ensure_lobby_exists(lobby)
+        ensure_user_is_host(lobby, user)
 
         event = lobby.update_game_config(game_config)
+        session = await self.multi_repo.get_pending_for_lobby(lobby.id)
+        if session is not None:
+            session.game_config = game_config
+            await self.multi_repo.save_session(session)
 
-        self.lobby_repo.save_lobby(lobby)
+        await self.lobby_repo.save_lobby(lobby)
 
         for lobby_user in lobby.users:
             await self.notification_system.notify(lobby_user.id, event)
 
-    async def invite_to_lobby(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-        invitee_id: uuid.UUID,
-    ):
-        lobby = self.lobby_repo.get_lobby(lobby_id)
-        if not lobby:
-            raise ValueError("Lobby not found")
+        logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
 
-        if lobby.host != user:
-            raise PermissionError("User not authorized to invite")
+    async def remove_user_from_lobby(self, lobby_id: uuid.UUID, user: User):
+        logger.debug(f"remove_user_from_lobby(lobby_id={lobby_id}, user_id={user.id})")
+        lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-        invitee = await self.user_repo.get_user(invitee_id)
-        if not invitee:
-            raise ValueError("Invitee not found")
+        ensure_lobby_exists(lobby)
+        ensure_user_in_lobby(lobby, user)
 
-        invitation = Invitation(
-            id=uuid.uuid4(),
-            lobby=lobby,
-            inviter=user,
-            invitee=invitee,
-        )
-        await self.notification_system.notify(invitation.invitee.id, invitation)
-        self.lobby_repo.save_invitation(invitation)
-
-    async def reject_game_invitation(
-        self,
-        invitation_id: uuid.UUID,
-        user: User,
-    ):
-        invitation = self.lobby_repo.get_invitation(invitation_id)
-        if not invitation:
-            raise ValueError("Invitation not found")
-
-        if invitation.invitee != user:
-            raise PermissionError("User not authorized to reject this invitation")
-
-        response = InvitationAnswer(invitation=invitation, answer="rejected")
-        await self.notification_system.notify(invitation.inviter.id, response)
-        self.lobby_repo.delete_invitation(invitation.id)
-
-    async def remove_user_from_lobby(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-    ):
-        lobby = self.lobby_repo.get_lobby(lobby_id)
-        if not lobby:
-            raise ValueError("Lobby not found")
-
-        data = lobby.remove_user(user)
-
-        if lobby.is_empty():
-            self.lobby_repo.delete_lobby(lobby_id)
-        else:
-            self.lobby_repo.save_lobby(lobby)
-            for lobby_user in lobby.users:
-                await self.notification_system.notify(lobby_user.id, data)
-
-    async def send_chat_message(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-        content: str,
-    ):
-        lobby = self.lobby_repo.get_lobby(lobby_id)
-        if not lobby:
-            raise ValueError("Lobby not found")
-
-        if user not in lobby.users:
-            raise PermissionError("User not in the lobby")
-
-        message = LobbyChatMessage(
-            lobby_id=lobby_id,
-            sender=user,
-            content=content,
-            timestamp=datetime.now(),
-        )
-
-        self.lobby_repo.add_message(message)
-
-        for lobby_user in lobby.users:
-            await self.notification_system.notify(lobby_user.id, message)
-
-    async def get_chat_messages(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-        pagination_params: Params,
-    ):
-        lobby = self.lobby_repo.get_lobby(lobby_id)
-        if not lobby:
-            raise ValueError("Lobby not found")
-
-        if user not in lobby.users:
-            raise PermissionError("User not in the lobby")
-
-        return self.lobby_repo.get_messages(lobby_id, pagination_params)
-
-    async def get_pending_invitations(
-        self,
-        user: User,
-    ) -> list[Invitation]:
-        return self.lobby_repo.get_pending_invitations(user)
+        await self._remove_user(lobby, user)
 
     async def kick_from_lobby(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-        target_user_id: uuid.UUID,
+        self, lobby_id: uuid.UUID, user: User, target_user_id: uuid.UUID
     ):
-        lobby = self.lobby_repo.get_lobby(lobby_id)
-        if not lobby:
-            raise ValueError("Lobby not found")
+        logger.debug(
+            f"kick_from_lobby(lobby_id={lobby_id}, user_id={user.id}, target_user_id={target_user_id})"
+        )
+        lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-        if lobby.host != user:
-            raise PermissionError("User not authorized to kick from lobby")
+        ensure_lobby_exists(lobby)
+        ensure_user_is_host(lobby, user)
 
         target_user = await self.user_repo.get_user(target_user_id)
         if not target_user:
             raise ValueError("Target user not found")
 
-        data = lobby.remove_user(target_user)
+        ensure_user_in_lobby(lobby, target_user)
 
-        if lobby.is_empty():
-            self.lobby_repo.delete_lobby(lobby_id)
-        else:
-            self.lobby_repo.save_lobby(lobby)
-            for lobby_user in lobby.users:
-                await self.notification_system.notify(lobby_user.id, data)
+        await self._remove_user(lobby, target_user)
 
         kicked_data = KickedFromLobby(lobby_id)
         await self.notification_system.notify(target_user.id, kicked_data)
+        logger.info(f"User {target_user_id} kicked from lobby {lobby_id} by {user.id}")
+
+    async def _remove_user(self, lobby: Lobby, user: User):
+        logger.debug(f"_remove_user(lobby_id={lobby.id}, user_id={user.id})")
+        data = lobby.remove_user(user)
+
+        if lobby.is_empty():
+            await self.lobby_repo.delete_lobby(lobby.id)
+        else:
+            await self.lobby_repo.save_lobby(lobby)
+            await self._sync_session_players(lobby)
+            for lobby_user in lobby.users:
+                await self.notification_system.notify(lobby_user.id, data)
+
+    async def _sync_session_players(self, lobby: Lobby) -> None:
+        session = await self.multi_repo.get_session(lobby.id)
+
+        if not session.is_started() and not session.is_over():
+            session.set_player_ids([user.id for user in lobby.users])
+            await self.multi_repo.save_session(session)
 
 
 __all__ = ["LobbyService"]

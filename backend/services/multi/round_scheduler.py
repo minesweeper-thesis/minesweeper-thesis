@@ -1,74 +1,51 @@
 import uuid
 from datetime import datetime, timedelta
-from typing import Annotated, Optional
+from typing import Any, Optional
 
-from fastapi import Depends
-
-from backend import protocols, repositories
 from backend.core.board import Board
 from backend.core.game import *
-from backend.core.multi import create_multiplayer_round
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
-from backend.lib.pending_boards import get_pending_boards_store
-from backend.lib.scheduler import get_scheduler
-from backend.lib.websocket_game_transport import WebSocketGameTransport
-from backend.protocols.multiplayer_repo_protocol import SessionNotFound
+from backend.core.multi import MultiplayerSession, create_multiplayer_round
+from backend.di.dependencies import *
+from backend.di.session_lock import SessionLockDep
+from backend.protocols import SessionNotFound
 from backend.repositories.exceptions import *
 from backend.services.dto import RoundCountdown
 from backend.services.exceptions import *
-
-MultiplayerRepository = Annotated[
-    protocols.MultiplayerRepository, Depends(repositories.MultiplayerRepository)
-]
-BoardRepository = Annotated[
-    protocols.BoardRepository, Depends(repositories.BoardRepository)
-]
-LobbyRepository = Annotated[repositories.LobbyRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
-Scheduler = Annotated[protocols.Scheduler, Depends(get_scheduler)]
-GameTransport = Annotated[
-    protocols.GameTransport, Depends(lambda: WebSocketGameTransport())
-]
-PendingBoardsStore = Annotated[
-    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
-]
-
-ROUND_START_DELAY = timedelta(seconds=5)
+from backend.services.multi.helpers import calc_round_start_times
 
 
 class RoundScheduler:
     def __init__(
         self,
-        multi_repo: MultiplayerRepository,
-        scheduler: Scheduler,
-        game_transport: GameTransport,
-        board_repo: BoardRepository,
-        lobby_repo: LobbyRepository,
-        notification_system: NotificationSystem,
-        pending_store: PendingBoardsStore,
+        multi_repo: MultiplayerRepositoryDep,
+        scheduler: SchedulerDep,
+        game_transport_factory: GameTransportFactoryDep,
+        board_repo: BoardRepositoryDep,
+        notification_system: NotificationSystemDep,
+        pending_store: PendingBoardsStoreDep,
+        session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
         self.scheduler = scheduler
-        self.game_transport = game_transport
+        self.game_transport_factory = game_transport_factory
 
         self.board_repo = board_repo
-        self.lobby_repo = lobby_repo
         self.notification_system = notification_system
         self.pending_store = pending_store
+        self.session_lock = session_lock
 
     async def lock_ready(self, session_id: uuid.UUID):
-        session = await self.multi_repo.get_session(session_id)
-        if session.all_players_ready():
-            session.lock_ready()
-            await self.multi_repo.save_session(session)
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
+            if session.all_players_ready():
+                session.lock_ready()
+                await self.multi_repo.save_session(session)
 
     async def on_board_generated(
         self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
     ):  # todo: board juz istnieje
         try:
-            session = await self.multi_repo.get_session(session_id)
+            await self.multi_repo.get_session(session_id)
         except SessionNotFound:
             await self.board_repo.add_board(board)
             return
@@ -76,43 +53,7 @@ class RoundScheduler:
         if generation_id is not None:
             await self.pending_store.mark_ready(generation_id, board.id)
 
-        if len(session.rounds) == 0:
-            await self._schedule_frist_round_start(session_id, board)
-        else:
-            await self._add_round_to_session(session_id, board)
-
-    async def _schedule_frist_round_start(self, session_id: uuid.UUID, board: Board):
-        session = await self.multi_repo.get_session(session_id)
-        await self._add_round_to_session(session.id, board)
-
-        countdown_to = datetime.now() + ROUND_START_DELAY
-        round_start_time = countdown_to + ROUND_START_DELAY
-
-        for user_id in session.player_ids:
-            await self.notification_system.notify(
-                user_id,
-                RoundCountdown(
-                    session_id,
-                    0,
-                    countdown_to,
-                    round_start_time,
-                    session.rounds[0].board.start_field,
-                ),
-            )
-
-        self.scheduler.schedule(
-            self.lock_ready,
-            countdown_to,
-            session_id=session.id,
-        )
-
-        self.scheduler.schedule(
-            self.start_round,
-            round_start_time,
-            start_at=round_start_time,
-            session_id=session.id,
-            first_round=True,
-        )  # todo: save job id
+        await self._add_round_to_session(session_id, board)
 
     async def _add_round_to_session(self, session_id: uuid.UUID, board: Board):
         session = await self.multi_repo.get_session(session_id)
@@ -130,41 +71,105 @@ class RoundScheduler:
         session.add_round(round)
         await self.multi_repo.save_session(session)
 
-    async def end_round(self, session_id: uuid.UUID):
-        session = await self.multi_repo.get_session(session_id)
-        # todo: lock z handle game action
+    async def end_round(self, session_id: uuid.UUID, round_index: int):
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
 
-        session.end_current_round()
+            session.end_round(round_index)
 
-        for user_id, events in session.consume_events().items():
-            for event in events:
-                await self.game_transport.send(user_id, event)
+            events_by_user = session.consume_events()
+            session_over = session.is_over()
 
-        if session.is_session_over():
-            await self.game_transport.close_all()
+            await self.multi_repo.save_session(session)
 
-        await self.multi_repo.save_session(session)
+            await self._publish_events(session.id, events_by_user)
+
+            if session_over:
+                transport = self.game_transport_factory.create(session_id)
+                for user_id in session.player_ids:
+                    await transport.close(user_id)
 
     async def start_round(
-        self, session_id: uuid.UUID, start_at: datetime, first_round: bool = False
+        self, session_id: uuid.UUID, start_at: datetime, immediately: bool = False
     ):
-        session = await self.multi_repo.get_session(session_id)
-        if not first_round and not session.all_players_ready():
-            return
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
+            if not immediately and not session.all_players_ready():
+                return
 
-        end_at = start_at + timedelta(seconds=session.max_round_time)
+            end_at = start_at + timedelta(seconds=session.game_config.max_round_time)
 
-        session.start_next_round(start_at)
+            session.start_next_round(start_at)
 
-        for user_id, events in session.consume_events().items():
+            events_by_user = session.consume_events()
+
+            await self.multi_repo.save_session(session)
+
+            await self._publish_events(session.id, events_by_user)
+
+            self.scheduler.schedule(
+                self.end_round,
+                end_at,
+                session_id=session_id,
+                round_index=session.current_round_index,
+            )  # todo: save job id
+
+    async def _send_countdown(
+        self,
+        session: MultiplayerSession,
+        round_start_time: datetime,
+        countdown_to: datetime,
+        in_game: bool = False,
+    ):
+        if in_game:
+            transport = self.game_transport_factory.create(session.id)
+            sender = transport.send
+        else:
+            sender = self.notification_system.notify
+
+        for user_id in session.player_ids:
+            await sender(
+                user_id,
+                RoundCountdown(
+                    session.id,
+                    session.current_round_index + 1,
+                    countdown_to,
+                    round_start_time,
+                    session.next_round.board.start_field,
+                ),
+            )
+
+    async def _publish_events(
+        self, session_id: uuid.UUID, events_by_user: dict[uuid.UUID, list[Any]]
+    ):
+        transport = self.game_transport_factory.create(session_id)
+        for user_id, events in events_by_user.items():
             for event in events:
-                await self.game_transport.send(user_id, event)
+                await transport.send(user_id, event)
+
+    async def schedule_start(
+        self,
+        session: MultiplayerSession,
+        immediately=False,
+    ):
+        countdown_to, start_at = calc_round_start_times()
+
+        in_game = not immediately
+        await self._send_countdown(session, start_at, countdown_to, in_game=in_game)
 
         self.scheduler.schedule(
-            self.end_round, end_at, session_id=session_id
-        )  # todo: save job id
+            self.lock_ready,
+            countdown_to,
+            session_id=session.id,
+        )
 
-        await self.multi_repo.save_session(session)
+        self.scheduler.schedule(
+            self.start_round,
+            start_at,
+            start_at=start_at,
+            session_id=session.id,
+            immediately=immediately,
+        )  # todo: save job id
 
 
 __all__ = ["RoundScheduler"]

@@ -3,11 +3,11 @@ from typing import Annotated, Literal
 from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page, Params
 
-import backend.routers.schemas.stats.stats_schemas as schemas
+import backend.schemas.stats.stats_schemas as schemas
 from backend import services
 from backend.core.board import DifficultyLevel
 from backend.lib.auth import CurrentUser
-from backend.routers.schemas.user import UserResponse
+from backend.schemas.user import UserResponse
 
 StatsService = Annotated[services.StatsService, Depends()]
 PaginationParams = Annotated[Params, Depends()]

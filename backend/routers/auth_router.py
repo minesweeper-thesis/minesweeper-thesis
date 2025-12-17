@@ -1,8 +1,7 @@
 from fastapi import APIRouter
 
 from backend.lib.auth import auth_backend, fastapi_users
-
-from .schemas.user import *
+from backend.schemas.user import *
 
 auth_router = APIRouter(tags=["auth"])
 

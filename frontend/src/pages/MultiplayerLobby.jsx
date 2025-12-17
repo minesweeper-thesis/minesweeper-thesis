@@ -7,14 +7,15 @@ import {useNavigate} from "react-router-dom";
 import LobbySettingsPopup from "../components/LobbySettingsPopup";
 
 export default function MultiplayerLobby() {
-    const { lobby, chatMessages, leaveLobby, getLobby, addLobbyMessage, updateLobbySettings, isHost } = useGame();
-    const { sessionId, send, round } = useSession();
+    const { lobby, chatMessages, leaveLobby, getLobby, addLobbyMessage, updateLobbySettings, isHost, resetReady } = useGame();
+    const { sessionId, send, round, scoreboard, resetSession } = useSession();
     const navigate = useNavigate();
     const { status } = useSession();
     const [inputMessage, setInputMessage] = useState("");
     const [showInvitePopup, setShowInvitePopup] = useState(false);
     const [showSettingsPopup, setShowSettingsPopup] = useState(false);
     const chatRef = useRef(null);
+    const [redirectCountdown, setRedirectCountdown] = useState(null);
 
     useEffect(() => {
         if (!lobby) {
@@ -23,11 +24,30 @@ export default function MultiplayerLobby() {
     }, [lobby, getLobby]);
 
     useEffect(() => {
-        console.log("lobby status", status);
-        if (status === "game"){
-            navigate("/game");
+        if (status === "game") {
+            setRedirectCountdown(5);
         }
     }, [status]);
+
+    useEffect(() => {
+        if (redirectCountdown === null) return;
+
+        if (redirectCountdown <= 0) {
+            navigate("/game");
+            resetReady();
+            return;
+        }
+
+        const timer = setTimeout(() => {
+            setRedirectCountdown(prev => prev - 1);
+        }, 1000);
+
+        return () => {
+            clearTimeout(timer);
+            // setRedirectCountdown(null)
+        }
+    }, [redirectCountdown, navigate]);
+
 
     useEffect(() => {
         if (!chatRef.current) return;
@@ -47,10 +67,15 @@ export default function MultiplayerLobby() {
     const players = lobby?.users?.map(u => ({
         id: u.id,
         name: u.nickname,
-        online: true,
-        ready: false,
+        online: u.is_online,
+        ready: u.status === "ready",
+        status: u.status,
         score: 0,
     })) || [];
+
+    const me = players.find(p => p.id === sessionId);
+    const isOffline = me && !me.online;
+    const isReady = me?.status === "ready";
 
     const ownerId = lobby.host.id;
 
@@ -62,7 +87,7 @@ export default function MultiplayerLobby() {
         }
 
         try {
-            const res = await fetch(`api/lobbies/${lobby.id}/ready`, {
+            const res = await fetch(`api/lobbies/${lobby.id}/ready/toggle`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
@@ -74,7 +99,6 @@ export default function MultiplayerLobby() {
                 throw new Error(txt || res.statusText);
             }
 
-            addLobbyMessage("You marked ready.");
         } catch (err) {
             console.error("Ready error:", err);
             addLobbyMessage("Ready request failed.");
@@ -112,10 +136,13 @@ export default function MultiplayerLobby() {
                 <div className="flex-1 flex flex-col gap-6">
                     {/* ROUND HEADER */}
                     <div className="bg-bg-secondary border border-border-primary rounded-xl shadow p-4 flex items-center justify-between">
-                        <span className="text-lg font-semibold">Round {round ?? "-"} / {lobby.game_config?.rounds}</span>
+                        <span className="text-lg font-semibold">Round {" "}
+                            {Math.min(round, lobby.game_config.rounds) === 0 ? "1" : Math.min(round, lobby.game_config.rounds)}
+                            {" /"} {lobby.game_config?.rounds}</span>
 
                         <button
                             onClick={async () => {
+                                resetSession();
                                 const ok = await leaveLobby();
                                 if (ok) {
                                     navigate("/");
@@ -145,52 +172,101 @@ export default function MultiplayerLobby() {
                         </div>
 
                         <div className="flex flex-col gap-3 flex-1">
-                            {players.map((player) => (
-                                <div
-                                    key={player.id}
-                                    className="flex items-center justify-between bg-bg-tertiary p-3 rounded-lg border border-border-primary min-h-[56px]"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <span
-                                            className={`w-3 h-3 rounded-full ${
-                                                player.online ? "bg-green-500" : "bg-gray-500"
-                                            }`}
-                                        ></span>
-                                        <span className="font-medium flex items-center gap-1">
-                                            {player.name}
-                                            {player.id === ownerId && (
-                                                <Crown className="w-4 h-4 text-yellow-400" />
-                                            )}
-                                        </span>
-                                    </div>
+                            {players.map((player) => {
+                                const scoreEntry = scoreboard?.find(p => p.id === player.id) || {};
+                                const score = scoreEntry.score ?? 0;
+                                const avatar = scoreEntry.avatar_url ?? "/avatar.svg";
 
-                                    <div className="flex items-center gap-6">
-                                        <div className="text-sm font-semibold text-accent-primary w-[20px] text-right">
-                                            {player.score}
+                                return (
+                                    <div
+                                        key={player.id}
+                                        className="flex items-center justify-between bg-bg-tertiary p-3 rounded-lg border border-border-primary min-h-[56px]"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span
+                                                className={`w-3 h-3 rounded-full ${
+                                                    player.online ? "bg-green-500" : "bg-gray-500"
+                                                }`}
+                                            ></span>
+                                            <img
+                                                src={avatar}
+                                                alt="avatar"
+                                                className="w-8 h-8 rounded-full bg-white border-2 border-border-primary object-cover"
+                                            />
+                                            <span className="font-medium flex items-center gap-1">
+                                                {player.name}
+                                                {player.id === ownerId && (
+                                                    <Crown className="w-4 h-4 text-yellow-400" />
+                                                )}
+                </span>
                                         </div>
-                                        <div className="w-px h-8 bg-border-primary"></div>
-                                        <button
-                                            className={`px-2 py-1 rounded text-sm border border-border-primary transition w-[90px] text-center ${
-                                                player.ready
-                                                    ? "bg-green-600 text-white"
-                                                    : "bg-bg-secondary text-text-secondary"
-                                            }`}
-                                        >
-                                            {player.ready ? "Ready" : "Not Ready"}
-                                        </button>
+
+                                        <div className="flex items-center gap-6">
+                                            <div className="text-sm font-semibold text-accent-primary w-[20px] text-right">
+                                                {score}
+                                            </div>
+                                            <div className="w-px h-8 bg-border-primary"></div>
+                                            <button
+                                                className={`
+                                                    px-2 py-1 rounded text-sm border border-border-primary
+                                                    transition-all duration-300 w-[90px] text-center
+                                                    ${
+                                                    player.status === "ready"
+                                                        ? "bg-green-600 text-white scale-105 shadow-md"
+                                                        : player.status === "offline"
+                                                            ? "bg-red-900 text-white opacity-70"
+                                                            : "bg-bg-secondary text-text-secondary"
+                                                    }
+                                                `}
+                                            >
+                                                {player.status === "ready"
+                                                    ? "Ready"
+                                                    : player.status === "offline"
+                                                        ? "Offline"
+                                                        : "Not Ready"}
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                )
+                            })}
 
                             <div className="h-50"></div>
                         </div>
 
-                        <button
-                            onClick={sendReady}
-                            className="mt-2 w-full py-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition"
-                        >
-                            Ready Up
-                        </button>
+                        {redirectCountdown !== null ? (
+                            <div className="mt-2 w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-2 bg-yellow-400 text-black">
+                                {redirectCountdown}
+                            </div>
+                        ) : (
+                            <button
+                                onClick={isOffline ? undefined : sendReady}
+                                disabled={isOffline}
+                                className={`
+                                    mt-2 w-full py-2 rounded-lg font-semibold flex items-center justify-center gap-2
+                                    transform transition-all duration-300 ease-out
+                                    ${isOffline
+                                        ? "bg-gray-500 text-gray-300 cursor-not-allowed scale-95"
+                                        : isReady
+                                        ? "bg-green-600 text-white shadow-lg scale-105"
+                                        : "bg-accent-primary text-white hover:bg-accent-secondary scale-100"
+                                    }
+                                `}
+                            >
+                                {isOffline ? (
+                                    <>
+                                        <span className="w-3 h-3 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></span>
+                                        Offline
+                                    </>
+                                ) : isReady ? (
+                                    "Ready!"
+                                ) : (
+                                    "Ready Up"
+                                )}
+                            </button>
+                        )}
+
+
+
                     </div>
 
                     {/* LOBBY SETTINGS */}
@@ -232,19 +308,19 @@ export default function MultiplayerLobby() {
                                     <span className="font-semibold capitalize">{lobby.game_config?.game_mode}</span>
                                 </p>
 
-                                <p>
-                                    <span className="text-text-muted">Generator:</span>{" "}
-                                    <span className="font-semibold">{lobby.game_config?.generator_type}</span>
-                                </p>
+                                {/*<p>*/}
+                                {/*    <span className="text-text-muted">Generator:</span>{" "}*/}
+                                {/*    <span className="font-semibold">{lobby.game_config?.generator.type}</span>*/}
+                                {/*</p>*/}
 
                                 <p>
                                     <span className="text-text-muted">Classifier:</span>{" "}
-                                    <span className="font-semibold">{lobby.game_config?.generator_settings?.classifier}</span>
+                                    <span className="font-semibold">{lobby.game_config?.generator?.settings?.classifier}</span>
                                 </p>
 
                                 <p>
                                     <span className="text-text-muted">Heuristic:</span>{" "}
-                                    <span className="font-semibold">{lobby.game_config?.generator_settings?.heuristic}</span>
+                                    <span className="font-semibold">{lobby.game_config?.generator?.settings?.heuristic}</span>
                                 </p>
                             </div>
 
@@ -282,12 +358,12 @@ export default function MultiplayerLobby() {
                             chatMessages.map(m => (
                                 <div key={m.id} className="text-sm">
                                     <span className="text-text-secondary">
-                                        [{m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString() : "--:--"}]
+                                        [{m.timestamp ? new Date(m.timestamp * 1000).toLocaleTimeString() : new Date().toLocaleTimeString()}]
                                     </span>{" "}
 
                                     {m.nick ? (
                                         <span>
-                                            <span className="font-bold">{m.nick}</span>: {m.text}
+                                            <span className="font-bold">{m.nick}</span> {!m.system && ":"} {m.text}
                                         </span>
                                     ) : (
                                         <span className="italic text-text-secondary">{m.text}</span>

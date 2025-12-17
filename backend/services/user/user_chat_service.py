@@ -1,26 +1,21 @@
+import logging
 import uuid
 from datetime import datetime
-from typing import Annotated
 
-from fastapi import Depends
 from fastapi_pagination import Params
 
-from backend import repositories
+logger = logging.getLogger(__name__)
+
 from backend.core.user import User, UserChatMessage
-from backend.lib.notification_system import NotificationSystem as Notifications
-from backend.lib.notification_system import get_notification_system
+from backend.di.dependencies import *
 from backend.services.exceptions import *
-
-UserRepository = Annotated[repositories.UserRepository, Depends()]
-
-NotificationSystem = Annotated[Notifications, Depends(get_notification_system)]
 
 
 class UserChatService:
     def __init__(
         self,
-        user_repo: UserRepository,
-        notification_system: NotificationSystem,
+        user_repo: UserRepositoryDep,
+        notification_system: NotificationSystemDep,
     ):
         self.user_repo = user_repo
         self.notification_system = notification_system
@@ -31,6 +26,9 @@ class UserChatService:
         to_id: uuid.UUID,
         content: str,
     ):
+        logger.debug(
+            f"send_chat_message(from_user={user.id}, to_id={to_id}, content_len={len(content)})"
+        )
         to_user = await self.user_repo.get_user(to_id)
 
         message = UserChatMessage(
@@ -43,6 +41,7 @@ class UserChatService:
         await self.user_repo.add_message(message)
 
         await self.notification_system.notify(to_user.id, message)
+        logger.info(f"Chat message sent from {user.id} to {to_id}")
 
     async def get_chat_messages(
         self,
@@ -50,6 +49,7 @@ class UserChatService:
         to_id: uuid.UUID,
         pagination_params: Params,
     ):
+        logger.debug(f"get_chat_messages(user_id={user.id}, to_id={to_id})")
         to_user = await self.user_repo.get_user(to_id)
         if not to_user:
             raise ValueError("User not found")

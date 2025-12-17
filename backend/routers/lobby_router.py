@@ -6,12 +6,14 @@ from fastapi_pagination import Page, Params
 
 from backend import services
 from backend.lib.auth import CurrentUser
-from backend.routers.schemas.lobby import *
+from backend.schemas.lobby import *
 
 PaginationParams = Annotated[Params, Depends()]
 
 LobbyService = Annotated[services.LobbyService, Depends()]
-LobbyReadyService = Annotated[services.LobbyReadyService, Depends()]
+LobbyChatService = Annotated[services.LobbyChatService, Depends()]
+LobbyInvitationService = Annotated[services.LobbyInvitationService, Depends()]
+StartRoundService = Annotated[services.StartRoundService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
 invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
@@ -41,7 +43,7 @@ async def update_lobby_config(
 @lobby_router.post("/{lobby_id}/invitations")
 async def invite_user_to_lobby(
     lobby_id: uuid.UUID,
-    service: LobbyService,
+    service: LobbyInvitationService,
     user: CurrentUser,
     request: InviteUserToLobbyRequest,
 ):
@@ -85,7 +87,7 @@ async def kick_user_from_lobby(
 @invitations_router.delete("/{invitation_id}")
 async def reject_game_invitation(
     user: CurrentUser,
-    service: LobbyService,
+    service: LobbyInvitationService,
     invitation_id: uuid.UUID,
 ):
     """Rejects a game invitation."""
@@ -95,37 +97,37 @@ async def reject_game_invitation(
 @lobby_router.post("/{lobby_id}/ready/set")
 async def set_user_ready(
     lobby_id: uuid.UUID,
-    service: LobbyReadyService,
+    service: StartRoundService,
     user: CurrentUser,
 ):
     """Sets the user as ready in the lobby."""
-    await service.set_user_ready_in_lobby(lobby_id, user)
+    await service.set_user_ready(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/ready/cancel")
 async def cancel_user_ready(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyReadyService,
+    service: StartRoundService,
 ):
     """Sets the user as not ready in the lobby."""
-    await service.cancel_user_ready_in_lobby(lobby_id, user)
+    await service.cancel_user_ready(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/ready/toggle")
 async def toggle_user_ready(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyReadyService,
+    service: StartRoundService,
 ):
-    await service.toggle_user_ready_in_lobby(lobby_id, user)
+    await service.toggle_user_ready(lobby_id, user)
 
 
 @lobby_router.post("/{lobby_id}/chat-messages")
 async def send_chat_message(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyService,
+    service: LobbyChatService,
     request: LobbyChatMessageRequest,
 ):
     """Sends a chat message in the lobby."""
@@ -139,7 +141,7 @@ async def send_chat_message(
 async def get_chat_messages(
     lobby_id: uuid.UUID,
     user: CurrentUser,
-    service: LobbyService,
+    service: LobbyChatService,
     pagination_params: PaginationParams,
 ):
     """Retrieves chat messages from the lobby."""

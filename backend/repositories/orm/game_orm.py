@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from backend.core.game import Cell
-from backend.core.single.gameplay import SingleplayerGameplay
+from backend.core.single import SingleplayerGameplay
 from backend.repositories.orm import Base
 
 from .board_orm import BoardORM, DifficultyLevelORM
@@ -132,7 +132,7 @@ class MultiplayerRoundORM(Base):
     )
     session: Mapped[MultiplayerSessionORM] = relationship(back_populates="rounds")
 
-    round_number: Mapped[int] = mapped_column(primary_key=True)
+    round_index: Mapped[int] = mapped_column(primary_key=True)
 
     board_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(BoardORM.id), index=True)
     board: Mapped[BoardORM] = relationship()
@@ -142,7 +142,7 @@ class MultiplayerRoundORM(Base):
     )
 
     __table_args__ = (
-        CheckConstraint("round_number >= 0", name="check_round_number_non_negative"),
+        CheckConstraint("round_index >= 0", name="check_round_index_non_negative"),
     )
 
 
@@ -150,7 +150,7 @@ class MultiplayerGameplayORM(Base):
     __tablename__ = "multiplayer_gameplays"
 
     session_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
-    round_number: Mapped[int] = mapped_column(primary_key=True)
+    round_index: Mapped[int] = mapped_column(primary_key=True)
     user_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey(UserORM.id), primary_key=True, index=True
     )
@@ -161,23 +161,23 @@ class MultiplayerGameplayORM(Base):
     )
     result: Mapped[Optional[GameResultEnum]] = mapped_column(Enum(GameResultEnum))
     revealed_cells: Mapped[list[tuple[int, int]]] = mapped_column(JSON, default=[])
+    flagged_cells: Mapped[list[tuple[int, int]]] = mapped_column(JSON, default=[])
 
     user: Mapped[UserORM] = relationship()
     round: Mapped[MultiplayerRoundORM] = relationship(
-        back_populates="gameplays", foreign_keys=[session_id, round_number]
+        back_populates="gameplays", foreign_keys=[session_id, round_index]
     )
 
     __table_args__ = (
         ForeignKeyConstraint(
-            [session_id, round_number],
-            [MultiplayerRoundORM.session_id, MultiplayerRoundORM.round_number],
+            [session_id, round_index],
+            [MultiplayerRoundORM.session_id, MultiplayerRoundORM.round_index],
         ),
     )
 
 
 @event.listens_for(Session, "before_flush")
 def validate_rounds_count(session, flush_context, instances):
-    """Validate that each session has exactly rounds_number rounds with correct numbering."""
     for obj in session.dirty | session.new:
         if isinstance(obj, MultiplayerSessionORM):
             if obj.rounds_number is not None:
@@ -189,12 +189,12 @@ def validate_rounds_count(session, flush_context, instances):
                     )
 
                 if actual_rounds > 0:
-                    round_numbers = {r.round_number for r in obj.rounds}
+                    round_indexes = {r.round_index for r in obj.rounds}
                     expected_numbers = set(range(obj.rounds_number))
-                    if round_numbers != expected_numbers:
+                    if round_indexes != expected_numbers:
                         raise ValueError(
-                            f"Round numbers must be 0 to {obj.rounds_number-1}, "
-                            f"but got {sorted(round_numbers)}"
+                            f"Round indexes must be 0 to {obj.rounds_number-1}, "
+                            f"but got {sorted(round_indexes)}"
                         )
 
         if isinstance(obj, MultiplayerRoundORM):
@@ -209,9 +209,9 @@ def validate_rounds_count(session, flush_context, instances):
                     )
 
             if session_obj and session_obj.rounds_number is not None:
-                if obj.round_number >= session_obj.rounds_number:
+                if obj.round_index >= session_obj.rounds_number:
                     raise ValueError(
-                        f"Round number {obj.round_number} must be < {session_obj.rounds_number}"
+                        f"Round index {obj.round_index} must be < {session_obj.rounds_number}"
                     )
 
             if session_obj and obj.board:

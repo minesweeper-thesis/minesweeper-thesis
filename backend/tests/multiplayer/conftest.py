@@ -1,8 +1,129 @@
 import pytest
 
-from backend.tests.utils.helpers import AuthFixture
+from backend.main import api
 
 
 @pytest.fixture
-def auth(client):
-    return AuthFixture(client)
+def board_generator_override():
+    from backend.lib.board_generator import LocalBoardGenerator
+
+    class ImmediateBoardGenerator:
+        def __init__(self):
+            self._statuses = {}
+
+        async def generate_board(self, settings, on_completed):
+            import random
+            import uuid
+
+            from backend.core.board import Board
+
+            generation_id = uuid.uuid4()
+            self._statuses[generation_id] = "completed"
+
+            rows = settings.difficulty_level.rows
+            cols = settings.difficulty_level.columns
+            mines = settings.difficulty_level.mine_count
+
+            start_field = (0, 0)
+            cells = [
+                (i, j)
+                for i in range(rows)
+                for j in range(cols)
+                if (i, j) != start_field
+            ]
+            rng = random.Random(int.from_bytes(generation_id.bytes, "big"))
+            minefields = rng.sample(cells, k=mines)
+
+            board = Board(
+                id=uuid.uuid4(),
+                minefields=minefields,
+                start_field=start_field,
+                generation_settings=settings,
+            )
+            await on_completed(generation_id, board)
+            return generation_id
+
+        async def get_generation_status(self, generation_id):
+            return self._statuses.get(generation_id, "completed")
+
+    generator = ImmediateBoardGenerator()
+
+    def _override():
+        return generator
+
+    api.dependency_overrides[LocalBoardGenerator] = _override
+    yield
+    api.dependency_overrides.pop(LocalBoardGenerator, None)
+
+
+class FakeScheduler:
+    def __init__(self):
+        self._jobs: dict[str, tuple[object, object, tuple, dict]] = {}
+        self._counter = 0
+        self._loop = None
+
+    def shutdown(self):
+        self._jobs.clear()
+
+    def schedule(self, func, when, *args, job_id=None, **kwargs):
+        import asyncio
+
+        if job_id is None:
+            job_id = f"fake-{self._counter}"
+        self._counter += 1
+
+        if self._loop is None:
+            try:
+                self._loop = asyncio.get_running_loop()
+            except RuntimeError:
+                self._loop = None
+
+        self._jobs[job_id] = (when, func, args, kwargs)
+        return job_id
+
+    def cancel(self, job_id: str) -> None:
+        self._jobs.pop(job_id, None)
+
+    def run_matching(self, names: set[str]) -> None:
+        import asyncio
+
+        if self._loop is None:
+            raise RuntimeError("FakeScheduler loop not set yet")
+
+        async def _run():
+            jobs = [
+                (job_id, *payload)
+                for job_id, payload in self._jobs.items()
+                if getattr(payload[1], "__name__", "") in names
+            ]
+            jobs.sort(key=lambda item: item[1])
+
+            for job_id, _when, func, args, kwargs in jobs:
+                self._jobs.pop(job_id, None)
+                await func(*args, **kwargs)
+
+        asyncio.run_coroutine_threadsafe(_run(), self._loop).result(timeout=10)
+
+    def run_all(self) -> None:
+        import asyncio
+
+        if self._loop is None:
+            raise RuntimeError("FakeScheduler loop not set yet")
+
+        async def _run():
+            jobs = [(job_id, *payload) for job_id, payload in self._jobs.items()]
+            jobs.sort(key=lambda item: item[1])
+            for job_id, _when, func, args, kwargs in jobs:
+                self._jobs.pop(job_id, None)
+                await func(*args, **kwargs)
+
+        asyncio.run_coroutine_threadsafe(_run(), self._loop).result(timeout=10)
+
+
+@pytest.fixture
+def fake_scheduler(monkeypatch):
+    import backend.lib.scheduler as scheduler_module
+
+    fake = FakeScheduler()
+    monkeypatch.setattr(scheduler_module, "_scheduler_instance", fake)
+    return fake

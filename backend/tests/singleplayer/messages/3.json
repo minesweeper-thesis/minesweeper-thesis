@@ -1,0 +1,1082 @@
+[
+    {
+        "type": "receive",
+        "time": 1765160995.245267,
+        "opcode": 1,
+        "data": "{\"type\":\"game_state\",\"board_id\":\"ef6cb8bb-751f-4fce-bc5c-9a63c1031eef\",\"status\":\"not_started\",\"result\":null,\"board\":null,\"difficulty_level\":{\"rows\":16,\"columns\":16,\"mine_count\":40},\"elapsed_time\":0.0,\"loss_cause\":null,\"start_field\":[14,8]}"
+    },
+    {
+        "type": "send",
+        "time": 1765161006.320877,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_one\",\"cell\":[14,8]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161006.365406,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[12,8,2],[12,9,2],[12,10,1],[13,4,1],[13,5,1],[13,6,2],[13,7,2],[13,8,1],[13,9,0],[13,10,1],[14,4,2],[14,5,0],[14,6,0],[14,7,0],[14,8,0],[14,9,0],[14,10,1],[15,4,1],[15,5,0],[15,6,0],[15,7,0],[15,8,0],[15,9,0],[15,10,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161007.391903,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[12,7]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161007.43539,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161007.875023,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[12,6]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161007.917518,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161008.393765,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[13,5]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161008.436717,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[12,4,1],[12,5,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161008.835768,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[12,5]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161008.882916,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[6,4,2],[6,5,2],[6,6,2],[6,7,3],[7,3,3],[7,4,1],[7,5,0],[7,6,0],[7,7,2],[8,3,1],[8,4,0],[8,5,0],[8,6,0],[8,7,1],[8,8,2],[9,2,4],[9,3,1],[9,4,0],[9,5,0],[9,6,0],[9,7,0],[9,8,1],[10,2,3],[10,3,0],[10,4,0],[10,5,0],[10,6,0],[10,7,1],[10,8,2],[11,2,2],[11,3,0],[11,4,0],[11,5,1],[11,6,2],[11,7,3],[12,2,3],[12,3,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161010.194841,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[11,8]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161010.237305,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161012.545708,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[12,8]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161012.588343,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[11,9,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161013.377669,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[11,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161013.420339,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161013.730862,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[12,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161013.781308,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[11,11,1],[12,11,2],[13,11,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161014.333551,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[11,11]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161014.387806,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[5,13,3],[5,14,1],[5,15,1],[6,13,2],[6,14,0],[6,15,0],[7,10,1],[7,11,1],[7,12,1],[7,13,1],[7,14,0],[7,15,0],[8,10,1],[8,11,0],[8,12,0],[8,13,0],[8,14,0],[8,15,0],[9,10,1],[9,11,0],[9,12,0],[9,13,0],[9,14,0],[9,15,0],[10,10,2],[10,11,1],[10,12,0],[10,13,0],[10,14,0],[10,15,0],[11,12,0],[11,13,0],[11,14,1],[11,15,1],[12,12,1],[12,13,1],[12,14,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161017.094881,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[10,9]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161017.137633,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161017.626708,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[9,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161017.669737,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[8,9,2],[9,9,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161018.969812,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[7,9]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161019.012324,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161019.319769,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[7,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161019.362977,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[6,9,4],[6,10,2],[6,11,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161020.59589,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[7,8]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161020.638485,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161021.577726,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[6,8]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161021.620171,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161023.271847,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[6,12]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161023.314296,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161023.983736,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[5,12]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161024.0268729,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161026.294635,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_one\",\"cell\":[5,9]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161026.337457,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[5,9,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161030.497794,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_one\",\"cell\":[4,8]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161030.541493,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[1,8,2],[1,9,1],[1,10,2],[2,6,2],[2,7,1],[2,8,1],[2,9,0],[2,10,1],[3,6,1],[3,7,0],[3,8,0],[3,9,0],[3,10,1],[4,6,3],[4,7,1],[4,8,0],[4,9,1],[4,10,1],[5,7,2],[5,8,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161033.148573,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[5,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161033.191575,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161033.5925019,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[4,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161033.63565,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[3,11,1],[4,11,2],[5,11,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161034.993735,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[2,11]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161035.036606,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161035.324633,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[3,11]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161035.372358,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[2,12,2],[3,12,2],[4,12,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161035.847288,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[2,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161035.890116,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[1,11,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161040.152716,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[5,6]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161040.197235,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161041.504522,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[5,5]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161041.547086,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161041.841701,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[6,5]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161041.884337,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[5,4,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161043.3006089,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[6,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161043.343089,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161043.664512,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[6,4]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161043.707713,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[5,3,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161044.248342,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[5,4]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161044.291385,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[4,3,1],[4,4,2],[4,5,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161045.917506,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[3,5]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161045.960805,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161046.210427,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[3,6]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161046.253637,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[2,5,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161046.702466,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[2,5]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161046.74559,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,4,1],[0,5,0],[0,6,1],[1,4,2],[1,5,0],[1,6,1],[2,4,3],[3,4,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161047.874506,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[1,7]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161047.9171479,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161048.93524,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[0,6]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161048.978074,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,7,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161049.317229,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[0,7]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161049.360377,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,8,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161050.162493,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[0,9]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161050.205711,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161051.019299,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[1,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161051.062015,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,10,1],[0,11,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161055.347425,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[2,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161055.390132,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161056.592428,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[3,4]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161056.639196,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[3,3,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161057.3313339,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[3,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161057.375258,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[2,2,3],[3,2,2],[4,2,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161058.833525,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[1,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161058.876263,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161059.337306,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[0,4]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161059.380474,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,3,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161059.739238,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[0,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161059.782055,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,2,1],[1,2,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161060.2714329,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[0,2]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161060.315257,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,0,0],[0,1,0],[1,0,0],[1,1,0],[2,0,1],[2,1,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161061.633603,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[3,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161061.676057,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161062.186579,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[2,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161062.2293649,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[3,0,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161062.78541,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[3,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161062.830906,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[4,0,1],[4,1,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161063.637157,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[4,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161063.680005,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[5,0,0],[5,1,2],[6,0,0],[6,1,2],[7,0,2],[7,1,4]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161066.504365,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[5,2]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161066.54733,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161067.326181,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[6,2]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161067.368898,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161067.909234,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[6,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161067.95222,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[7,2,4]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161069.281392,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[8,2]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161069.32391,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161070.663135,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[8,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161070.705648,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161073.475216,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[8,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161073.518676,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161075.3381429,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[9,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161075.385343,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161075.630281,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[10,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161075.672987,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161076.57219,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[11,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161076.615426,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161076.983179,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[11,2]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161077.026414,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[12,1,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161079.21717,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[13,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161079.259612,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161081.295299,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[13,4]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161081.337969,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[14,3,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161081.8643029,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[15,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161081.906765,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161082.368504,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[14,3]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161082.41196,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[13,2,2],[14,2,3],[15,2,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161083.968188,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[13,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161084.010822,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161084.4413059,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[13,2]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161084.483981,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[14,1,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161085.132984,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[14,1]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161085.175911,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[13,0,1],[14,0,1],[15,0,0],[15,1,0]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161085.885969,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[13,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161085.933216,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[12,0,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161087.346137,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[11,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161087.388695,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161095.759085,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[12,15]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161095.804553,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161096.289001,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[12,14]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161096.331881,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[13,13,2],[13,14,2],[13,15,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161097.564141,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[13,12]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161097.607708,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161098.877052,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[14,11]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161098.919487,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161099.1397,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[13,11]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161099.182712,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[14,12,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161100.313932,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[15,10]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161100.35666,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[15,11,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161100.705919,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[15,11]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161100.748603,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[15,12,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161103.268019,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[13,15]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161103.310872,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[14,14,1],[14,15,0],[15,14,1],[15,15,0]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161104.731028,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[14,13]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161104.773422,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161105.091048,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[15,14]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161105.134101,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[15,13,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161109.112742,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_one\",\"cell\":[4,15]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161109.155493,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[4,15,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161110.635882,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[4,14]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161110.678531,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161111.424791,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[5,14]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161111.467467,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[4,13,3]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161112.637932,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[4,15]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161112.6807399,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[3,14,2],[3,15,1]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161113.479826,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[3,15]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161113.524156,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[0,13,1],[0,14,0],[0,15,0],[1,13,1],[1,14,0],[1,15,0],[2,13,1],[2,14,1],[2,15,0]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161114.675996,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[3,13]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161114.71875,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161115.381819,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_many\",\"cell\":[2,12]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161115.424879,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[1,12,2]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161116.709892,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"cell\":[0,12]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161116.752638,
+        "opcode": 1,
+        "data": "{\"type\":\"flag\",\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161118.164826,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_one\",\"cell\":[9,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161118.208442,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[9,0,4]],\"game_status\":\"in_progress\"}"
+    },
+    {
+        "type": "send",
+        "time": 1765161121.426857,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal_one\",\"cell\":[10,0]}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161121.471111,
+        "opcode": 1,
+        "data": "{\"type\":\"reveal\",\"revealed_cells\":[[10,0,4]],\"game_status\":\"finished\"}"
+    },
+    {
+        "type": "receive",
+        "time": 1765161121.480625,
+        "opcode": 1,
+        "data": "{\"type\":\"game_over\",\"game_status\":\"win\",\"full_board\":[[0,0,1,1,1,0,1,1,2,-1,1,1,-1,1,0,0],[0,0,2,-1,2,0,1,-1,2,1,2,2,2,1,0,0],[1,1,3,-1,3,1,2,1,1,0,1,-1,2,1,1,0],[1,-1,2,1,2,-1,1,0,0,0,1,1,2,-1,2,1],[1,2,2,1,2,3,3,1,0,1,1,2,2,3,-1,1],[0,2,-1,3,2,-1,-1,2,1,2,-1,3,-1,3,1,1],[0,2,-1,-1,2,2,2,3,-1,4,2,3,-1,2,0,0],[2,4,4,3,1,0,0,2,-1,-1,1,1,1,1,0,0],[-1,-1,-1,1,0,0,0,1,2,2,1,0,0,0,0,0],[4,-1,4,1,0,0,0,0,1,1,1,0,0,0,0,0],[4,-1,3,0,0,0,0,1,2,-1,2,1,0,0,0,0],[-1,-1,2,0,0,1,2,3,-1,3,-1,1,0,0,1,1],[3,3,3,1,1,1,-1,-1,2,2,1,2,1,1,1,-1],[1,-1,2,-1,1,1,2,2,1,0,1,2,-1,2,2,1],[1,1,3,2,2,0,0,0,0,0,1,-1,3,-1,1,0],[0,0,1,-1,1,0,0,0,0,0,1,1,2,1,1,0]],\"elapsed_time\":115.10797177799395,\"loss_cause\":null}"
+    }
+]

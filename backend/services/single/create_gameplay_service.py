@@ -1,51 +1,50 @@
+import logging
 import uuid
-from typing import Annotated, Optional
+from typing import Optional
 
-from fastapi import Depends
+logger = logging.getLogger(__name__)
 
-from backend import protocols, repositories
 from backend.core.board import Board, GenerationSettings
 from backend.core.game import *
-from backend.core.single.gameplay import SingleplayerGameplay
+from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
+from backend.di.dependencies import (
+    BoardGeneratorDep,
+    BoardPersisterDep,
+    BoardRepositoryDep,
+    PendingBoardsStoreDep,
+    SingleplayerRepositoryDep,
+)
 from backend.lib.auth import OptionalCurrentUser
-from backend.lib.board_generator import LocalBoardGenerator
-from backend.lib.pending_boards import get_pending_boards_store
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
 
-SingleplayerRepository = Annotated[
-    protocols.SingleplayerRepository, Depends(repositories.SingleplayerRepository)
-]
-BoardRepository = Annotated[
-    protocols.BoardRepository, Depends(repositories.BoardRepository)
-]
-BoardGenerator = Annotated[protocols.BoardGenerator, Depends(LocalBoardGenerator)]
-PendingGameplaysStore = Annotated[
-    protocols.PendingBoardsStore, Depends(get_pending_boards_store)
-]
-
 
 class CreateSingleGameplayService:
     def __init__(
         self,
-        board_repo: BoardRepository,
-        game_repo: SingleplayerRepository,
-        board_generator: BoardGenerator,
-        pending_store: PendingGameplaysStore,
+        board_repo: BoardRepositoryDep,
+        game_repo: SingleplayerRepositoryDep,
+        board_generator: BoardGeneratorDep,
+        pending_store: PendingBoardsStoreDep,
+        board_persister: BoardPersisterDep,
     ):
         self.game_repo = game_repo
         self.board_repo = board_repo
         self.board_generator = board_generator
         self.pending_store = pending_store
+        self.board_persister = board_persister
 
     async def create_singleplayer_gameplay(
         self,
         user: OptionalCurrentUser,
         game_settings: NewGameSettings,
     ) -> uuid.UUID:
+        logger.info(
+            f"Creating singleplayer gameplay for user {user.id if user else 'anonymous'}"
+        )
         gameplay_id = uuid.uuid4()
 
         board = await self._get_board(gameplay_id, game_settings, user)
@@ -55,6 +54,7 @@ class CreateSingleGameplayService:
                 gameplay_id, board, game_settings.mode, user
             )
 
+        logger.info(f"Singleplayer gameplay {gameplay_id} created")
         return gameplay_id
 
     async def _get_board(
@@ -158,24 +158,13 @@ class CreateSingleGameplayService:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
 
-        async def on_board_generated(generation_id: uuid.UUID, board: Board):
-            try:
-                existing_board = await self.board_repo.get_board(
-                    board.difficulty_level, board.minefields
-                )
-                board = existing_board
-            except BoardNotFound:
-                await self.board_repo.add_board(board)
-
-            await self.pending_store.mark_ready(generation_id, board.id)
-
         generation_id = await self.board_generator.generate_board(
             GenerationSettings(
                 type=game_settings.generator.generator_type,
                 difficulty_level=game_settings.difficulty_level,
                 settings=game_settings.generator.settings,
             ),
-            on_completed=on_board_generated,
+            on_completed=self.board_persister.on_board_generated,
         )
 
         await self.pending_store.create_pending(
