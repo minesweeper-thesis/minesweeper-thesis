@@ -1,58 +1,27 @@
 import random
 import uuid
 
-from sqlalchemy import text
-from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.core.board import Board, DifficultyLevel, GenerationSettings
-from backend.repositories.board_repo import BoardRepository
-
-
-async def _save_board(board: Board, session: AsyncSession):
-    await session.execute(text("PRAGMA busy_timeout=30000"))
-    repo = BoardRepository(session)
-    await repo.add_board(board)
+from backend.tests.conftest import create_or_get_board, generate_board_data
 
 
 async def create_board(
     session: AsyncSession, rows=5, columns=5, mine_count=2
 ) -> tuple[str, tuple[int, int]]:
-    max_attempts = 5
-    for attempt in range(max_attempts):
-        try:
-            difficulty = DifficultyLevel(
-                rows=rows, columns=columns, mine_count=mine_count
-            )
+    difficulty = DifficultyLevel(rows=rows, columns=columns, mine_count=mine_count)
+    minefields, start_field = generate_board_data(rows, columns, mine_count)
 
-            start_row = random.randint(0, rows - 1)
-            start_col = random.randint(0, columns - 1)
-            start_field = (start_row, start_col)
-
-            all_cells = [
-                (r, c)
-                for r in range(rows)
-                for c in range(columns)
-                if (r, c) != start_field
-            ]
-            random.shuffle(all_cells)
-            minefields = sorted(all_cells[:mine_count])
-
-            board = Board(
-                id=uuid.uuid4(),
-                minefields=minefields,
-                start_field=start_field,
-                generation_settings=GenerationSettings(
-                    type="random", settings=None, difficulty_level=difficulty
-                ),
-            )
-            await _save_board(board, session)
-            return str(board.id), start_field
-        except IntegrityError:
-            if attempt == max_attempts - 1:
-                raise
-            continue
-    raise RuntimeError("Failed to create unique board after max attempts")
+    board = await create_or_get_board(
+        difficulty=difficulty,
+        minefields=minefields,
+        start_field=start_field,
+        generation_settings=GenerationSettings(
+            type="random", settings=None, difficulty_level=difficulty
+        ),
+    )
+    return str(board.id), board.start_field
 
 
 async def create_board_from_full_board(
@@ -69,15 +38,14 @@ async def create_board_from_full_board(
     mine_count = len(minefields)
     difficulty = DifficultyLevel(rows=rows, columns=columns, mine_count=mine_count)
 
-    board = Board(
-        id=uuid.uuid4(),
+    board = await create_or_get_board(
+        difficulty=difficulty,
         minefields=minefields,
         start_field=start_field,
         generation_settings=GenerationSettings(
             type="random", settings=None, difficulty_level=difficulty
         ),
     )
-    await _save_board(board, session)
     return str(board.id)
 
 

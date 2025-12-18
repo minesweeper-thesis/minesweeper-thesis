@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 
 
@@ -6,14 +8,14 @@ import pytest
     [
         [
             {
-                "email": "notif-pending@example.com",
+                "email": f"notif-pending-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifpending",
+                "nickname": f"notifpending_{uuid.uuid4().hex[:4]}",
             },
             {
-                "email": "notif-guest@example.com",
+                "email": f"notif-guest-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifguest",
+                "nickname": f"notifguest_{uuid.uuid4().hex[:4]}",
             },
         ]
     ],
@@ -42,14 +44,14 @@ async def test_notifications_websocket_pending_invitations_request(
     [
         [
             {
-                "email": "notif-host@example.com",
+                "email": f"notif-host-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifhost",
+                "nickname": f"notifhost_{uuid.uuid4().hex[:4]}",
             },
             {
-                "email": "notif-guest2@example.com",
+                "email": f"notif-guest2-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifguest2",
+                "nickname": f"notifguest2_{uuid.uuid4().hex[:4]}",
             },
         ]
     ],
@@ -95,4 +97,4 @@ async def test_notifications_websocket_pending_invitations_has_invitation(
         assert "game_config" in lobby
 
         host = lobby["host"]
-        assert host["nickname"] == "notifhost"
+        assert "notifhost_" in host["nickname"]

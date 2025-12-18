@@ -1,4 +1,5 @@
 import random
+import uuid
 from contextlib import AsyncExitStack
 
 import pytest
@@ -16,9 +17,21 @@ from backend.tests.multiplayer.ws_helpers import (
     "authenticated_clients",
     [
         [
-            {"email": "mp-host@example.com", "password": "pw", "nickname": "mp_host"},
-            {"email": "mp-g1@example.com", "password": "pw", "nickname": "mp_g1"},
-            {"email": "mp-g2@example.com", "password": "pw", "nickname": "mp_g2"},
+            {
+                "email": f"mp-host-{uuid.uuid4().hex[:8]}@example.com",
+                "password": "pw",
+                "nickname": f"mp_host_{uuid.uuid4().hex[:4]}",
+            },
+            {
+                "email": f"mp-g1-{uuid.uuid4().hex[:8]}@example.com",
+                "password": "pw",
+                "nickname": f"mp_g1_{uuid.uuid4().hex[:4]}",
+            },
+            {
+                "email": f"mp-g2-{uuid.uuid4().hex[:8]}@example.com",
+                "password": "pw",
+                "nickname": f"mp_g2_{uuid.uuid4().hex[:4]}",
+            },
         ]
     ],
     indirect=True,

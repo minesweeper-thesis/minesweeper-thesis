@@ -1,23 +1,26 @@
 import os
 import random
 import uuid
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from httpx_ws import aconnect_ws
 from httpx_ws.transport import ASGIWebSocketTransport
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
-from backend.core.board import Board
+from backend.core.board import Board, DifficultyLevel, GenerationSettings
+from backend.protocols.board_repo_protocol import BoardNotFound
 
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 os.environ["AUTH_SECRET"] = "test-secret-key"
 
 from backend.db import db
 from backend.main import api, app
+from backend.repositories.board_repo import BoardRepository
 from backend.repositories.orm import Base
 
 db.engine = create_async_engine(
@@ -30,6 +33,47 @@ db.async_session_maker = async_sessionmaker(db.engine, expire_on_commit=False)
 engine = db.engine
 
 _test_app_instance = None
+
+
+async def create_or_get_board(
+    difficulty: DifficultyLevel,
+    minefields: list[tuple[int, int]],
+    start_field: tuple[int, int],
+    generation_settings: GenerationSettings,
+) -> Board:
+    async with db.async_session_maker() as session:
+        repo = BoardRepository(session)
+        with suppress(BoardNotFound):
+            return await repo.get_board(
+                difficulty_level=difficulty,
+                minefields=minefields,
+            )
+
+        board = Board(
+            id=uuid.uuid4(),
+            minefields=minefields,
+            start_field=start_field,
+            generation_settings=generation_settings,
+        )
+        try:
+            await repo.add_board(board)
+            return board
+        except IntegrityError:
+            await session.rollback()
+            return await repo.get_board(
+                difficulty_level=difficulty,
+                minefields=minefields,
+            )
+
+
+def generate_board_data(
+    rows: int, cols: int, mines: int, seed: int | None = None
+) -> tuple[list[tuple[int, int]], tuple[int, int]]:
+    rng = random.Random(seed)
+    start_field = (0, 0)
+    cells = [(i, j) for i in range(rows) for j in range(cols) if (i, j) != start_field]
+    minefields = sorted(rng.sample(cells, k=mines))
+    return minefields, start_field
 
 
 class HttpClient:
@@ -53,6 +97,27 @@ class HttpClient:
             transport=transport, base_url="https://testserver/api"
         ) as client:
             yield client
+
+    @asynccontextmanager
+    async def _ws_client(self):
+        transport = ASGIWebSocketTransport(self._test_app)
+        async with AsyncClient(
+            transport=transport, base_url="https://testserver/api"
+        ) as client:
+            yield client
+
+    @asynccontextmanager
+    async def ws(self, path: str = "/ws"):
+        async with self._ws_client() as client:
+            headers = (
+                {"Cookie": f"auth={self._auth_cookie}"} if self._auth_cookie else {}
+            )
+            async with aconnect_ws(
+                f"https://testserver/api{path}",
+                client,
+                headers=headers,
+            ) as ws:
+                yield ws
 
     async def get(self, url: str, **kwargs):
         async with self._client() as client:
@@ -100,22 +165,9 @@ class AuthenticatedClientBundle:
         return self.user_id
 
     @asynccontextmanager
-    async def _ws_client(self):
-        transport = ASGIWebSocketTransport(self._test_app)
-        async with AsyncClient(
-            transport=transport, base_url="https://testserver/api"
-        ) as client:
-            yield client
-
-    @asynccontextmanager
     async def ws(self, path: str = "/ws"):
-        async with self._ws_client() as client:
-            async with aconnect_ws(
-                f"https://testserver/api{path}",
-                client,
-                headers={"Cookie": f"auth={self.auth_cookie}"},
-            ) as ws:
-                yield ws
+        async with self._http.ws(path) as ws:
+            yield ws
 
 
 @pytest.fixture(scope="session")
@@ -127,10 +179,9 @@ async def test_app():
         _test_app_instance = None
 
 
-@pytest.fixture(autouse=True)
-async def reset_db(test_app):
+@pytest.fixture(scope="session", autouse=True)
+async def init_db(test_app):
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
     yield
 
@@ -222,22 +273,17 @@ def board_generator_override():
             cols = settings.difficulty_level.columns
             mines = settings.difficulty_level.mine_count
 
-            start_field = (0, 0)
-            cells = [
-                (i, j)
-                for i in range(rows)
-                for j in range(cols)
-                if (i, j) != start_field
-            ]
-            rng = random.Random(int.from_bytes(generation_id.bytes, "big"))
-            minefields = rng.sample(cells, k=mines)
+            minefields, start_field = generate_board_data(
+                rows, cols, mines, seed=int.from_bytes(generation_id.bytes, "big")
+            )
 
-            board = Board(
-                id=uuid.uuid4(),
+            board = await create_or_get_board(
+                difficulty=settings.difficulty_level,
                 minefields=minefields,
                 start_field=start_field,
                 generation_settings=settings,
             )
+
             await on_completed(generation_id, board)
             return generation_id
 

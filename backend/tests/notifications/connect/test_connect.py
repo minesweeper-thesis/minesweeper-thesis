@@ -1,7 +1,5 @@
 import pytest
-from httpx import AsyncClient
-from httpx_ws import HTTPXWSException, aconnect_ws
-from httpx_ws.transport import ASGIWebSocketTransport
+from httpx_ws import WebSocketDisconnect
 
 
 @pytest.mark.asyncio
@@ -43,11 +41,10 @@ async def test_notifications_websocket_connect_with_active_lobby(authenticated_c
 
 
 @pytest.mark.asyncio
-async def test_notifications_websocket_without_auth_fails(test_app):
-    transport = ASGIWebSocketTransport(test_app)
-    async with AsyncClient(
-        transport=transport, base_url="https://testserver/api"
-    ) as client:
-        with pytest.raises(HTTPXWSException):
-            async with aconnect_ws("https://testserver/api/ws", client):
-                pass
+async def test_notifications_websocket_without_auth_fails(client_no_auth):
+    try:
+        async with client_no_auth.ws():
+            pass
+        pytest.fail("Expected WebSocketDisconnect")
+    except* WebSocketDisconnect:
+        pass

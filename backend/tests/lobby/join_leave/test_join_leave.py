@@ -7,11 +7,15 @@ import pytest
     "authenticated_clients",
     [
         [
-            {"email": "joinhost@example.com", "password": "pw", "nickname": "joinhost"},
             {
-                "email": "joinguest@example.com",
+                "email": f"joinhost-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "joinguest",
+                "nickname": f"joinhost_{uuid.uuid4().hex[:4]}",
+            },
+            {
+                "email": f"joinguest-{uuid.uuid4().hex[:8]}@example.com",
+                "password": "pw",
+                "nickname": f"joinguest_{uuid.uuid4().hex[:4]}",
             },
         ]
     ],

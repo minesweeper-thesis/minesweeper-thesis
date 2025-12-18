@@ -86,7 +86,7 @@ async def test_websocket_invalid_gameplay_returns_error(authenticated_clients):
     fake_gameplay_id = str(uuid.uuid4())
 
     try:
-        async with bundle.ws(f"/game/single/{fake_gameplay_id}") as ws:
+        async with bundle.ws(f"/game/single/{fake_gameplay_id}"):
             pass
         pytest.fail("Expected WebSocketUpgradeError")
     except* WebSocketUpgradeError:
