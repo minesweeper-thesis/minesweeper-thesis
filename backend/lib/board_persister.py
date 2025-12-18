@@ -4,7 +4,7 @@ import uuid
 from backend.core.board import Board
 from backend.db import db
 from backend.lib.pending_boards import RedisPendingStore
-from backend.lib.redis_client import get_redis
+from backend.lib.redis_client import get_redis_client
 from backend.protocols.board_repo_protocol import BoardNotFound
 from backend.repositories import BoardRepository
 
@@ -26,6 +26,6 @@ class BackgroundBoardPersister:
             except BoardNotFound:
                 await board_repo.add_board(board)
 
-        async for redis_client in get_redis():
-            pending_store = RedisPendingStore(redis_client)
-            await pending_store.mark_ready(generation_id, board.id)
+        redis_client = get_redis_client()
+        pending_store = RedisPendingStore(redis_client)
+        await pending_store.mark_ready(generation_id, board.id)

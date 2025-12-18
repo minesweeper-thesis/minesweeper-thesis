@@ -6,7 +6,7 @@ from backend.core.board import Board
 from backend.core.multi import create_multiplayer_round
 from backend.db import async_session_maker
 from backend.lib.pending_boards import RedisPendingStore
-from backend.lib.redis_client import get_redis
+from backend.lib.redis_client import get_redis_client
 from backend.protocols import SessionNotFound
 from backend.protocols.board_repo_protocol import BoardNotFound
 
@@ -23,43 +23,44 @@ class BackgroundRoundHandler:
             f"Background handling board {board.id} for session {session_id} (generation {generation_id})"
         )
 
+        redis_client = get_redis_client()
+
         async with async_session_maker() as db_session:
-            async for redis_client in get_redis():
-                board_repo = BoardRepository(db_session)
-                multi_repo = RedisMultiplayerRepository(db_session, redis_client)
-                pending_store = RedisPendingStore(redis_client)
+            board_repo = BoardRepository(db_session)
+            multi_repo = RedisMultiplayerRepository(db_session, redis_client)
+            pending_store = RedisPendingStore(redis_client)
 
-                try:
-                    existing_board = await board_repo.get_board(
-                        board.difficulty_level, board.minefields
-                    )
-                    board = existing_board
-                except BoardNotFound:
-                    await board_repo.add_board(board)
-
-                try:
-                    session = await multi_repo.get_session(session_id)
-                except SessionNotFound:
-                    logger.warning(
-                        f"Session {session_id} not found during background board generation"
-                    )
-                    return
-
-                if generation_id:
-                    await pending_store.mark_ready(generation_id, board.id)
-
-                round_time = timedelta(seconds=session.game_config.max_round_time)
-                round = await create_multiplayer_round(
-                    session_id=session.id,
-                    round_index=len(session.rounds),
-                    round_time=round_time,
-                    board=board,
-                    player_ids=session.player_ids,
-                    mode=session.game_config.game_mode,
+            try:
+                existing_board = await board_repo.get_board(
+                    board.difficulty_level, board.minefields
                 )
+                board = existing_board
+            except BoardNotFound:
+                await board_repo.add_board(board)
 
-                session.add_round(round)
-                await multi_repo.save_session(session)
-                logger.info(
-                    f"Added round {round.round_index} to session {session_id} in background"
+            try:
+                session = await multi_repo.get_session(session_id)
+            except SessionNotFound:
+                logger.warning(
+                    f"Session {session_id} not found during background board generation"
                 )
+                return
+
+            if generation_id:
+                await pending_store.mark_ready(generation_id, board.id)
+
+            round_time = timedelta(seconds=session.game_config.max_round_time)
+            round = await create_multiplayer_round(
+                session_id=session.id,
+                round_index=len(session.rounds),
+                round_time=round_time,
+                board=board,
+                player_ids=session.player_ids,
+                mode=session.game_config.game_mode,
+            )
+
+            session.add_round(round)
+            await multi_repo.save_session(session)
+            logger.info(
+                f"Added round {round.round_index} to session {session_id} in background"
+            )

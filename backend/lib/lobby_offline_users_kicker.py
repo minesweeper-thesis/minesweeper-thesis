@@ -3,12 +3,10 @@ import logging
 import uuid
 from contextlib import suppress
 
-import redis.asyncio as redis
-
 from backend.core.lobby.lobby import UserNotInLobby
 from backend.db import async_session_maker
 from backend.lib.notification_system import get_notification_system
-from backend.lib.redis_client import decode_redis_value, get_redis
+from backend.lib.redis_client import decode_redis_value, get_redis_client
 from backend.repositories import (
     RedisLobbyRepository,
     RedisMultiplayerRepository,
@@ -27,22 +25,15 @@ class LobbyOfflineUsersKicker:
     def __init__(self) -> None:
         self._task: asyncio.Task | None = None
         self._stopped = asyncio.Event()
-        self._redis_client: redis.Redis
         self.prefix = KICK_KEY_PREFIX
 
     async def start(self) -> None:
         if self._task is not None:
             return
 
-        logger.debug("LobbyOfflineUsersKicker.start() called, acquiring Redis client")
-
-        async for redis_client in get_redis():
-            self._redis_client = redis_client
-            logger.info(
-                "LobbyOfflineUsersKicker acquired Redis client %s", self._redis_client
-            )
-            self._task = asyncio.create_task(self._run())
-            logger.info("LobbyOfflineUsersKicker started")
+        logger.debug("LobbyOfflineUsersKicker.start() called")
+        self._task = asyncio.create_task(self._run())
+        logger.info("LobbyOfflineUsersKicker started")
 
     async def stop(self) -> None:
         if self._task is None:
@@ -58,7 +49,8 @@ class LobbyOfflineUsersKicker:
 
     async def _run(self) -> None:
         logger.debug("LobbyOfflineUsersKicker _run() loop starting")
-        pubsub = self._redis_client.pubsub()
+        redis_client = get_redis_client()
+        pubsub = redis_client.pubsub()
 
         await pubsub.psubscribe("__keyevent@*__:expired")
         logger.info(
@@ -126,9 +118,11 @@ class LobbyOfflineUsersKicker:
             f"Handling offline lobby kick for lobby_id={lobby_id}, user_id={user_id}"
         )
 
+        redis_client = get_redis_client()
+
         async with async_session_maker() as db_session:
-            lobby_repo = RedisLobbyRepository(self._redis_client)
-            multi_repo = RedisMultiplayerRepository(db_session, self._redis_client)
+            lobby_repo = RedisLobbyRepository(redis_client)
+            multi_repo = RedisMultiplayerRepository(db_session, redis_client)
             user_repo = UserRepository(db_session)
             notification_system = get_notification_system()
 

@@ -16,6 +16,7 @@ from backend.lib.lobby_offline_users_kicker import (
     initialize_lobby_kicker,
     shutdown_lobby_kicker,
 )
+from backend.lib.redis_client import initialize_redis, shutdown_redis
 from backend.lib.scheduler import initialize_scheduler, shutdown_scheduler
 
 from .db import *
@@ -35,12 +36,14 @@ backend_logger.propagate = False
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_scheduler()
     await init_db()
+    await initialize_redis()
     await initialize_lobby_kicker()
 
     yield
 
     shutdown_scheduler()
     await shutdown_lobby_kicker()
+    await shutdown_redis()
     await engine.dispose()
 
 

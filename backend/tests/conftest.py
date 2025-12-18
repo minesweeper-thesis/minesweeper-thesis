@@ -1,5 +1,7 @@
 import os
+import random
 import time
+import uuid
 
 import pytest
 from fastapi.testclient import TestClient
@@ -7,11 +9,13 @@ from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
+from backend.core.board import Board
+
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 os.environ["AUTH_SECRET"] = "test-secret-key"
 
 from backend.db import db, get_async_session
-from backend.main import app, api
+from backend.main import api, app
 from backend.repositories.orm import Base
 
 db.engine = create_async_engine(
@@ -92,10 +96,7 @@ async def session():
 
 @pytest.fixture(autouse=True)
 async def override_dependency(session):
-    from backend.config import REDIS_URL
-    from backend.lib.redis_client import get_redis, reset_test_redis
-
-    reset_test_redis()
+    from backend.lib.redis_client import get_redis
 
     async for redis_client in get_redis():
         await redis_client.flushdb()
@@ -111,8 +112,6 @@ async def override_dependency(session):
     app.dependency_overrides[get_redis] = _override_redis
     yield
     app.dependency_overrides = {}
-
-    reset_test_redis()
 
     async for redis_client in get_redis():
         await redis_client.flushdb()
@@ -200,9 +199,6 @@ async def authenticated_clients(request, test_db, override_dependency):
 
 @pytest.fixture(autouse=True)
 def board_generator_override():
-    import random
-    import uuid
-    from backend.core.board import Board
     from backend.lib.board_generator import LocalBoardGenerator
 
     class ImmediateBoardGenerator:
