@@ -82,8 +82,8 @@ async def play_single(
     service: PlaySingleService,
 ):
     try:
-        await websocket.accept()
         game_state = await service.load_gameplay(gameplay_id)
+        await websocket.accept()
         await websocket.send_text(create_game_notification(game_state))
 
         while True:
@@ -156,12 +156,13 @@ async def play_multi(
     user: CurrentUserWebSocket,
 ):
     try:
+        await play.validate_session(session_id, user)
         await websocket.accept()
         session_websockets.add(session_id, user.id, websocket)
 
         while True:
             data = await websocket.receive_json()
-            await play.set_session(session_id, user)
+            await play.reload(user)
             await handle_multi(user, session_id, data, play, start)
 
             if play.is_session_over():

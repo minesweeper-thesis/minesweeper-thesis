@@ -5,6 +5,7 @@ from contextlib import suppress
 from fastapi import BackgroundTasks
 
 from backend.core.multi.gameplay import GameplayNotInProgress
+from backend.core.user import User
 from backend.services.exceptions import UserNotInSession
 
 logger = logging.getLogger(__name__)
@@ -12,7 +13,6 @@ logger = logging.getLogger(__name__)
 from backend.core.game import *
 from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
-from backend.lib.auth import CurrentUser
 from backend.protocols.game_transport_protocol import GameTransport
 from backend.repositories.exceptions import *
 from backend.services.exceptions import *
@@ -37,17 +37,17 @@ class PlayMultiService:
 
         self.transport: GameTransport = None  # type: ignore
 
-    async def set_session(
+    async def validate_session(
         self,
         session_id: uuid.UUID,
-        user: CurrentUser,
+        user: User,
     ):
-        logger.debug(f"set_session(session_id={session_id}, user_id={user.id})")
+        logger.debug(f"validate_session(session_id={session_id}, user_id={user.id})")
         logger.debug(f"Setting multiplayer session {session_id} for user {user.id}")
         self.session_id = session_id
         self.user = user
 
-        self.session = await self.multi_repo.get_session(session_id)
+        await self.reload(user)
 
         if self.user.id not in self.session.player_ids:
             logger.warning(f"User {user.id} is not part of session {session_id}")
@@ -59,6 +59,13 @@ class PlayMultiService:
 
         self.transport = self.game_transport_factory.create(session_id)
         logger.info(f"User {user.id} set for multiplayer session {session_id}")
+
+    async def reload(self, user: User):
+        logger.debug(
+            f"load_session(session_id={self.session_id}, user_id={self.user.id})"
+        )
+        self.session = await self.multi_repo.get_session(self.session_id)
+        self.user = user
 
     def is_session_over(self) -> bool:
         logger.debug(f"is_session_over(session_id={self.session_id})")

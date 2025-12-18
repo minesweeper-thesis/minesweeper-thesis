@@ -1,6 +1,7 @@
 import uuid
 
 import pytest
+from httpx_ws import WebSocketUpgradeError
 
 from backend.schemas.game.single_schemas import NewGameResponse
 
@@ -84,6 +85,9 @@ async def test_websocket_invalid_gameplay_returns_error(authenticated_clients):
     bundle = authenticated_clients[0]
     fake_gameplay_id = str(uuid.uuid4())
 
-    async with bundle.ws_game(fake_gameplay_id) as ws:
-        data = await ws.receive_json()
-        assert data.get("type") in ["error", "game_state"]
+    try:
+        async with bundle.ws_game(fake_gameplay_id) as ws:
+            pass
+        pytest.fail("Expected WebSocketUpgradeError")
+    except* WebSocketUpgradeError:
+        pass
