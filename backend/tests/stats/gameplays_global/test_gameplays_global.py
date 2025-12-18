@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 
 
@@ -27,7 +29,7 @@ async def test_get_gameplays_global_ranking_returns_paginated_response(client_no
 @pytest.mark.asyncio
 async def test_get_gameplays_global_ranking_validates_schema(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.get(
+    resp = await client.http.get(
         "/api/stats/gameplays/global",
         params={
             "rows": 10,

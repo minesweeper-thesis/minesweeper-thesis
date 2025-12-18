@@ -1,6 +1,5 @@
-import json
 import random
-from contextlib import ExitStack
+from contextlib import AsyncExitStack
 
 import pytest
 
@@ -52,11 +51,11 @@ async def test_multiplayer_two_player_flow(
     )
     assert update_resp.status_code in [200, 204]
 
-    with ExitStack() as stack:
-        host_notif = stack.enter_context(host_bundle.get_ws())
-        guest_notif = stack.enter_context(guest_bundle.get_ws())
-        assert json.loads(host_notif.receive_text())["type"] == "current_lobby"
-        assert json.loads(guest_notif.receive_text())["type"] == "current_lobby"
+    async with AsyncExitStack() as stack:
+        host_notif = await stack.enter_async_context(host_bundle.ws())
+        guest_notif = await stack.enter_async_context(guest_bundle.ws())
+        assert (await host_notif.receive_json())["type"] == "current_lobby"
+        assert (await guest_notif.receive_json())["type"] == "current_lobby"
 
         inv_resp = await host_bundle.http.post(
             f"/api/lobbies/{lobby_id}/invitations",
@@ -64,123 +63,129 @@ async def test_multiplayer_two_player_flow(
         )
         assert inv_resp.status_code in [200, 204]
 
-        invitation = recv_until(guest_notif, {"invitation"})
+        invitation = await recv_until(guest_notif, {"invitation"})
         join_resp = await guest_bundle.http.post(
             f"/api/lobbies/{lobby_id}/join",
             json={"invitation_id": invitation["id"]},
         )
         assert join_resp.status_code == 200
 
-        host_game = stack.enter_context(host_bundle.get_ws_multi_game(session_id))
-        guest_game = stack.enter_context(guest_bundle.get_ws_multi_game(session_id))
+        host_game = await stack.enter_async_context(
+            host_bundle.ws_multi_game(session_id)
+        )
+        guest_game = await stack.enter_async_context(
+            guest_bundle.ws_multi_game(session_id)
+        )
 
-        host_game.send_json({"type": "ready"})
+        await host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            assert recv_until(ws, {"user_ready"})["value"] is True
+            assert (await recv_until(ws, {"user_ready"}))["value"] is True
 
-        guest_game.send_json({"type": "ready"})
+        await guest_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            assert recv_until(ws, {"user_ready"})["value"] is True
+            assert (await recv_until(ws, {"user_ready"}))["value"] is True
 
-        recv_round_ready(notif_ws=host_notif, game_ws=host_game)
-        recv_round_ready(notif_ws=guest_notif, game_ws=guest_game)
+        await recv_round_ready(notif_ws=host_notif, game_ws=host_game)
+        await recv_round_ready(notif_ws=guest_notif, game_ws=guest_game)
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_countdown"}, timeout_s=10.0)
+            await recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        guest_game.send_json({"type": "not_ready"})
+        await guest_game.send_json({"type": "not_ready"})
         for ws in (host_notif, guest_notif):
-            assert recv_until(ws, {"user_ready"})["value"] is False
+            assert (await recv_until(ws, {"user_ready"}))["value"] is False
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
 
-        guest_game.send_json({"type": "ready"})
+        await guest_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            assert recv_until(ws, {"user_ready"})["value"] is True
+            assert (await recv_until(ws, {"user_ready"}))["value"] is True
 
-        recv_round_ready(notif_ws=host_notif, game_ws=host_game)
-        recv_round_ready(notif_ws=guest_notif, game_ws=guest_game)
+        await recv_round_ready(notif_ws=host_notif, game_ws=host_game)
+        await recv_round_ready(notif_ws=guest_notif, game_ws=guest_game)
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_countdown"}, timeout_s=10.0)
+            await recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
-        start_host = recv_until(host_game, {"round_start"}, timeout_s=10.0)
-        recv_until(guest_game, {"round_start"}, timeout_s=10.0)
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
+        start_host = await recv_until(host_game, {"round_start"}, timeout_s=10.0)
+        await recv_until(guest_game, {"round_start"}, timeout_s=10.0)
         start_field = tuple(start_host["start_field"])
 
         flagged = random_cell(rows=3, cols=3, exclude=start_field)
-        host_game.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
-        recv_until(host_game, {"flag"}, timeout_s=5.0)
+        await host_game.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
+        await recv_until(host_game, {"flag"}, timeout_s=5.0)
 
-        drain_ws(host_game)
+        await drain_ws(host_game)
 
-        host_game.send_json({"type": "reveal_one", "cell": [flagged[0], flagged[1]]})
+        await host_game.send_json(
+            {"type": "reveal_one", "cell": [flagged[0], flagged[1]]}
+        )
         with pytest.raises(TimeoutError):
-            ws_receive_json(host_game, timeout_s=0.25)
+            await ws_receive_json(host_game, timeout_s=0.25)
 
-        fake_scheduler.run_matching({"_end_round"})
+        await fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_end"}, timeout_s=10.0)
+            await recv_until(ws, {"round_end"}, timeout_s=10.0)
 
-        host_game.send_json({"type": "ready"})
+        await host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            recv_until(ws, {"user_ready"}, timeout_s=5.0)
+            await recv_until(ws, {"user_ready"}, timeout_s=5.0)
 
-        guest_game.send_json({"type": "ready"})
+        await guest_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            recv_until(ws, {"user_ready"}, timeout_s=5.0)
+            await recv_until(ws, {"user_ready"}, timeout_s=5.0)
 
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_ready"}, timeout_s=10.0)
-            recv_until(ws, {"round_countdown"}, timeout_s=10.0)
+            await recv_until(ws, {"round_ready"}, timeout_s=10.0)
+            await recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        host_game.send_json({"type": "not_ready"})
+        await host_game.send_json({"type": "not_ready"})
         for ws in (host_notif, guest_notif):
-            msg = recv_until(ws, {"user_ready"}, timeout_s=5.0)
+            msg = await recv_until(ws, {"user_ready"}, timeout_s=5.0)
             assert msg["value"] is False
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
 
-        host_game.send_json({"type": "ready"})
+        await host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            recv_until(ws, {"user_ready"}, timeout_s=5.0)
+            await recv_until(ws, {"user_ready"}, timeout_s=5.0)
 
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_ready"}, timeout_s=10.0)
-            recv_until(ws, {"round_countdown"}, timeout_s=10.0)
+            await recv_until(ws, {"round_ready"}, timeout_s=10.0)
+            await recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_start"}, timeout_s=10.0)
+            await recv_until(ws, {"round_start"}, timeout_s=10.0)
 
         cell = random_cell(rows=3, cols=3, exclude=start_field)
-        guest_game.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
-        recv_until(guest_game, {"flag"}, timeout_s=5.0)
+        await guest_game.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
+        await recv_until(guest_game, {"flag"}, timeout_s=5.0)
 
-        fake_scheduler.run_matching({"_end_round"})
+        await fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_end"}, timeout_s=10.0)
+            await recv_until(ws, {"round_end"}, timeout_s=10.0)
 
-        host_game.send_json({"type": "ready"})
+        await host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            recv_until(ws, {"user_ready"}, timeout_s=5.0)
+            await recv_until(ws, {"user_ready"}, timeout_s=5.0)
 
-        guest_game.send_json({"type": "ready"})
+        await guest_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
-            recv_until(ws, {"user_ready"}, timeout_s=5.0)
+            await recv_until(ws, {"user_ready"}, timeout_s=5.0)
 
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_ready"}, timeout_s=10.0)
-            recv_until(ws, {"round_countdown"}, timeout_s=10.0)
+            await recv_until(ws, {"round_ready"}, timeout_s=10.0)
+            await recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
         for ws in (host_game, guest_game):
-            recv_until(ws, {"round_start"}, timeout_s=10.0)
+            await recv_until(ws, {"round_start"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"_end_round"})
+        await fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, guest_game):
-            recv_until_all(ws, {"round_end", "session_over"}, timeout_s=10.0)
+            await recv_until_all(ws, {"round_end", "session_over"}, timeout_s=10.0)

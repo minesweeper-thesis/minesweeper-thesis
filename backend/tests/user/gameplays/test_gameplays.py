@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.get("/api/gameplays")
+    resp = await client.http.get("/api/gameplays")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -47,7 +47,7 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
     board_id = await create_board()
 
-    game_resp = await client.post(
+    game_resp = await client.http.post(
         "/api/game/singleplayer",
         json={
             "board_id": board_id,
@@ -57,7 +57,7 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
     if game_resp.status_code == 200:
 
-        resp = await client.get("/api/gameplays")
+        resp = await client.http.get("/api/gameplays")
         assert resp.status_code == 200
         data = resp.json()
 

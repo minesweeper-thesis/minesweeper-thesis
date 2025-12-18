@@ -19,7 +19,7 @@ async def test_get_me_returns_current_user_response(authenticated_clients):
 @pytest.mark.asyncio
 async def test_patch_me_updates_nickname(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.patch(
+    resp = await client.http.patch(
         "/api/auth/me",
         json={
             "nickname": "newnickname",
@@ -37,7 +37,7 @@ async def test_patch_me_updates_nickname(authenticated_clients):
 async def test_patch_me_updates_settings(authenticated_clients):
     client = authenticated_clients[0]
     new_settings = {"theme": "light", "language": "pl"}
-    resp = await client.patch(
+    resp = await client.http.patch(
         "/api/auth/me",
         json={
             "nickname": "test",

@@ -19,7 +19,7 @@ async def test_get_gameplays_friends_ranking_returns_paginated_response(
     authenticated_clients,
 ):
     client = authenticated_clients[0]
-    resp = await client.get(
+    resp = await client.http.get(
         "/api/stats/gameplays/friends",
         params={
             "rows": 10,

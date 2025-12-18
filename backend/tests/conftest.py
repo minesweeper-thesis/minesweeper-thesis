@@ -1,11 +1,13 @@
 import os
 import random
-import time
 import uuid
+from contextlib import asynccontextmanager
 
 import pytest
-from fastapi.testclient import TestClient
+from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
+from httpx_ws import aconnect_ws
+from httpx_ws.transport import ASGIWebSocketTransport
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import StaticPool
 
@@ -14,7 +16,7 @@ from backend.core.board import Board
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 os.environ["AUTH_SECRET"] = "test-secret-key"
 
-from backend.db import db, get_async_session
+from backend.db import db
 from backend.main import api, app
 from backend.repositories.orm import Base
 
@@ -27,20 +29,68 @@ db.async_session_maker = async_sessionmaker(db.engine, expire_on_commit=False)
 
 engine = db.engine
 
+_test_app_instance = None
+
+
+class HttpClient:
+    def __init__(self, test_app, auth_cookie: str | None = None):
+        self._test_app = test_app
+        self._auth_cookie = auth_cookie
+
+    def _headers(self, extra_headers: dict | None = None) -> dict:
+        if self._auth_cookie:
+            headers = {"Cookie": f"auth={self._auth_cookie}"}
+        else:
+            headers = {"Cookie": ""}
+        if extra_headers:
+            headers.update(extra_headers)
+        return headers
+
+    @asynccontextmanager
+    async def _client(self):
+        transport = ASGITransport(self._test_app)
+        async with AsyncClient(
+            transport=transport, base_url="https://testserver"
+        ) as client:
+            yield client
+
+    async def get(self, url: str, **kwargs):
+        async with self._client() as client:
+            kwargs["headers"] = self._headers(kwargs.get("headers"))
+            return await client.get(url, **kwargs)
+
+    async def post(self, url: str, **kwargs):
+        async with self._client() as client:
+            kwargs["headers"] = self._headers(kwargs.get("headers"))
+            return await client.post(url, **kwargs)
+
+    async def put(self, url: str, **kwargs):
+        async with self._client() as client:
+            kwargs["headers"] = self._headers(kwargs.get("headers"))
+            return await client.put(url, **kwargs)
+
+    async def patch(self, url: str, **kwargs):
+        async with self._client() as client:
+            kwargs["headers"] = self._headers(kwargs.get("headers"))
+            return await client.patch(url, **kwargs)
+
+    async def delete(self, url: str, **kwargs):
+        async with self._client() as client:
+            kwargs["headers"] = self._headers(kwargs.get("headers"))
+            return await client.delete(url, **kwargs)
+
 
 class AuthenticatedClientBundle:
-    def __init__(
-        self,
-        http_client: AsyncClient,
-        ws_client: TestClient,
-        user_data: dict,
-        auth_cookie: str = "",
-    ):
-        self.http = http_client
-        self.ws_client = ws_client
+    def __init__(self, test_app, user_data: dict, auth_cookie: str):
+        self._test_app = test_app
         self.user_data = user_data
-        self.auth_cookie = auth_cookie or http_client.cookies.get("auth")
+        self.auth_cookie = auth_cookie
         self.user_id = None
+        self._http = HttpClient(test_app, auth_cookie)
+
+    @property
+    def http(self):
+        return self._http
 
     async def set_user_id(self):
         if not self.user_id:
@@ -49,42 +99,59 @@ class AuthenticatedClientBundle:
                 self.user_id = resp.json().get("id")
         return self.user_id
 
-    def get_ws(self):
-        return self.ws_client.websocket_connect(
-            "/api/ws", headers={"Cookie": f"auth={self.auth_cookie}"}
-        )
+    @asynccontextmanager
+    async def _ws_client(self):
+        transport = ASGIWebSocketTransport(self._test_app)
+        async with AsyncClient(
+            transport=transport, base_url="https://testserver"
+        ) as client:
+            yield client
 
-    def get_ws_game(self, game_id: str):
-        return self.ws_client.websocket_connect(
-            f"/api/game/single/{game_id}",
-            headers={"Cookie": f"auth={self.auth_cookie}"},
-        )
+    @asynccontextmanager
+    async def ws(self, path: str = "/api/ws"):
+        async with self._ws_client() as client:
+            async with aconnect_ws(
+                f"https://testserver{path}",
+                client,
+                headers={"Cookie": f"auth={self.auth_cookie}"},
+            ) as ws:
+                yield ws
 
-    def get_ws_multi_game(self, session_id: str):
-        return self.ws_client.websocket_connect(
-            f"/api/game/multi/{session_id}",
-            headers={"Cookie": f"auth={self.auth_cookie}"},
-        )
+    @asynccontextmanager
+    async def ws_game(self, game_id: str):
+        async with self._ws_client() as client:
+            async with aconnect_ws(
+                f"https://testserver/api/game/single/{game_id}",
+                client,
+                headers={"Cookie": f"auth={self.auth_cookie}"},
+            ) as ws:
+                yield ws
 
-    def get_ws_client(self):
-        return self.ws_client
+    @asynccontextmanager
+    async def ws_multi_game(self, session_id: str):
+        async with self._ws_client() as client:
+            async with aconnect_ws(
+                f"https://testserver/api/game/multi/{session_id}",
+                client,
+                headers={"Cookie": f"auth={self.auth_cookie}"},
+            ) as ws:
+                yield ws
 
-    async def __aenter__(self):
-        return self
 
-    async def __aexit__(self, *args):
-        return await self.http.__aexit__(*args)
-
-    def __getattr__(self, name):
-        return getattr(self.http, name)
+@pytest.fixture(scope="session")
+async def test_app():
+    global _test_app_instance
+    async with LifespanManager(app) as manager:
+        _test_app_instance = manager.app
+        yield manager.app
+        _test_app_instance = None
 
 
 @pytest.fixture(autouse=True)
-async def test_db():
+async def reset_db(test_app):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
-
     yield
 
 
@@ -94,49 +161,22 @@ async def session():
         yield session
 
 
-@pytest.fixture(autouse=True)
-async def override_dependency(session):
-    from backend.lib.redis_client import get_redis
-
-    async for redis_client in get_redis():
-        await redis_client.flushdb()
-
-    async def _override_db():
-        yield session
-
-    async def _override_redis():
-        async for redis_client in get_redis():
-            yield redis_client
-
-    app.dependency_overrides[get_async_session] = _override_db
-    app.dependency_overrides[get_redis] = _override_redis
-    yield
-    app.dependency_overrides = {}
-
-    async for redis_client in get_redis():
-        await redis_client.flushdb()
-
-
 @pytest.fixture
-async def client_no_auth(test_db, override_dependency):
+async def http_client(test_app):
+    transport = ASGITransport(test_app)
     async with AsyncClient(
-        transport=ASGITransport(app), base_url="https://testserver"
-    ) as ac:
-        yield ac
+        transport=transport, base_url="https://testserver"
+    ) as client:
+        yield client
 
 
 @pytest.fixture
-def ws_client_no_auth(test_db, override_dependency):
-    from fastapi.testclient import TestClient
-
-    with TestClient(app, base_url="https://testserver") as c:
-        yield c
+async def client_no_auth(test_app):
+    yield HttpClient(test_app)
 
 
 @pytest.fixture
-async def authenticated_clients(request, test_db, override_dependency):
-    import uuid
-
+async def authenticated_clients(request, test_app):
     if hasattr(request, "param"):
         users_data = request.param
     else:
@@ -149,14 +189,14 @@ async def authenticated_clients(request, test_db, override_dependency):
             }
         ]
 
-    with TestClient(app, base_url="https://testserver") as shared_ws_client:
-        bundles = []
-        for user_data in users_data:
-            async_client = AsyncClient(
-                transport=ASGITransport(app), base_url="https://testserver"
-            )
+    bundles = []
 
-            reg_resp = await async_client.post(
+    transport = ASGITransport(test_app)
+    async with AsyncClient(
+        transport=transport, base_url="https://testserver"
+    ) as client:
+        for user_data in users_data:
+            reg_resp = await client.post(
                 "/api/auth/register",
                 json={
                     "email": user_data["email"],
@@ -167,7 +207,7 @@ async def authenticated_clients(request, test_db, override_dependency):
             )
             assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
 
-            login_resp = await async_client.post(
+            login_resp = await client.post(
                 "/api/auth/login",
                 data={
                     "username": user_data["email"],
@@ -179,25 +219,14 @@ async def authenticated_clients(request, test_db, override_dependency):
             auth_cookie = login_resp.cookies.get("auth")
             assert auth_cookie, "Login did not set 'auth' cookie"
 
-            domain = "testserver.local"
-            async_client.cookies.set("auth", auth_cookie, domain=domain, path="/")
-
-            bundle = AuthenticatedClientBundle(
-                async_client, shared_ws_client, user_data, auth_cookie
-            )
+            bundle = AuthenticatedClientBundle(test_app, user_data, auth_cookie)
             await bundle.set_user_id()
             bundles.append(bundle)
 
-        yield bundles
-
-        for bundle in bundles:
-            await bundle.http.aclose()
-
-        await engine.dispose()
-        time.sleep(0.01)
+    yield bundles
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture(scope="session", autouse=True)
 def board_generator_override():
     from backend.lib.board_generator import LocalBoardGenerator
 

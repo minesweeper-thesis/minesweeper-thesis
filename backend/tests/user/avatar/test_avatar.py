@@ -19,7 +19,7 @@ TEST_AVATAR = (
 @pytest.mark.asyncio
 async def test_upload_avatar_success(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.post(
+    resp = await client.http.post(
         "/api/avatar",
         files={"file": ("avatar.png", io.BytesIO(TEST_AVATAR), "image/png")},
     )
@@ -36,7 +36,7 @@ async def test_upload_avatar_success(authenticated_clients):
 @pytest.mark.asyncio
 async def test_upload_avatar_invalid_file_type_returns_400(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.post(
+    resp = await client.http.post(
         "/api/avatar",
         files={"file": ("test.txt", io.BytesIO(b"not an image"), "text/plain")},
     )
@@ -62,20 +62,20 @@ async def test_upload_avatar_without_auth_returns_401(client_no_auth):
 @pytest.mark.asyncio
 async def test_delete_avatar_success(authenticated_clients):
     client = authenticated_clients[0]
-    await client.post(
+    await client.http.post(
         "/api/avatar",
         files={"file": ("avatar.png", io.BytesIO(TEST_AVATAR), "image/png")},
     )
-    me = await client.get("/api/auth/me")
+    me = await client.http.get("/api/auth/me")
     assert me.status_code == 200
     data = me.json()
     assert data.get("avatar_url") is not None
 
-    resp = await client.delete("/api/avatar")
+    resp = await client.http.delete("/api/avatar")
 
     assert resp.status_code == 200
 
-    me = await client.get("/api/auth/me")
+    me = await client.http.get("/api/auth/me")
     assert me.status_code == 200
     data = me.json()
     assert data.get("avatar_url") is None

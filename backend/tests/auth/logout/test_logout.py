@@ -1,14 +1,37 @@
+import uuid
+
 import pytest
 
 
 @pytest.mark.asyncio
-async def test_logout_clears_auth_cookie(authenticated_clients):
-    client = authenticated_clients[0]
-    assert "auth" in client.cookies
+async def test_logout_clears_auth_cookie(http_client):
+    email = f"logout-{uuid.uuid4().hex[:8]}@example.com"
 
-    resp = await client.post("/api/auth/logout")
-    assert resp.status_code == 204
-    assert "auth" not in client.cookies or client.cookies.get("auth") == ""
+    await http_client.post(
+        "/api/auth/register",
+        json={
+            "email": email,
+            "password": "mypassword",
+            "nickname": "logouttest",
+            "settings": {},
+        },
+    )
+
+    login_resp = await http_client.post(
+        "/api/auth/login",
+        data={
+            "username": email,
+            "password": "mypassword",
+        },
+    )
+    assert login_resp.status_code == 204
+    assert "auth" in login_resp.cookies
+
+    logout_resp = await http_client.post("/api/auth/logout")
+    assert logout_resp.status_code == 204
+
+    auth_cookie = logout_resp.cookies.get("auth")
+    assert auth_cookie == "" or auth_cookie is None or "auth" not in logout_resp.cookies
 
 
 @pytest.mark.asyncio

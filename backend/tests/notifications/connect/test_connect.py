@@ -1,7 +1,7 @@
-import json
-
 import pytest
-from fastapi import WebSocketDisconnect
+from httpx import AsyncClient
+from httpx_ws import HTTPXWSException, aconnect_ws
+from httpx_ws.transport import ASGIWebSocketTransport
 
 
 @pytest.mark.asyncio
@@ -10,8 +10,8 @@ async def test_notifications_websocket_connect_returns_current_lobby_response(
 ):
     bundle = authenticated_clients[0]
 
-    with bundle.get_ws() as ws:
-        data = json.loads(ws.receive_text())
+    async with bundle.ws() as ws:
+        data = await ws.receive_json()
 
     assert data["type"] == "current_lobby"
     assert "lobby" in data
@@ -31,8 +31,8 @@ async def test_notifications_websocket_connect_with_active_lobby(authenticated_c
     create_resp = await bundle.http.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    with bundle.get_ws() as ws:
-        data = json.loads(ws.receive_text())
+    async with bundle.ws() as ws:
+        data = await ws.receive_json()
 
     assert data["type"] == "current_lobby"
 
@@ -43,7 +43,11 @@ async def test_notifications_websocket_connect_with_active_lobby(authenticated_c
 
 
 @pytest.mark.asyncio
-async def test_notifications_websocket_without_auth_fails(ws_client_no_auth):
-    with pytest.raises(WebSocketDisconnect):
-        with ws_client_no_auth.websocket_connect("/api/ws"):
-            pass
+async def test_notifications_websocket_without_auth_fails(test_app):
+    transport = ASGIWebSocketTransport(test_app)
+    async with AsyncClient(
+        transport=transport, base_url="https://testserver"
+    ) as client:
+        with pytest.raises(HTTPXWSException):
+            async with aconnect_ws("https://testserver/api/ws", client):
+                pass

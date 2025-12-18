@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_update_lobby_config_success(authenticated_clients):
     client = authenticated_clients[0]
-    create_resp = await client.post("/api/lobbies")
+    create_resp = await client.http.post("/api/lobbies")
     lobby_id = create_resp.json()["id"]
 
     new_config = {
@@ -24,7 +24,7 @@ async def test_update_lobby_config_success(authenticated_clients):
         },
     }
 
-    resp = await client.put(f"/api/lobbies/{lobby_id}", json=new_config)
+    resp = await client.http.put(f"/api/lobbies/{lobby_id}", json=new_config)
     assert resp.status_code in [200, 204]
 
 

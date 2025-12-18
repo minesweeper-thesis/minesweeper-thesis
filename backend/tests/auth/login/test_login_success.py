@@ -6,10 +6,10 @@ from backend.schemas.user import CurrentUserResponse
 
 
 @pytest.mark.asyncio
-async def test_login_success_sets_auth_cookie_and_me_returns_user(client_no_auth):
+async def test_login_success_sets_auth_cookie_and_me_returns_user(http_client):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
-    await client_no_auth.post(
+    await http_client.post(
         "/api/auth/register",
         json={
             "email": email,
@@ -19,7 +19,7 @@ async def test_login_success_sets_auth_cookie_and_me_returns_user(client_no_auth
         },
     )
 
-    resp = await client_no_auth.post(
+    resp = await http_client.post(
         "/api/auth/login",
         data={
             "username": email,
@@ -28,9 +28,9 @@ async def test_login_success_sets_auth_cookie_and_me_returns_user(client_no_auth
     )
 
     assert resp.status_code == 204 or resp.status_code == 200
-    assert "auth" in client_no_auth.cookies
+    assert "auth" in resp.cookies
 
-    me_resp = await client_no_auth.get("/api/auth/me")
+    me_resp = await http_client.get("/api/auth/me")
     assert me_resp.status_code == 200
     user = CurrentUserResponse(**me_resp.json())
     assert user.email == email

@@ -20,7 +20,7 @@ async def test_get_users_friends_ranking_returns_paginated_response(
     authenticated_clients,
 ):
     client = authenticated_clients[0]
-    resp = await client.get(
+    resp = await client.http.get(
         "/api/stats/users/friends",
         params={
             "rows": 10,
@@ -41,7 +41,7 @@ async def test_get_users_friends_ranking_returns_paginated_response(
 @pytest.mark.asyncio
 async def test_get_users_friends_ranking_by_average_time(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.get(
+    resp = await client.http.get(
         "/api/stats/users/friends",
         params={
             "rows": 10,

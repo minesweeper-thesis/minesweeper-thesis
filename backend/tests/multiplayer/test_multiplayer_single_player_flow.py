@@ -1,4 +1,5 @@
 import random
+from contextlib import AsyncExitStack
 
 import pytest
 
@@ -48,72 +49,72 @@ async def test_multiplayer_single_player_flow(
     )
     assert update_resp.status_code in [200, 204]
 
-    from contextlib import ExitStack
+    async with AsyncExitStack() as stack:
+        notif_ws = await stack.enter_async_context(host_bundle.ws())
+        game_ws = await stack.enter_async_context(host_bundle.ws_multi_game(session_id))
+        await game_ws.send_json({"type": "ready"})
+        assert (await recv_until(notif_ws, {"user_ready"}))["value"] is True
 
-    with ExitStack() as stack:
-        notif_ws = stack.enter_context(host_bundle.get_ws())
-        game_ws = stack.enter_context(host_bundle.get_ws_multi_game(session_id))
-        game_ws.send_json({"type": "ready"})
-        assert recv_until(notif_ws, {"user_ready"})["value"] is True
+        await recv_round_ready(notif_ws=notif_ws, game_ws=game_ws)
+        await recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
 
-        recv_round_ready(notif_ws=notif_ws, game_ws=game_ws)
-        recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
-
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
-        start_msg = recv_until(game_ws, {"round_start"}, timeout_s=10.0)
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
+        start_msg = await recv_until(game_ws, {"round_start"}, timeout_s=10.0)
         start_field = tuple(start_msg["start_field"])
 
         flagged = random_cell(rows=3, cols=3, exclude=start_field)
-        game_ws.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
-        recv_until(game_ws, {"flag"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
+        await recv_until(game_ws, {"flag"}, timeout_s=5.0)
 
-        drain_ws(game_ws)
+        await drain_ws(game_ws)
 
-        game_ws.send_json({"type": "reveal_one", "cell": [flagged[0], flagged[1]]})
+        await game_ws.send_json(
+            {"type": "reveal_one", "cell": [flagged[0], flagged[1]]}
+        )
         with pytest.raises(TimeoutError):
-            ws_receive_json(game_ws, timeout_s=0.25)
+            await ws_receive_json(game_ws, timeout_s=0.25)
 
-        fake_scheduler.run_matching({"_end_round"})
-        recv_until(game_ws, {"round_end"}, timeout_s=10.0)
+        await fake_scheduler.run_matching({"_end_round"})
+        await recv_until(game_ws, {"round_end"}, timeout_s=10.0)
 
-        game_ws.send_json({"type": "ready"})
-        recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "ready"})
+        await recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
 
-        game_ws.send_json({"type": "not_ready"})
-        msg = recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "not_ready"})
+        msg = await recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
         assert msg["value"] is False
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
 
-        game_ws.send_json({"type": "ready"})
-        recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "ready"})
+        await recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
 
-        recv_until(game_ws, {"round_ready"}, timeout_s=10.0)
-        recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
+        await recv_until(game_ws, {"round_ready"}, timeout_s=10.0)
+        await recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
-        recv_until(game_ws, {"round_start"}, timeout_s=10.0)
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
+        await recv_until(game_ws, {"round_start"}, timeout_s=10.0)
 
         cell = random_cell(rows=3, cols=3, exclude=start_field)
-        game_ws.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
-        recv_until(game_ws, {"flag"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
+        await recv_until(game_ws, {"flag"}, timeout_s=5.0)
 
-        fake_scheduler.run_matching({"_end_round"})
-        recv_until(game_ws, {"round_end"}, timeout_s=10.0)
+        await fake_scheduler.run_matching({"_end_round"})
+        await recv_until(game_ws, {"round_end"}, timeout_s=10.0)
 
-        game_ws.send_json({"type": "ready"})
-        recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "ready"})
+        await recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
 
-        recv_until(game_ws, {"round_ready"}, timeout_s=10.0)
-        recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
+        await recv_until(game_ws, {"round_ready"}, timeout_s=10.0)
+        await recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
-        fake_scheduler.run_matching({"start_round"})
-        recv_until(game_ws, {"round_start"}, timeout_s=10.0)
+        await fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        await fake_scheduler.run_matching({"start_round"})
+        await recv_until(game_ws, {"round_start"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"_end_round"})
-        recv_until(game_ws, {"round_end"}, timeout_s=10.0)
-        recv_until(game_ws, {"session_over"}, timeout_s=10.0)
+        await fake_scheduler.run_matching({"_end_round"})
+        await recv_until(game_ws, {"round_end"}, timeout_s=10.0)
+        await recv_until(game_ws, {"session_over"}, timeout_s=10.0)

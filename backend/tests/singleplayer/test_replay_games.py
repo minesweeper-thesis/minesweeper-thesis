@@ -42,16 +42,15 @@ async def test_replay_game(authenticated_clients, json_file, session):
 
     gameplay_id = await create_game(bundle.http, board_id=board_id)
 
-    with bundle.get_ws_game(gameplay_id) as ws:
+    async with bundle.ws_game(gameplay_id) as ws:
         for i, message in enumerate(messages):
             msg_type = message["type"]
             msg_data = json.loads(message["data"])
 
             if msg_type == "send":
-                ws.send_json(msg_data)
+                await ws.send_json(msg_data)
             elif msg_type == "receive":
-                received_text = ws.receive_text()
-                received_data = json.loads(received_text)
+                received_data = await ws.receive_json()
 
                 def clean_data(data):
                     d = data.copy()

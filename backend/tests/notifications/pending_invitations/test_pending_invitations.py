@@ -1,5 +1,3 @@
-import json
-
 import pytest
 
 
@@ -27,12 +25,12 @@ async def test_notifications_websocket_pending_invitations_request(
 ):
     bundle = authenticated_clients[0]
 
-    with bundle.get_ws() as ws:
-        ws.receive_text()
+    async with bundle.ws() as ws:
+        await ws.receive_json()
 
-        ws.send_json({"type": "pending_invitations"})
+        await ws.send_json({"type": "pending_invitations"})
 
-        data = json.loads(ws.receive_text())
+        data = await ws.receive_json()
 
     assert data["type"] == "pending_invitations"
     assert "invitations" in data
@@ -74,11 +72,11 @@ async def test_notifications_websocket_pending_invitations_has_invitation(
         f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
     )
 
-    with guest_bundle.get_ws() as ws:
-        ws.receive_text()
+    async with guest_bundle.ws() as ws:
+        await ws.receive_json()
 
-        ws.send_json({"type": "pending_invitations"})
-        data = json.loads(ws.receive_text())
+        await ws.send_json({"type": "pending_invitations"})
+        data = await ws.receive_json()
 
         assert data["type"] == "pending_invitations"
         invitations = data["invitations"]
