@@ -2,6 +2,7 @@ import logging
 import pickle
 import uuid
 from contextlib import suppress
+from datetime import datetime
 from typing import Optional
 
 from fastapi_pagination import Page, Params
@@ -30,6 +31,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         self.message_prefix = "lobby_messages:"
         self.user_lobby_prefix = "lobby_lookup:user:"
         self.user_invitation_prefix = "invitation_lookup:user:"
+        self.user_kick_prefix = "lobby_kick:"
 
     async def save_lobby(self, lobby: Lobby):
         logger.debug(f"save_lobby(lobby_id={lobby.id}, users={len(lobby.users)})")
@@ -145,3 +147,44 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         items = [pickle.loads(m) for m in messages_data]
 
         return Page.create(items=items, total=total, params=pagination_params)
+
+    async def set_kick_at(
+        self, user_id: uuid.UUID, lobby_id: uuid.UUID, kick_at: datetime | None
+    ) -> None:
+        key = f"{self.user_kick_prefix}{lobby_id}:{user_id}"
+
+        if kick_at is None:
+            logger.debug(
+                "Clearing kick time for user %s in lobby %s (deleting key %s)",
+                user_id,
+                lobby_id,
+                key,
+            )
+            await self.redis.delete(key)
+            return
+
+        now = datetime.now()
+        ttl_seconds = (kick_at - now).total_seconds()
+
+        if ttl_seconds <= 0:
+            logger.debug(
+                "Requested kick_at %s for user %s in lobby %s is in the past "
+                "(ttl_seconds=%.2f), deleting key %s instead of setting it",
+                kick_at,
+                user_id,
+                lobby_id,
+                ttl_seconds,
+                key,
+            )
+            await self.redis.delete(key)
+            return
+
+        logger.debug(
+            "Setting kick time for user %s in lobby %s at %s (ttl_seconds=%.2f, key=%s)",
+            user_id,
+            lobby_id,
+            kick_at,
+            ttl_seconds,
+            key,
+        )
+        await self.redis.set(key, "1", ex=int(ttl_seconds))

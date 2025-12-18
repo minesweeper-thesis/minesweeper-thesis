@@ -25,7 +25,9 @@ from backend.tests.multiplayer.ws_helpers import (
     indirect=True,
 )
 @pytest.mark.asyncio
-async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler, board_generator_override):
+async def test_multiplayer_two_player_flow(
+    authenticated_clients, fake_scheduler, background_handler_override
+):
     random.seed(0)
 
     host_bundle = authenticated_clients[0]
@@ -89,7 +91,8 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         for ws in (host_notif, guest_notif):
             assert recv_until(ws, {"user_ready"})["value"] is False
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
 
         guest_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
@@ -100,7 +103,8 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         for ws in (host_game, guest_game):
             recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
         start_host = recv_until(host_game, {"round_start"}, timeout_s=10.0)
         recv_until(guest_game, {"round_start"}, timeout_s=10.0)
         start_field = tuple(start_host["start_field"])
@@ -115,7 +119,7 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         with pytest.raises(TimeoutError):
             ws_receive_json(host_game, timeout_s=0.25)
 
-        fake_scheduler.run_matching({"end_round"})
+        fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, guest_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
 
@@ -136,7 +140,8 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
             msg = recv_until(ws, {"user_ready"}, timeout_s=5.0)
             assert msg["value"] is False
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
 
         host_game.send_json({"type": "ready"})
         for ws in (host_notif, guest_notif):
@@ -146,7 +151,8 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
             recv_until(ws, {"round_ready"}, timeout_s=10.0)
             recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
         for ws in (host_game, guest_game):
             recv_until(ws, {"round_start"}, timeout_s=10.0)
 
@@ -154,7 +160,7 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         guest_game.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
         recv_until(guest_game, {"flag"}, timeout_s=5.0)
 
-        fake_scheduler.run_matching({"end_round"})
+        fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, guest_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
 
@@ -170,10 +176,11 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
             recv_until(ws, {"round_ready"}, timeout_s=10.0)
             recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
         for ws in (host_game, guest_game):
             recv_until(ws, {"round_start"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"end_round"})
+        fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, guest_game):
             recv_until_all(ws, {"round_end", "session_over"}, timeout_s=10.0)

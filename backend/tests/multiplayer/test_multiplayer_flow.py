@@ -26,7 +26,7 @@ from backend.tests.multiplayer.ws_helpers import (
 )
 @pytest.mark.asyncio
 async def test_multiplayer_full_flow_many_players(
-    authenticated_clients, fake_scheduler, board_generator_override
+    authenticated_clients, fake_scheduler, background_handler_override
 ):
     random.seed(0)
 
@@ -118,7 +118,8 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_notif, g1_notif, g2_notif):
             assert recv_until(ws, {"user_ready"})["value"] is False
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
 
         g1_game.send_json({"type": "ready"})
         for ws in (host_notif, g1_notif, g2_notif):
@@ -130,7 +131,8 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
 
         starts = [
             recv_until(ws, {"round_start"}) for ws in (host_game, g1_game, g2_game)
@@ -155,7 +157,7 @@ async def test_multiplayer_full_flow_many_players(
         g1_game.send_json({"type": "reveal_one", "cell": [cell[0], cell[1]]})
         recv_until(g1_game, {"reveal", "game_over", "score_update"}, timeout_s=5.0)
 
-        fake_scheduler.run_matching({"end_round"})
+        fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
 
@@ -172,7 +174,8 @@ async def test_multiplayer_full_flow_many_players(
             msg = recv_until(ws, {"user_ready"})
             assert msg["value"] is False
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
 
         g1_game.send_json({"type": "ready"})
         for ws in (host_notif, g1_notif, g2_notif):
@@ -186,7 +189,8 @@ async def test_multiplayer_full_flow_many_players(
             recv_until(ws, {"round_ready"}, timeout_s=10.0)
             recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_start"}, timeout_s=10.0)
 
@@ -195,7 +199,7 @@ async def test_multiplayer_full_flow_many_players(
             ws.send_json({"type": "reveal_one", "cell": [cell[0], cell[1]]})
             recv_until(ws, {"reveal", "game_over", "score_update"}, timeout_s=5.0)
 
-        fake_scheduler.run_matching({"end_round"})
+        fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
 
@@ -209,11 +213,12 @@ async def test_multiplayer_full_flow_many_players(
             recv_until(ws, {"round_ready"}, timeout_s=10.0)
             recv_until(ws, {"round_countdown"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        fake_scheduler.run_matching({"_lock_ready_and_schedule_start"})
+        fake_scheduler.run_matching({"start_round"})
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_start"}, timeout_s=10.0)
 
-        fake_scheduler.run_matching({"end_round"})
+        fake_scheduler.run_matching({"_end_round"})
         for ws in (host_game, g1_game, g2_game):
             recv_until(ws, {"round_end"}, timeout_s=10.0)
 

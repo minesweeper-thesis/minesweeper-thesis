@@ -106,7 +106,7 @@ class RedisPendingStore(protocols.PendingBoardsStore):
         except asyncio.TimeoutError:
             return None
         finally:
-            await pubsub.close()
+            await pubsub.aclose()
 
     async def get_pending_gameplay(self, id: uuid.UUID) -> Optional[PendingBoard]:
         logger.debug(f"get_pending_gameplay(id={id})")

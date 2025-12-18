@@ -4,7 +4,7 @@ from starlette.datastructures import Secret
 config = Config("backend/.env")
 
 DATABASE_URL = config("DATABASE_URL", default="sqlite+aiosqlite:///minesweeper.db")
-REDIS_URL = config("REDIS_URL", default=None)
+REDIS_URL = config("REDIS_URL", default="redis://localhost:6379")
 
 AUTH_SECRET = config("AUTH_SECRET", cast=Secret, default="RePeEwSeNiM")
 

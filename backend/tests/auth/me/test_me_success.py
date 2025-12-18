@@ -5,15 +5,15 @@ from backend.schemas.user import CurrentUserResponse
 
 @pytest.mark.asyncio
 async def test_get_me_returns_current_user_response(authenticated_clients):
-    client = authenticated_clients[0]
-    resp = await client.get("/api/auth/me")
+    bundle = authenticated_clients[0]
+    resp = await bundle.http.get("/api/auth/me")
     assert resp.status_code == 200
 
     data = resp.json()
     user = CurrentUserResponse(**data)
 
-    assert user.email == "test@example.com"
-    assert user.nickname == "test"
+    assert user.email == bundle.user_data["email"]
+    assert user.nickname == bundle.user_data["nickname"]
 
 
 @pytest.mark.asyncio

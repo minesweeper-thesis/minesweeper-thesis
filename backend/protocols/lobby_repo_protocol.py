@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Optional, Protocol
 
 from fastapi_pagination import Page, Params
@@ -28,6 +29,10 @@ class LobbyRepository(Protocol):
     async def get_messages(
         self, lobby_id: uuid.UUID, pagination_params: Params
     ) -> Page: ...
+
+    async def set_kick_at(
+        self, user_id: uuid.UUID, lobby_id: uuid.UUID, kick_at: datetime | None
+    ) -> None: ...
 
 
 __all__ = ["LobbyRepository"]

@@ -25,59 +25,6 @@ def background_handler_override():
     api.dependency_overrides.pop(BackgroundRoundHandler, None)
 
 
-@pytest.fixture
-def board_generator_override(background_handler_override):
-    from backend.lib.board_generator import LocalBoardGenerator
-
-    class ImmediateBoardGenerator:
-        def __init__(self):
-            self._statuses = {}
-
-        async def generate_board(self, settings, on_completed):
-            import random
-            import uuid
-
-            from backend.core.board import Board
-
-            generation_id = uuid.uuid4()
-            self._statuses[generation_id] = "completed"
-
-            rows = settings.difficulty_level.rows
-            cols = settings.difficulty_level.columns
-            mines = settings.difficulty_level.mine_count
-
-            start_field = (0, 0)
-            cells = [
-                (i, j)
-                for i in range(rows)
-                for j in range(cols)
-                if (i, j) != start_field
-            ]
-            rng = random.Random(int.from_bytes(generation_id.bytes, "big"))
-            minefields = rng.sample(cells, k=mines)
-
-            board = Board(
-                id=uuid.uuid4(),
-                minefields=minefields,
-                start_field=start_field,
-                generation_settings=settings,
-            )
-            await on_completed(generation_id, board)
-            return generation_id
-
-        async def get_generation_status(self, generation_id):
-            return self._statuses.get(generation_id, "completed")
-
-    generator = ImmediateBoardGenerator()
-
-    def _override():
-        return generator
-
-    api.dependency_overrides[LocalBoardGenerator] = _override
-    yield
-    api.dependency_overrides.pop(LocalBoardGenerator, None)
-
-
 class FakeScheduler:
     def __init__(self):
         self._jobs: dict[str, tuple[object, object, tuple, dict]] = {}

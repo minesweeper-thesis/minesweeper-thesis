@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from backend.core.board import Board
-from backend.db.db import async_session_maker
+from backend.db import db
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis
 from backend.protocols.board_repo_protocol import BoardNotFound
@@ -16,7 +16,7 @@ class BackgroundBoardPersister:
         logger.debug(
             f"Background persisting board {board.id} for generation {generation_id}"
         )
-        async with async_session_maker() as session:
+        async with db.async_session_maker() as session:
             board_repo = BoardRepository(session)
             try:
                 existing_board = await board_repo.get_board(

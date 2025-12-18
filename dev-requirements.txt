@@ -21,7 +21,6 @@ cryptography==45.0.3
 cycler==0.12.1
 dnspython==2.7.0
 email_validator==2.2.0
-fakeredis==2.32.1
 fastapi==0.115.12
 fastapi-cli==0.0.7
 fastapi-pagination==0.14.1

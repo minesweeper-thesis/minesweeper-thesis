@@ -24,11 +24,11 @@ async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_c
 async def test_get_gameplays_validates_gameplay_response_schema(authenticated_clients):
     client = authenticated_clients[0]
     from backend.core.board import Board, DifficultyLevel, GenerationSettings
-    from backend.db.db import async_session_maker
+    from backend.db import db
     from backend.repositories.board_repo import BoardRepository
 
     async def create_board():
-        async with async_session_maker() as session:
+        async with db.async_session_maker() as session:
             repo = BoardRepository(session)
             difficulty = DifficultyLevel(rows=3, columns=3, mine_count=1)
             board = Board(

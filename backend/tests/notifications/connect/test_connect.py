@@ -39,7 +39,7 @@ async def test_notifications_websocket_connect_with_active_lobby(authenticated_c
     lobby = data["lobby"]
     if lobby is not None:
         assert lobby["id"] == lobby_id
-        assert lobby["host"]["nickname"] == "test"
+        assert lobby["host"]["nickname"] == bundle.user_data["nickname"]
 
 
 @pytest.mark.asyncio

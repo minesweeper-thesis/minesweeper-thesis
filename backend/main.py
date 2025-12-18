@@ -12,6 +12,10 @@ from fastapi_pagination import add_pagination
 
 from backend import routers
 from backend.config import FRONTEND_URL
+from backend.lib.lobby_offline_users_kicker import (
+    initialize_lobby_kicker,
+    shutdown_lobby_kicker,
+)
 from backend.lib.scheduler import initialize_scheduler, shutdown_scheduler
 
 from .db import *
@@ -30,10 +34,13 @@ backend_logger.propagate = False
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     initialize_scheduler()
-
     await init_db()
+    await initialize_lobby_kicker()
+
     yield
+
     shutdown_scheduler()
+    await shutdown_lobby_kicker()
     await engine.dispose()
 
 

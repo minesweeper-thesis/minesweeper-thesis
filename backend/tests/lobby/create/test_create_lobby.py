@@ -5,8 +5,8 @@ import pytest
 
 @pytest.mark.asyncio
 async def test_create_lobby_returns_lobby_response(authenticated_clients):
-    client = authenticated_clients[0]
-    resp = await client.post("/api/lobbies")
+    bundle = authenticated_clients[0]
+    resp = await bundle.http.post("/api/lobbies")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -22,7 +22,7 @@ async def test_create_lobby_returns_lobby_response(authenticated_clients):
     host = data["host"]
     assert "id" in host
     assert "nickname" in host
-    assert host["nickname"] == "test"
+    assert host["nickname"] == bundle.user_data["nickname"]
 
     config = data["game_config"]
     assert "rounds" in config

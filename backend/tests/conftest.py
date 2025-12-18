@@ -1,30 +1,27 @@
 import os
-import tempfile
+import time
 
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import StaticPool
 
-_test_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-_test_db_path = _test_db_file.name
-_test_db_file.close()
-
-os.environ["DATABASE_URL"] = (
-    f"sqlite+aiosqlite:///{_test_db_path}?check_same_thread=False&timeout=30"
-)
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 os.environ["AUTH_SECRET"] = "test-secret-key"
 
-from backend.db import db
+from backend.db import db, get_async_session
+from backend.main import app, api
+from backend.repositories.orm import Base
 
-db.engine = create_async_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
+db.engine = create_async_engine(
+    os.environ["DATABASE_URL"],
+    poolclass=StaticPool,
+    connect_args={"check_same_thread": False},
+)
 db.async_session_maker = async_sessionmaker(db.engine, expire_on_commit=False)
 
-from backend.db.db import engine, get_async_session
-from backend.main import app
-from backend.repositories.orm import Base
+engine = db.engine
 
 
 class AuthenticatedClientBundle:
@@ -81,24 +78,10 @@ class AuthenticatedClientBundle:
 @pytest.fixture(autouse=True)
 async def test_db():
     async with engine.begin() as conn:
-        await conn.execute(text("PRAGMA journal_mode=WAL"))
-        await conn.execute(text("PRAGMA busy_timeout=30000"))
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
 
     yield
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-    await engine.dispose()
-
-    try:
-        os.unlink(_test_db_path)
-        os.unlink(_test_db_path + "-wal")
-        os.unlink(_test_db_path + "-shm")
-    except:
-        pass
 
 
 @pytest.fixture
@@ -114,10 +97,8 @@ async def override_dependency(session):
 
     reset_test_redis()
 
-    if REDIS_URL:
-        async for redis_client in get_redis():
-            await redis_client.flushdb()
-            break
+    async for redis_client in get_redis():
+        await redis_client.flushdb()
 
     async def _override_db():
         yield session
@@ -133,10 +114,8 @@ async def override_dependency(session):
 
     reset_test_redis()
 
-    if REDIS_URL:
-        async for redis_client in get_redis():
-            await redis_client.flushdb()
-            break
+    async for redis_client in get_redis():
+        await redis_client.flushdb()
 
 
 @pytest.fixture
@@ -157,11 +136,18 @@ def ws_client_no_auth(test_db, override_dependency):
 
 @pytest.fixture
 async def authenticated_clients(request, test_db, override_dependency):
+    import uuid
+
     if hasattr(request, "param"):
         users_data = request.param
     else:
+        uid = uuid.uuid4().hex[:8]
         users_data = [
-            {"email": "test@example.com", "password": "pw", "nickname": "test"}
+            {
+                "email": f"test-{uid}@example.com",
+                "password": "pw",
+                "nickname": f"test_{uid}",
+            }
         ]
 
     with TestClient(app, base_url="https://testserver") as shared_ws_client:
@@ -208,10 +194,56 @@ async def authenticated_clients(request, test_db, override_dependency):
         for bundle in bundles:
             await bundle.http.aclose()
 
+        await engine.dispose()
+        time.sleep(0.01)
+
 
 @pytest.fixture(autouse=True)
-async def clean_db(test_db):
+def board_generator_override():
+    import random
+    import uuid
+    from backend.core.board import Board
+    from backend.lib.board_generator import LocalBoardGenerator
+
+    class ImmediateBoardGenerator:
+        def __init__(self):
+            self._statuses = {}
+
+        async def generate_board(self, settings, on_completed):
+            generation_id = uuid.uuid4()
+            self._statuses[generation_id] = "completed"
+
+            rows = settings.difficulty_level.rows
+            cols = settings.difficulty_level.columns
+            mines = settings.difficulty_level.mine_count
+
+            start_field = (0, 0)
+            cells = [
+                (i, j)
+                for i in range(rows)
+                for j in range(cols)
+                if (i, j) != start_field
+            ]
+            rng = random.Random(int.from_bytes(generation_id.bytes, "big"))
+            minefields = rng.sample(cells, k=mines)
+
+            board = Board(
+                id=uuid.uuid4(),
+                minefields=minefields,
+                start_field=start_field,
+                generation_settings=settings,
+            )
+            await on_completed(generation_id, board)
+            return generation_id
+
+        async def get_generation_status(self, generation_id):
+            return self._statuses.get(generation_id, "completed")
+
+    generator = ImmediateBoardGenerator()
+
+    def _override():
+        return generator
+
+    api.dependency_overrides[LocalBoardGenerator] = _override
     yield
-    async with engine.begin() as conn:
-        for table in reversed(Base.metadata.sorted_tables):
-            await conn.execute(table.delete())
+    api.dependency_overrides.pop(LocalBoardGenerator, None)

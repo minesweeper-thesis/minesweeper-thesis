@@ -8,16 +8,8 @@ _test_redis_instance = None
 
 
 async def get_redis() -> AsyncIterator[redis.Redis]:
-    if REDIS_URL:
-        async with redis.from_url(REDIS_URL) as client:
-            yield client
-    else:
-        global _test_redis_instance
-        if _test_redis_instance is None:
-            from fakeredis import FakeAsyncRedis
-
-            _test_redis_instance = FakeAsyncRedis()
-        yield _test_redis_instance
+    async with redis.from_url(REDIS_URL) as client:
+        yield client
 
 
 def reset_test_redis():

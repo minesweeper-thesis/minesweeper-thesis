@@ -32,15 +32,15 @@ async def test_search_users_returns_paginated_user_response(authenticated_client
 
 @pytest.mark.asyncio
 async def test_search_users_finds_matching_user(authenticated_clients):
-    client = authenticated_clients[0]
-    resp = await client.get("/api/search", params={"query": "te"})
+    bundle = authenticated_clients[0]
+    resp = await bundle.http.get("/api/search", params={"query": "test_"})
 
     assert resp.status_code == 200
     data = resp.json()
 
     assert data["total"] >= 1
     nicknames = [item["nickname"] for item in data["items"]]
-    assert "test" in nicknames
+    assert bundle.user_data["nickname"] in nicknames
 
 
 @pytest.mark.asyncio
