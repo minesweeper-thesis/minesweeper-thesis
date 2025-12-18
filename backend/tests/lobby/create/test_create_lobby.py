@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_create_lobby_returns_lobby_response(authenticated_clients):
     bundle = authenticated_clients[0]
-    resp = await bundle.http.post("/api/lobbies")
+    resp = await bundle.http.post("/lobbies")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -39,5 +39,5 @@ async def test_create_lobby_returns_lobby_response(authenticated_clients):
 
 @pytest.mark.asyncio
 async def test_create_lobby_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.post("/api/lobbies")
+    resp = await client_no_auth.post("/lobbies")
     assert resp.status_code == 401

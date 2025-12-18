@@ -97,7 +97,7 @@ async def create_game(
         )
 
     resp = await client.post(
-        "/api/game/single",
+        "/game/single",
         json={
             "board_id": board_id,
             "mode": "normal",

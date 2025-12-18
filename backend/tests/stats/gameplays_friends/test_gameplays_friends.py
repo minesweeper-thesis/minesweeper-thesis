@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_get_gameplays_friends_ranking_requires_auth(client_no_auth):
     resp = await client_no_auth.get(
-        "/api/stats/gameplays/friends",
+        "/stats/gameplays/friends",
         params={
             "rows": 10,
             "cols": 10,
@@ -20,7 +20,7 @@ async def test_get_gameplays_friends_ranking_returns_paginated_response(
 ):
     client = authenticated_clients[0]
     resp = await client.http.get(
-        "/api/stats/gameplays/friends",
+        "/stats/gameplays/friends",
         params={
             "rows": 10,
             "cols": 10,

@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_update_lobby_config_success(authenticated_clients):
     client = authenticated_clients[0]
-    create_resp = await client.http.post("/api/lobbies")
+    create_resp = await client.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
     new_config = {
@@ -24,14 +24,14 @@ async def test_update_lobby_config_success(authenticated_clients):
         },
     }
 
-    resp = await client.http.put(f"/api/lobbies/{lobby_id}", json=new_config)
+    resp = await client.http.put(f"/lobbies/{lobby_id}", json=new_config)
     assert resp.status_code in [200, 204]
 
 
 @pytest.mark.asyncio
 async def test_update_lobby_config_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.put(
-        f"/api/lobbies/{uuid.uuid4()}",
+        f"/lobbies/{uuid.uuid4()}",
         json={
             "rounds": 3,
             "max_round_time": 120,

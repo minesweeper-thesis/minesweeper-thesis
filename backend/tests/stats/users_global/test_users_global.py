@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_get_users_global_ranking_by_win_rate(client_no_auth):
     resp = await client_no_auth.get(
-        "/api/stats/users/global",
+        "/stats/users/global",
         params={
             "rows": 10,
             "cols": 10,
@@ -23,7 +23,7 @@ async def test_get_users_global_ranking_by_win_rate(client_no_auth):
 @pytest.mark.asyncio
 async def test_get_users_global_ranking_by_average_time(client_no_auth):
     resp = await client_no_auth.get(
-        "/api/stats/users/global",
+        "/stats/users/global",
         params={
             "rows": 10,
             "cols": 10,
@@ -41,7 +41,7 @@ async def test_get_users_global_ranking_by_average_time(client_no_auth):
 @pytest.mark.asyncio
 async def test_get_users_global_ranking_validates_schema(client_no_auth):
     resp = await client_no_auth.get(
-        "/api/stats/users/global",
+        "/stats/users/global",
         params={
             "rows": 10,
             "cols": 10,
@@ -74,7 +74,7 @@ async def test_get_users_global_ranking_validates_schema(client_no_auth):
 @pytest.mark.asyncio
 async def test_get_users_global_ranking_invalid_compare_by_returns_422(client_no_auth):
     resp = await client_no_auth.get(
-        "/api/stats/users/global",
+        "/stats/users/global",
         params={
             "rows": 10,
             "cols": 10,

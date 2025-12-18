@@ -50,7 +50,7 @@ class HttpClient:
     async def _client(self):
         transport = ASGITransport(self._test_app)
         async with AsyncClient(
-            transport=transport, base_url="https://testserver"
+            transport=transport, base_url="https://testserver/api"
         ) as client:
             yield client
 
@@ -94,7 +94,7 @@ class AuthenticatedClientBundle:
 
     async def set_user_id(self):
         if not self.user_id:
-            resp = await self.http.get("/api/auth/me")
+            resp = await self.http.get("/auth/me")
             if resp.status_code == 200:
                 self.user_id = resp.json().get("id")
         return self.user_id
@@ -103,35 +103,15 @@ class AuthenticatedClientBundle:
     async def _ws_client(self):
         transport = ASGIWebSocketTransport(self._test_app)
         async with AsyncClient(
-            transport=transport, base_url="https://testserver"
+            transport=transport, base_url="https://testserver/api"
         ) as client:
             yield client
 
     @asynccontextmanager
-    async def ws(self, path: str = "/api/ws"):
+    async def ws(self, path: str = "/ws"):
         async with self._ws_client() as client:
             async with aconnect_ws(
-                f"https://testserver{path}",
-                client,
-                headers={"Cookie": f"auth={self.auth_cookie}"},
-            ) as ws:
-                yield ws
-
-    @asynccontextmanager
-    async def ws_game(self, game_id: str):
-        async with self._ws_client() as client:
-            async with aconnect_ws(
-                f"https://testserver/api/game/single/{game_id}",
-                client,
-                headers={"Cookie": f"auth={self.auth_cookie}"},
-            ) as ws:
-                yield ws
-
-    @asynccontextmanager
-    async def ws_multi_game(self, session_id: str):
-        async with self._ws_client() as client:
-            async with aconnect_ws(
-                f"https://testserver/api/game/multi/{session_id}",
+                f"https://testserver/api{path}",
                 client,
                 headers={"Cookie": f"auth={self.auth_cookie}"},
             ) as ws:
@@ -165,7 +145,7 @@ async def session():
 async def http_client(test_app):
     transport = ASGITransport(test_app)
     async with AsyncClient(
-        transport=transport, base_url="https://testserver"
+        transport=transport, base_url="https://testserver/api"
     ) as client:
         yield client
 
@@ -193,11 +173,11 @@ async def authenticated_clients(request, test_app):
 
     transport = ASGITransport(test_app)
     async with AsyncClient(
-        transport=transport, base_url="https://testserver"
+        transport=transport, base_url="https://testserver/api"
     ) as client:
         for user_data in users_data:
             reg_resp = await client.post(
-                "/api/auth/register",
+                "/auth/register",
                 json={
                     "email": user_data["email"],
                     "password": user_data["password"],
@@ -208,7 +188,7 @@ async def authenticated_clients(request, test_app):
             assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
 
             login_resp = await client.post(
-                "/api/auth/login",
+                "/auth/login",
                 data={
                     "username": user_data["email"],
                     "password": user_data["password"],

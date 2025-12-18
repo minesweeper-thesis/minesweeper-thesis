@@ -25,18 +25,16 @@ import pytest
 async def test_accept_friend_request_success(authenticated_clients):
     client1, client2 = authenticated_clients
 
-    user2_resp = await client2.http.get("/api/auth/me")
+    user2_resp = await client2.http.get("/auth/me")
     user2_id = user2_resp.json()["id"]
 
-    req_resp = await client1.http.post(
-        "/api/friend-requests", json={"friend_id": user2_id}
-    )
+    req_resp = await client1.http.post("/friend-requests", json={"friend_id": user2_id})
 
     assert req_resp.status_code == 200
     friend_request_id = req_resp.json()["id"]
 
     accept_resp = await client2.http.post(
-        f"/api/friend-requests/{friend_request_id}/accept"
+        f"/friend-requests/{friend_request_id}/accept"
     )
     assert accept_resp.status_code in [200, 204]
 
@@ -46,7 +44,7 @@ async def test_accept_nonexistent_request_returns_404(authenticated_clients):
     client = authenticated_clients[0]
 
     fake_id = str(uuid.uuid4())
-    resp = await client.http.post(f"/api/friend-requests/{fake_id}/accept")
+    resp = await client.http.post(f"/friend-requests/{fake_id}/accept")
 
     assert resp.status_code == 404
 
@@ -73,18 +71,16 @@ async def test_accept_nonexistent_request_returns_404(authenticated_clients):
 async def test_reject_friend_request_success(authenticated_clients):
     client1, client2 = authenticated_clients
 
-    user2_resp = await client2.http.get("/api/auth/me")
+    user2_resp = await client2.http.get("/auth/me")
     user2_id = user2_resp.json()["id"]
 
-    req_resp = await client1.http.post(
-        "/api/friend-requests", json={"friend_id": user2_id}
-    )
+    req_resp = await client1.http.post("/friend-requests", json={"friend_id": user2_id})
 
     assert req_resp.status_code == 200
     friend_request_id = req_resp.json()["id"]
 
     reject_resp = await client2.http.post(
-        f"/api/friend-requests/{friend_request_id}/reject"
+        f"/friend-requests/{friend_request_id}/reject"
     )
     assert reject_resp.status_code in [200, 204]
 
@@ -94,6 +90,6 @@ async def test_reject_nonexistent_request_returns_404(authenticated_clients):
     client = authenticated_clients[0]
 
     fake_id = str(uuid.uuid4())
-    resp = await client.http.post(f"/api/friend-requests/{fake_id}/reject")
+    resp = await client.http.post(f"/friend-requests/{fake_id}/reject")
 
     assert resp.status_code == 404

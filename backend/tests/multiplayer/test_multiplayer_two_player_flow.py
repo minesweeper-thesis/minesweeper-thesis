@@ -34,13 +34,13 @@ async def test_multiplayer_two_player_flow(
 
     guest_id = guest_bundle.user_id
 
-    create_resp = await host_bundle.http.post("/api/lobbies")
+    create_resp = await host_bundle.http.post("/lobbies")
     assert create_resp.status_code == 200
     lobby_id = create_resp.json()["id"]
     session_id = lobby_id
 
     update_resp = await host_bundle.http.put(
-        f"/api/lobbies/{lobby_id}",
+        f"/lobbies/{lobby_id}",
         json={
             "rounds": 3,
             "max_round_time": 2,
@@ -58,23 +58,23 @@ async def test_multiplayer_two_player_flow(
         assert (await guest_notif.receive_json())["type"] == "current_lobby"
 
         inv_resp = await host_bundle.http.post(
-            f"/api/lobbies/{lobby_id}/invitations",
+            f"/lobbies/{lobby_id}/invitations",
             json={"user_id": guest_id},
         )
         assert inv_resp.status_code in [200, 204]
 
         invitation = await recv_until(guest_notif, {"invitation"})
         join_resp = await guest_bundle.http.post(
-            f"/api/lobbies/{lobby_id}/join",
+            f"/lobbies/{lobby_id}/join",
             json={"invitation_id": invitation["id"]},
         )
         assert join_resp.status_code == 200
 
         host_game = await stack.enter_async_context(
-            host_bundle.ws_multi_game(session_id)
+            host_bundle.ws(f"/game/multi/{session_id}")
         )
         guest_game = await stack.enter_async_context(
-            guest_bundle.ws_multi_game(session_id)
+            guest_bundle.ws(f"/game/multi/{session_id}")
         )
 
         await host_game.send_json({"type": "ready"})

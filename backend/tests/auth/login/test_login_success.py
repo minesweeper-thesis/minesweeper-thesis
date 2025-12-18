@@ -10,7 +10,7 @@ async def test_login_success_sets_auth_cookie_and_me_returns_user(http_client):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
     await http_client.post(
-        "/api/auth/register",
+        "/auth/register",
         json={
             "email": email,
             "password": "mypassword",
@@ -20,7 +20,7 @@ async def test_login_success_sets_auth_cookie_and_me_returns_user(http_client):
     )
 
     resp = await http_client.post(
-        "/api/auth/login",
+        "/auth/login",
         data={
             "username": email,
             "password": "mypassword",
@@ -30,7 +30,7 @@ async def test_login_success_sets_auth_cookie_and_me_returns_user(http_client):
     assert resp.status_code == 204 or resp.status_code == 200
     assert "auth" in resp.cookies
 
-    me_resp = await http_client.get("/api/auth/me")
+    me_resp = await http_client.get("/auth/me")
     assert me_resp.status_code == 200
     user = CurrentUserResponse(**me_resp.json())
     assert user.email == email

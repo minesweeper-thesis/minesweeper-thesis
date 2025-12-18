@@ -28,7 +28,7 @@ async def test_notifications_websocket_connect_returns_current_lobby_response(
 async def test_notifications_websocket_connect_with_active_lobby(authenticated_clients):
     bundle = authenticated_clients[0]
 
-    create_resp = await bundle.http.post("/api/lobbies")
+    create_resp = await bundle.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
     async with bundle.ws() as ws:
@@ -46,7 +46,7 @@ async def test_notifications_websocket_connect_with_active_lobby(authenticated_c
 async def test_notifications_websocket_without_auth_fails(test_app):
     transport = ASGIWebSocketTransport(test_app)
     async with AsyncClient(
-        transport=transport, base_url="https://testserver"
+        transport=transport, base_url="https://testserver/api"
     ) as client:
         with pytest.raises(HTTPXWSException):
             async with aconnect_ws("https://testserver/api/ws", client):

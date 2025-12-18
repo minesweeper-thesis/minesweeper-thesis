@@ -12,7 +12,7 @@ async def test_websocket_reveal_one_returns_response(authenticated_clients, sess
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         initial = await ws.receive_json()
         start_field = initial["start_field"]
 
@@ -34,7 +34,7 @@ async def test_websocket_reveal_start_field_is_safe(authenticated_clients, sessi
         bundle.http, rows=3, columns=3, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         initial = await ws.receive_json()
         start_field = initial["start_field"]
 
@@ -59,7 +59,7 @@ async def test_websocket_reveal_returns_valid_cell_values(
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         initial = await ws.receive_json()
         start_field = initial["start_field"]
 
@@ -81,7 +81,7 @@ async def test_websocket_flag_returns_response(authenticated_clients, session):
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         await ws.receive_json()
 
         await ws.send_json({"type": "flag", "cell": (0, 0)})
@@ -100,7 +100,7 @@ async def test_websocket_remove_flag_returns_response(authenticated_clients, ses
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         await ws.receive_json()
 
         await ws.send_json({"type": "flag", "cell": (0, 0)})
@@ -121,7 +121,7 @@ async def test_websocket_flag_and_unflag_same_cell(authenticated_clients, sessio
         bundle.http, rows=3, columns=3, mine_count=1, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         await ws.receive_json()
 
         await ws.send_json({"type": "flag", "cell": (1, 1)})
@@ -141,7 +141,7 @@ async def test_websocket_flag_shows_in_state(authenticated_clients, session):
         bundle.http, rows=3, columns=3, mine_count=1, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         await ws.receive_json()
 
         await ws.send_json({"type": "flag", "cell": (0, 0)})
@@ -163,7 +163,7 @@ async def test_websocket_use_hint_action(authenticated_clients, session):
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         await ws.receive_json()
 
         await ws.send_json({"type": "hint"})
@@ -181,7 +181,7 @@ async def test_websocket_reveal_out_of_bounds(authenticated_clients, session):
     )
 
     try:
-        async with bundle.ws_game(gameplay_id) as ws:
+        async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
             await ws.receive_json()
 
             await ws.send_json({"type": "reveal_one", "cell": (100, 100)})
@@ -200,7 +200,7 @@ async def test_websocket_flag_revealed_cell(authenticated_clients, session):
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         initial = await ws.receive_json()
         start_field = initial["start_field"]
 
@@ -221,6 +221,6 @@ async def test_websocket_normal_mode(authenticated_clients, session):
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         data = await ws.receive_json()
         assert data["type"] == "game_state"

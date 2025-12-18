@@ -25,14 +25,14 @@ import pytest
 async def test_invite_user_to_lobby_success(authenticated_clients):
     client1, client2 = authenticated_clients
 
-    create_resp = await client1.http.post("/api/lobbies")
+    create_resp = await client1.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_resp = await client2.http.get("/api/auth/me")
+    guest_resp = await client2.http.get("/auth/me")
     guest_id = guest_resp.json()["id"]
 
     resp = await client1.http.post(
-        f"/api/lobbies/{lobby_id}/invitations",
+        f"/lobbies/{lobby_id}/invitations",
         json={
             "user_id": guest_id,
         },
@@ -43,7 +43,7 @@ async def test_invite_user_to_lobby_success(authenticated_clients):
 @pytest.mark.asyncio
 async def test_invite_user_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.post(
-        f"/api/lobbies/{uuid.uuid4()}/invitations",
+        f"/lobbies/{uuid.uuid4()}/invitations",
         json={
             "user_id": str(uuid.uuid4()),
         },
@@ -73,18 +73,18 @@ async def test_invite_user_without_auth_returns_401(client_no_auth):
 async def test_reject_invitation_success(authenticated_clients):
     client1, client2 = authenticated_clients
 
-    create_resp = await client1.http.post("/api/lobbies")
+    create_resp = await client1.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_me = await client2.http.get("/api/auth/me")
+    guest_me = await client2.http.get("/auth/me")
     guest_id = guest_me.json()["id"]
 
     await client1.http.post(
-        f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
+        f"/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
     )
 
 
 @pytest.mark.asyncio
 async def test_reject_invitation_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.delete(f"/api/invitations/{uuid.uuid4()}")
+    resp = await client_no_auth.delete(f"/invitations/{uuid.uuid4()}")
     assert resp.status_code == 401

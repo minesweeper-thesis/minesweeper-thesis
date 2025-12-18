@@ -8,7 +8,7 @@ async def test_logout_clears_auth_cookie(http_client):
     email = f"logout-{uuid.uuid4().hex[:8]}@example.com"
 
     await http_client.post(
-        "/api/auth/register",
+        "/auth/register",
         json={
             "email": email,
             "password": "mypassword",
@@ -18,7 +18,7 @@ async def test_logout_clears_auth_cookie(http_client):
     )
 
     login_resp = await http_client.post(
-        "/api/auth/login",
+        "/auth/login",
         data={
             "username": email,
             "password": "mypassword",
@@ -27,7 +27,7 @@ async def test_logout_clears_auth_cookie(http_client):
     assert login_resp.status_code == 204
     assert "auth" in login_resp.cookies
 
-    logout_resp = await http_client.post("/api/auth/logout")
+    logout_resp = await http_client.post("/auth/logout")
     assert logout_resp.status_code == 204
 
     auth_cookie = logout_resp.cookies.get("auth")
@@ -36,5 +36,5 @@ async def test_logout_clears_auth_cookie(http_client):
 
 @pytest.mark.asyncio
 async def test_logout_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.post("/api/auth/logout")
+    resp = await client_no_auth.post("/auth/logout")
     assert resp.status_code == 401

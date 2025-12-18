@@ -12,7 +12,7 @@ async def test_websocket_initial_game_state_schema(authenticated_clients, sessio
         bundle.http, rows=5, columns=5, mine_count=2, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         data = await ws.receive_json()
 
         assert data["type"] == "game_state"
@@ -46,7 +46,7 @@ async def test_websocket_game_over_loss_schema(authenticated_clients, session):
 
     game_over = None
     finished = False
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         initial = await ws.receive_json()
         start_field = initial["start_field"]
 
@@ -85,7 +85,7 @@ async def test_websocket_get_game_state_returns_current_state(
         bundle.http, rows=5, columns=5, mine_count=5, session=session
     )
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         initial = await ws.receive_json()
         start_field = initial["start_field"]
 
@@ -116,7 +116,7 @@ async def test_websocket_board_state_shows_revealed_cell(
     )
 
     try:
-        async with bundle.ws_game(gameplay_id) as ws:
+        async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
             initial = await ws.receive_json()
             start_field = initial["start_field"]
 

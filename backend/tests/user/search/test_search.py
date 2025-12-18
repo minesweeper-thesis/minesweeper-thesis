@@ -6,7 +6,7 @@ from backend.schemas.user import UserResponse
 @pytest.mark.asyncio
 async def test_search_users_returns_paginated_user_response(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.http.get("/api/search", params={"query": "te"})
+    resp = await client.http.get("/search", params={"query": "te"})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -33,7 +33,7 @@ async def test_search_users_returns_paginated_user_response(authenticated_client
 @pytest.mark.asyncio
 async def test_search_users_finds_matching_user(authenticated_clients):
     bundle = authenticated_clients[0]
-    resp = await bundle.http.get("/api/search", params={"query": "test_"})
+    resp = await bundle.http.get("/search", params={"query": "test_"})
 
     assert resp.status_code == 200
     data = resp.json()
@@ -45,6 +45,6 @@ async def test_search_users_finds_matching_user(authenticated_clients):
 
 @pytest.mark.asyncio
 async def test_search_users_no_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.get("/api/search", params={"query": "test"})
+    resp = await client_no_auth.get("/search", params={"query": "test"})
 
     assert resp.status_code == 401

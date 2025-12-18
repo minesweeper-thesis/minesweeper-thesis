@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.http.get("/api/gameplays")
+    resp = await client.http.get("/gameplays")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -48,7 +48,7 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
     board_id = await create_board()
 
     game_resp = await client.http.post(
-        "/api/game/singleplayer",
+        "/game/singleplayer",
         json={
             "board_id": board_id,
             "mode": "normal",
@@ -57,7 +57,7 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
     if game_resp.status_code == 200:
 
-        resp = await client.http.get("/api/gameplays")
+        resp = await client.http.get("/gameplays")
         assert resp.status_code == 200
         data = resp.json()
 
@@ -78,5 +78,5 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
 @pytest.mark.asyncio
 async def test_get_gameplays_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.get("/api/gameplays")
+    resp = await client_no_auth.get("/gameplays")
     assert resp.status_code == 401

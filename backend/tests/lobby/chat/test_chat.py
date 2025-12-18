@@ -6,11 +6,11 @@ import pytest
 @pytest.mark.asyncio
 async def test_send_chat_message_success(authenticated_clients):
     client = authenticated_clients[0]
-    create_resp = await client.http.post("/api/lobbies")
+    create_resp = await client.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
     resp = await client.http.post(
-        f"/api/lobbies/{lobby_id}/chat-messages",
+        f"/lobbies/{lobby_id}/chat-messages",
         json={
             "content": "Hello lobby!",
         },
@@ -21,11 +21,11 @@ async def test_send_chat_message_success(authenticated_clients):
 @pytest.mark.asyncio
 async def test_send_empty_chat_message(authenticated_clients):
     client = authenticated_clients[0]
-    create_resp = await client.http.post("/api/lobbies")
+    create_resp = await client.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
     resp = await client.http.post(
-        f"/api/lobbies/{lobby_id}/chat-messages",
+        f"/lobbies/{lobby_id}/chat-messages",
         json={
             "content": "",
         },
@@ -37,7 +37,7 @@ async def test_send_empty_chat_message(authenticated_clients):
 @pytest.mark.asyncio
 async def test_send_chat_message_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.post(
-        f"/api/lobbies/{uuid.uuid4()}/chat-messages",
+        f"/lobbies/{uuid.uuid4()}/chat-messages",
         json={
             "content": "Hello!",
         },
@@ -48,17 +48,17 @@ async def test_send_chat_message_without_auth_returns_401(client_no_auth):
 @pytest.mark.asyncio
 async def test_get_chat_messages_returns_list(authenticated_clients):
     client = authenticated_clients[0]
-    create_resp = await client.http.post("/api/lobbies")
+    create_resp = await client.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
     await client.http.post(
-        f"/api/lobbies/{lobby_id}/chat-messages",
+        f"/lobbies/{lobby_id}/chat-messages",
         json={
             "content": "Test message",
         },
     )
 
-    resp = await client.http.get(f"/api/lobbies/{lobby_id}/chat-messages")
+    resp = await client.http.get(f"/lobbies/{lobby_id}/chat-messages")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -90,5 +90,5 @@ async def test_get_chat_messages_returns_list(authenticated_clients):
 
 @pytest.mark.asyncio
 async def test_get_chat_messages_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.get(f"/api/lobbies/{uuid.uuid4()}/chat-messages")
+    resp = await client_no_auth.get(f"/lobbies/{uuid.uuid4()}/chat-messages")
     assert resp.status_code == 401

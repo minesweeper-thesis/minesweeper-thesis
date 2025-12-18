@@ -32,13 +32,13 @@ async def test_multiplayer_single_player_flow(
 
     host_bundle = authenticated_clients[0]
 
-    create_resp = await host_bundle.http.post("/api/lobbies")
+    create_resp = await host_bundle.http.post("/lobbies")
     assert create_resp.status_code == 200
     lobby_id = create_resp.json()["id"]
     session_id = lobby_id
 
     update_resp = await host_bundle.http.put(
-        f"/api/lobbies/{lobby_id}",
+        f"/lobbies/{lobby_id}",
         json={
             "rounds": 3,
             "max_round_time": 2,
@@ -51,7 +51,9 @@ async def test_multiplayer_single_player_flow(
 
     async with AsyncExitStack() as stack:
         notif_ws = await stack.enter_async_context(host_bundle.ws())
-        game_ws = await stack.enter_async_context(host_bundle.ws_multi_game(session_id))
+        game_ws = await stack.enter_async_context(
+            host_bundle.ws(f"/game/multi/{session_id}")
+        )
         await game_ws.send_json({"type": "ready"})
         assert (await recv_until(notif_ws, {"user_ready"}))["value"] is True
 

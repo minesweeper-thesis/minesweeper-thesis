@@ -10,7 +10,7 @@ from backend.schemas.game.single_schemas import NewGameResponse
 async def test_start_game_validates_response(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
-        "/api/game/single",
+        "/game/single",
         json={
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 2},
             "generator": {"type": "random"},
@@ -32,7 +32,7 @@ async def test_start_game_invalid_board_returns_404(authenticated_clients):
     client = authenticated_clients[0]
     fake_board_id = str(uuid.uuid4())
     resp = await client.http.post(
-        "/api/game/single",
+        "/game/single",
         json={"board_id": fake_board_id, "mode": "normal"},
     )
     assert resp.status_code == 404
@@ -41,7 +41,7 @@ async def test_start_game_invalid_board_returns_404(authenticated_clients):
 @pytest.mark.asyncio
 async def test_start_game_works_without_auth(client_no_auth):
     resp = await client_no_auth.post(
-        "/api/game/single",
+        "/game/single",
         json={
             "mode": "normal",
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 3},
@@ -56,7 +56,7 @@ async def test_start_game_works_without_auth(client_no_auth):
 async def test_start_game_validates_difficulty_level(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
-        "/api/game/single",
+        "/game/single",
         json={
             "difficulty_level": {"rows": 5},
             "generator": {"type": "random"},
@@ -70,7 +70,7 @@ async def test_start_game_validates_difficulty_level(authenticated_clients):
 async def test_start_game_validates_generator_type(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
-        "/api/game/single",
+        "/game/single",
         json={
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 2},
             "generator": {"type": "invalid_generator"},
@@ -86,7 +86,7 @@ async def test_websocket_invalid_gameplay_returns_error(authenticated_clients):
     fake_gameplay_id = str(uuid.uuid4())
 
     try:
-        async with bundle.ws_game(fake_gameplay_id) as ws:
+        async with bundle.ws(f"/game/single/{fake_gameplay_id}") as ws:
             pass
         pytest.fail("Expected WebSocketUpgradeError")
     except* WebSocketUpgradeError:

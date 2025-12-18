@@ -42,7 +42,7 @@ async def test_replay_game(authenticated_clients, json_file, session):
 
     gameplay_id = await create_game(bundle.http, board_id=board_id)
 
-    async with bundle.ws_game(gameplay_id) as ws:
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         for i, message in enumerate(messages):
             msg_type = message["type"]
             msg_data = json.loads(message["data"])

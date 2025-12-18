@@ -15,7 +15,7 @@ async def test_register_success_validates_current_user_response(client_no_auth):
         "settings": {"theme": "dark"},
     }
 
-    resp = await client_no_auth.post("/api/auth/register", json=payload)
+    resp = await client_no_auth.post("/auth/register", json=payload)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -38,7 +38,7 @@ async def test_login_success_sets_auth_cookie(http_client):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
     await http_client.post(
-        "/api/auth/register",
+        "/auth/register",
         json={
             "email": email,
             "password": "mypassword",
@@ -48,7 +48,7 @@ async def test_login_success_sets_auth_cookie(http_client):
     )
 
     resp = await http_client.post(
-        "/api/auth/login",
+        "/auth/login",
         data={
             "username": email,
             "password": "mypassword",

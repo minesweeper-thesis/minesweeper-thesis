@@ -6,7 +6,7 @@ from backend.schemas.user import CurrentUserResponse
 @pytest.mark.asyncio
 async def test_get_me_returns_current_user_response(authenticated_clients):
     bundle = authenticated_clients[0]
-    resp = await bundle.http.get("/api/auth/me")
+    resp = await bundle.http.get("/auth/me")
     assert resp.status_code == 200
 
     data = resp.json()
@@ -20,7 +20,7 @@ async def test_get_me_returns_current_user_response(authenticated_clients):
 async def test_patch_me_updates_nickname(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.patch(
-        "/api/auth/me",
+        "/auth/me",
         json={
             "nickname": "newnickname",
             "settings": {},
@@ -38,7 +38,7 @@ async def test_patch_me_updates_settings(authenticated_clients):
     client = authenticated_clients[0]
     new_settings = {"theme": "light", "language": "pl"}
     resp = await client.http.patch(
-        "/api/auth/me",
+        "/auth/me",
         json={
             "nickname": "test",
             "settings": new_settings,
