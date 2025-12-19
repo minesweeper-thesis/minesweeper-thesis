@@ -11,7 +11,7 @@ json_files = glob.glob(os.path.join(MESSAGES_DIR, "*.json"))
 
 
 @pytest.mark.parametrize("json_file", json_files)
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_replay_game(authenticated_clients, json_file, session):
     bundle = authenticated_clients[0]
 

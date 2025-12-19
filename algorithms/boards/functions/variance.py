@@ -1,9 +1,13 @@
-import numpy as np
+from algorithms.boards.base_board import BaseBoard
+from algorithms.boards.functions.jaccard import jaccard_distance
 
 
-# function that takes a list of matrices in 0-1 form and returns their variance - will be used to see if our solutions are not too similar
-def variance(matrices: list[np.ndarray]) -> float:
-    mean_matrix = np.mean(matrices, axis=0)
-    return np.mean(
-        [np.linalg.norm(matrix - mean_matrix, "fro") ** 2 for matrix in matrices]
-    )
+def variance(boards: list[BaseBoard]):
+    sum_distances = 0.0
+    n = len(boards)
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            sum_distances += jaccard_distance(boards[i], boards[j])
+
+    return sum_distances / (n * (n - 1) / 2)

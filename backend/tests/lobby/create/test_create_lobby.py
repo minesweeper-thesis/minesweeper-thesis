@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_create_lobby_returns_lobby_response(authenticated_clients):
     bundle = authenticated_clients[0]
     resp = await bundle.http.post("/lobbies")
@@ -37,7 +37,7 @@ async def test_create_lobby_returns_lobby_response(authenticated_clients):
     assert "mine_count" in dl
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_create_lobby_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.post("/lobbies")
     assert resp.status_code == 401

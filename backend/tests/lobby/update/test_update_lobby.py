@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_update_lobby_config_success(authenticated_clients):
     client = authenticated_clients[0]
     create_resp = await client.http.post("/lobbies")
@@ -28,7 +28,7 @@ async def test_update_lobby_config_success(authenticated_clients):
     assert resp.status_code in [200, 204]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_update_lobby_config_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.put(
         f"/lobbies/{uuid.uuid4()}",

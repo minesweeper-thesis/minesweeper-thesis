@@ -4,7 +4,7 @@ from httpx_ws import WebSocketDisconnect
 from backend.tests.singleplayer.helpers import create_game
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_initial_game_state_schema(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -36,7 +36,7 @@ async def test_websocket_initial_game_state_schema(authenticated_clients, sessio
         assert data.get("result") is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_game_over_loss_schema(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -75,7 +75,7 @@ async def test_websocket_game_over_loss_schema(authenticated_clients, session):
         assert isinstance(game_over["full_board"], list)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_get_game_state_returns_current_state(
     authenticated_clients, session
 ):
@@ -105,7 +105,7 @@ async def test_websocket_get_game_state_returns_current_state(
             assert len(row) == 5
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_board_state_shows_revealed_cell(
     authenticated_clients, session
 ):

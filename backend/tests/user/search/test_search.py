@@ -3,7 +3,7 @@ import pytest
 from backend.schemas.user import UserResponse
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_search_users_returns_paginated_user_response(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.get("/search", params={"query": "te"})
@@ -30,7 +30,7 @@ async def test_search_users_returns_paginated_user_response(authenticated_client
         assert user.email is not None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_search_users_finds_matching_user(authenticated_clients):
     bundle = authenticated_clients[0]
     resp = await bundle.http.get("/search", params={"query": "test_"})
@@ -43,7 +43,7 @@ async def test_search_users_finds_matching_user(authenticated_clients):
     assert bundle.user_data["nickname"] in nicknames
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_search_users_no_auth_returns_401(client_no_auth):
     resp = await client_no_auth.get("/search", params={"query": "test"})
 

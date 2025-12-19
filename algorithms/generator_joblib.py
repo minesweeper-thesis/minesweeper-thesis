@@ -3,9 +3,6 @@ from algorithms.checker.checker import Checker
 from algorithms.classifiers.catboost_classifier import CatBoostClassifier
 from algorithms.classifiers.base_classifier import BaseClassifier
 from algorithms.classifiers.gaussiannb_classifier import GaussianNBClassifier
-from algorithms.classifiers.gradientboosting_classifier import (
-    GradientBoostingClassifier,
-)
 from algorithms.classifiers.lightgbm_classifier import LightGBMClassifier
 from algorithms.classifiers.mlp_classifier import MLPClassifier
 from algorithms.classifiers.xgboost_classifier import XGBoostClassifier
@@ -25,7 +22,6 @@ _classifiers: dict[str, type[BaseClassifier]] = {
     "gaussiannb": GaussianNBClassifier,
     "mlp": MLPClassifier,
     "xgboost": XGBoostClassifier,
-    "gradientboosting": GradientBoostingClassifier,
 }
 
 _heuristics: dict[str, type[BaseHeuristic]] = {
@@ -50,22 +46,27 @@ class Generator:
         mine_count: int,
         version: str,
     ) -> None:
-        classifier_model_file = f"algorithms/models/{rows},{columns},{mine_count}_{classifier}{version}.model"
-        self.classifier = _classifiers[classifier].load(classifier_model_file)
+        if classifier:
+            classifier_model_file = f"algorithms/models/{rows},{columns},{mine_count}_{classifier}{version}.model"
+            self.classifier = _classifiers[classifier].load(classifier_model_file)
+        else:
+            self.classifier = None
 
         self.heuristic = _heuristics[heuristic](
             self.classifier, rows, columns, start_field, mine_count, *heuristic_args
         )
 
-    def generate(self) -> BaseBoard:
+    def generate(self) -> tuple[BaseBoard, int]:
         checker = Checker(
             self.heuristic.rows,
             self.heuristic.columns,
             self.heuristic.start_field,
             self.heuristic.mine_count,
         )
+        tries = 0
         while True:
+            tries += 1
             board = self.heuristic.run()
 
             if checker.is_solvable(board):
-                return board
+                return board, tries

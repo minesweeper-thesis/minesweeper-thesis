@@ -21,7 +21,7 @@ import pytest
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_invite_user_to_lobby_success(authenticated_clients):
     client1, client2 = authenticated_clients
 
@@ -40,7 +40,7 @@ async def test_invite_user_to_lobby_success(authenticated_clients):
     assert resp.status_code in [200, 204]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_invite_user_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.post(
         f"/lobbies/{uuid.uuid4()}/invitations",
@@ -69,7 +69,7 @@ async def test_invite_user_without_auth_returns_401(client_no_auth):
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_reject_invitation_success(authenticated_clients):
     client1, client2 = authenticated_clients
 
@@ -84,7 +84,7 @@ async def test_reject_invitation_success(authenticated_clients):
     )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_reject_invitation_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.delete(f"/invitations/{uuid.uuid4()}")
     assert resp.status_code == 401

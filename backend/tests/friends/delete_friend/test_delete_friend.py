@@ -21,7 +21,7 @@ import pytest
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_friend_removes_friendship(authenticated_clients):
     client1, client2 = authenticated_clients
 
@@ -43,7 +43,7 @@ async def test_delete_friend_removes_friendship(authenticated_clients):
     assert user2_id not in friend_ids
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_non_friend_returns_400(authenticated_clients):
     client = authenticated_clients[0]
 
@@ -55,7 +55,7 @@ async def test_delete_non_friend_returns_400(authenticated_clients):
     assert "detail" in data
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_friend_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.delete(f"/friends/{uuid.uuid4()}")
     assert resp.status_code == 401

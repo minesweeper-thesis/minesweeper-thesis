@@ -101,3 +101,6 @@ class HyperparameterOptimizer:
 
     def get_iterations_done(self) -> int:
         return len(self.optimizer.Xi)
+
+    def get_values(self) -> list[float]:
+        return list(self.optimizer.yi)

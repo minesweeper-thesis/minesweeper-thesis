@@ -36,7 +36,7 @@ from backend.tests.multiplayer.ws_helpers import (
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_multiplayer_full_flow_many_players(
     authenticated_clients, fake_scheduler, background_handler_override
 ):
