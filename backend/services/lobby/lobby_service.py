@@ -1,6 +1,7 @@
 import logging
 import uuid
 
+from backend.repositories.lobby_repo import InvitationNotFound
 from backend.services.exceptions import UserNotExists
 
 logger = logging.getLogger(__name__)
@@ -73,14 +74,20 @@ class LobbyService:
         if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
 
-        invitation = await self.lobby_repo.get_invitation(invitation_id)
-        lobby = invitation.lobby
+        try:
+            invitation = await self.lobby_repo.get_invitation(invitation_id)
+            lobby = invitation.lobby
 
-        if invitation.invitee != user or invitation.lobby != lobby:
+            if invitation.invitee != user or invitation.lobby != lobby:
+                logger.warning(
+                    f"User {user.id} not authorized to join lobby via invitation {invitation_id}"
+                )
+                raise InvitationNotExists()
+        except InvitationNotFound:
             logger.warning(
-                f"User {user.id} not authorized to join lobby via invitation {invitation_id}"
+                f"Invitation {invitation_id} not found for user {user.id} when joining lobby"
             )
-            raise InvitationNotExists()
+            raise InvitationNotExists() from None
 
         data = lobby.add_user(user)
         await self.lobby_repo.save_lobby(lobby)

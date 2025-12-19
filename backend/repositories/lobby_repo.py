@@ -35,11 +35,25 @@ class RedisLobbyRepository(protocols.LobbyRepository):
 
     async def save_lobby(self, lobby: Lobby):
         logger.debug(f"save_lobby(lobby_id={lobby.id}, users={len(lobby.users)})")
+        lobby_key = f"{self.lobby_prefix}{lobby.id}"
         data = pickle.dumps(lobby)
+
+        previous_user_ids: set[uuid.UUID] = set()
+        existing_lobby_data = await self.redis.get(lobby_key)
+        if existing_lobby_data:
+            existing_lobby = pickle.loads(existing_lobby_data)
+            previous_user_ids = {user.id for user in existing_lobby.users}
+
+        current_user_ids = {user.id for user in lobby.users}
+        removed_user_ids = previous_user_ids - current_user_ids
+
         async with self.redis.pipeline() as pipe:
-            await pipe.set(f"{self.lobby_prefix}{lobby.id}", data)
+            await pipe.set(lobby_key, data)
             for user in lobby.users:
                 await pipe.set(f"{self.user_lobby_prefix}{user.id}", str(lobby.id))
+            for user_id in removed_user_ids:
+                await pipe.delete(f"{self.user_lobby_prefix}{user_id}")
+                await pipe.delete(f"{self.user_kick_prefix}{lobby.id}:{user_id}")
             await pipe.execute()
         logger.debug(f"Lobby {lobby.id} saved with {len(lobby.users)} users")
 
@@ -59,6 +73,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
                 await pipe.delete(f"{self.message_prefix}{lobby_id}")
                 for user in lobby.users:
                     await pipe.delete(f"{self.user_lobby_prefix}{user.id}")
+                    await pipe.delete(f"{self.user_kick_prefix}{lobby.id}:{user.id}")
                 await pipe.execute()
             logger.info(f"Lobby {lobby_id} deleted")
         except LobbyNotFound:

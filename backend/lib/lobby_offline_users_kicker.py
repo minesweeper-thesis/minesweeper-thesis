@@ -18,14 +18,11 @@ from backend.services.lobby.lobby_service import LobbyService
 logger = logging.getLogger(__name__)
 
 
-KICK_KEY_PREFIX = "lobby_kick:"
-
-
 class LobbyOfflineUsersKicker:
     def __init__(self) -> None:
         self._task: asyncio.Task | None = None
         self._stopped = asyncio.Event()
-        self.prefix = KICK_KEY_PREFIX
+        self.prefix = "lobby_kick:"
 
     async def start(self) -> None:
         if self._task is not None:
@@ -134,9 +131,6 @@ class LobbyOfflineUsersKicker:
             )
 
             user = await user_repo.get_user(user_id)
-            if not user:
-                logger.debug(f"User {user_id} not found when handling offline kick")
-                return
 
             logger.debug(
                 "Attempting to remove user %s from lobby %s due to offline timeout",
