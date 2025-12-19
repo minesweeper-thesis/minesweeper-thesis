@@ -1,7 +1,7 @@
 import uuid
 
 import pytest
-from httpx_ws import WebSocketUpgradeError
+from httpx_ws.transport import UnhandledASGIMessageType
 
 from backend.schemas.game.single_schemas import NewGameResponse
 
@@ -86,8 +86,8 @@ async def test_websocket_invalid_gameplay_returns_error(authenticated_clients):
     fake_gameplay_id = str(uuid.uuid4())
 
     try:
-        async with bundle.ws(f"/game/single/{fake_gameplay_id}"):
-            pass
-        pytest.fail("Expected WebSocketUpgradeError")
-    except* WebSocketUpgradeError:
+        async with bundle.ws(f"/game/single/{fake_gameplay_id}") as ws:
+            await ws.receive_json()
+        pytest.fail("Expected UnhandledASGIMessageType")
+    except* UnhandledASGIMessageType:
         pass

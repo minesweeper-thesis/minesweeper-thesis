@@ -82,8 +82,8 @@ async def play_single(
     service: PlaySingleService,
 ):
     try:
-        game_state = await service.load_gameplay(gameplay_id)
         await websocket.accept()
+        game_state = await service.load_gameplay(gameplay_id)
         await websocket.send_text(create_game_notification(game_state))
 
         while True:
@@ -156,8 +156,8 @@ async def play_multi(
     user: CurrentUserWebSocket,
 ):
     try:
-        await play.validate_session(session_id, user)
         await websocket.accept()
+        await play.validate_session(session_id, user)
         session_websockets.add(session_id, user.id, websocket)
 
         while True:
