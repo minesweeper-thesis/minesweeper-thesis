@@ -8,35 +8,37 @@ from backend.config import REDIS_URL
 
 logger = logging.getLogger(__name__)
 
-_redis_client = None
+_redis_clients: dict[asyncio.AbstractEventLoop, redis.Redis] = {}
 
 
 async def initialize_redis() -> None:
-    global _redis_client
-    if _redis_client is not None:
+    loop = asyncio.get_running_loop()
+
+    if loop in _redis_clients:
         return
 
     client = redis.from_url(REDIS_URL)
     if "localhost" in REDIS_URL:
         await client.config_set("notify-keyspace-events", "Ex")
 
-    _redis_client = client
+    _redis_clients[loop] = client
+    logger.info(f"Redis client initialized for loop {id(loop)}")
 
 
 async def shutdown_redis() -> None:
-    global _redis_client
-    if _redis_client is not None:
-        await _redis_client.aclose()
-        logger.info("Redis client closed")
+    for loop, client in _redis_clients.items():
+        await client.aclose()
+        logger.info(f"Redis client closed for loop {id(loop)}")
 
 
 def get_redis_client() -> redis.Redis:
-    global _redis_client
+    loop = asyncio.get_running_loop()
+    if loop not in _redis_clients:
+        client = redis.from_url(REDIS_URL)
+        _redis_clients[loop] = client
+        logger.info(f"Redis client lazily initialized for loop {id(loop)}")
 
-    if asyncio.get_event_loop().is_closed():
-        _redis_client = redis.from_url(REDIS_URL)
-
-    return _redis_client  # type: ignore
+    return _redis_clients[loop]
 
 
 async def get_redis() -> AsyncIterator[redis.Redis]:
