@@ -49,19 +49,19 @@ class FakeScheduler:
             for job_id, payload in self._jobs.items()
             if getattr(payload[1], "__name__", "") in names
         ]
-        jobs.sort(key=lambda item: item[1])
+        jobs.sort(key=lambda item: item[1])  # type: ignore
 
         for job_id, _when, func, args, kwargs in jobs:
             self._jobs.pop(job_id, None)
-            await func(*args, **kwargs)
+            await func(*args, **kwargs)  # type: ignore
 
     async def run_all(self) -> None:
         jobs = [(job_id, *payload) for job_id, payload in self._jobs.items()]
-        jobs.sort(key=lambda item: item[1])
+        jobs.sort(key=lambda item: item[1])  # type: ignore
 
         for job_id, _when, func, args, kwargs in jobs:
             self._jobs.pop(job_id, None)
-            await func(*args, **kwargs)
+            await func(*args, **kwargs)  # type: ignore
 
 
 @pytest.fixture

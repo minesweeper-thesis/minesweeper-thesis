@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager, suppress
 import pytest
 from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
-from httpx_ws import aconnect_ws
+from httpx_ws import AsyncWebSocketSession, aconnect_ws
 from httpx_ws.transport import ASGIWebSocketTransport
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -112,6 +112,7 @@ class HttpClient:
             headers = (
                 {"Cookie": f"auth={self._auth_cookie}"} if self._auth_cookie else {}
             )
+            ws: AsyncWebSocketSession
             async with aconnect_ws(
                 f"https://testserver/api{path}",
                 client,
