@@ -5,7 +5,7 @@ import pytest
 from backend.schemas.user import UserResponse
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_friends_returns_paginated_user_response(authenticated_clients):
     client = authenticated_clients[0]
 
@@ -24,7 +24,7 @@ async def test_get_friends_returns_paginated_user_response(authenticated_clients
     assert data["total"] == 0
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_friends_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.get("/friends")
     assert resp.status_code == 401
@@ -48,7 +48,7 @@ async def test_get_friends_without_auth_returns_401(client_no_auth):
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_friends_shows_accepted_friend(authenticated_clients):
     client1, client2 = authenticated_clients
 

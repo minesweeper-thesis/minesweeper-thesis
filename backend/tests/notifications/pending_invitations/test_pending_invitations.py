@@ -21,7 +21,7 @@ import pytest
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_pending_invitations_request(
     authenticated_clients,
 ):
@@ -57,7 +57,7 @@ async def test_notifications_websocket_pending_invitations_request(
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_pending_invitations_has_invitation(
     authenticated_clients,
 ):

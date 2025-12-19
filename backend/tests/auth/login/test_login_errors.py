@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_invalid_credentials_returns_400(client_no_auth):
     email = f"badlogin-{uuid.uuid4().hex[:8]}@example.com"
 
@@ -31,7 +31,7 @@ async def test_login_invalid_credentials_returns_400(client_no_auth):
     assert data["detail"] == "LOGIN_BAD_CREDENTIALS"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_nonexistent_user_returns_400(client_no_auth):
     resp = await client_no_auth.post(
         "/auth/login",

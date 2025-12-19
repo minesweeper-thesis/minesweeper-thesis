@@ -5,7 +5,7 @@ import pytest
 from backend.schemas.user import CurrentUserResponse
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_success_sets_auth_cookie_and_me_returns_user(http_client):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 

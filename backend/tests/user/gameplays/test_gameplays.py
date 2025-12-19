@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.get("/gameplays")
@@ -20,7 +20,7 @@ async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_c
     assert isinstance(data["items"], list)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_gameplays_validates_gameplay_response_schema(authenticated_clients):
     client = authenticated_clients[0]
     from backend.core.board import Board, DifficultyLevel, GenerationSettings
@@ -76,7 +76,7 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
                 assert isinstance(item["elapsed_time"], (int, float))
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_gameplays_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.get("/gameplays")
     assert resp.status_code == 401

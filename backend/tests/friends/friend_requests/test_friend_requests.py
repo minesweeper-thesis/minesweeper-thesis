@@ -5,7 +5,7 @@ import pytest
 from backend.schemas.user import FriendRequestResponse
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_pending_requests_returns_paginated_response(authenticated_clients):
     client = authenticated_clients[0]
 
@@ -37,7 +37,7 @@ async def test_get_pending_requests_returns_paginated_response(authenticated_cli
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_pending_requests_shows_incoming_request(authenticated_clients):
     client1, client2 = authenticated_clients
 
@@ -59,13 +59,13 @@ async def test_get_pending_requests_shows_incoming_request(authenticated_clients
         assert fr.status.value in ["pending", "accepted", "rejected"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_pending_requests_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.get("/friend-requests/pending")
     assert resp.status_code == 401
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_sent_requests_returns_paginated_response(authenticated_clients):
     client = authenticated_clients[0]
 
@@ -96,7 +96,7 @@ async def test_get_sent_requests_returns_paginated_response(authenticated_client
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_sent_requests_shows_outgoing_request(authenticated_clients):
     client1, client2 = authenticated_clients
 
@@ -132,7 +132,7 @@ async def test_get_sent_requests_shows_outgoing_request(authenticated_clients):
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_friend_request_returns_friend_request_response(
     authenticated_clients,
 ):
@@ -158,7 +158,7 @@ async def test_send_friend_request_returns_friend_request_response(
     assert fr.friend.nickname == "reqreceiver"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_friend_request_to_self_returns_400(authenticated_clients):
     client = authenticated_clients[0]
 
@@ -190,7 +190,7 @@ async def test_send_friend_request_to_self_returns_400(authenticated_clients):
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_friend_request_duplicate_returns_400(authenticated_clients):
     client1, client2 = authenticated_clients
 
@@ -204,7 +204,7 @@ async def test_send_friend_request_duplicate_returns_400(authenticated_clients):
     assert resp2.status_code == 400
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_friend_request_to_nonexistent_user_returns_404(
     authenticated_clients,
 ):
@@ -216,7 +216,7 @@ async def test_send_friend_request_to_nonexistent_user_returns_404(
     assert resp.status_code == 404
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_friend_request_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.post(
         "/friend-requests", json={"friend_id": str(uuid.uuid4())}

@@ -6,7 +6,7 @@ from httpx_ws import WebSocketUpgradeError
 from backend.schemas.game.single_schemas import NewGameResponse
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_validates_response(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
@@ -27,7 +27,7 @@ async def test_start_game_validates_response(authenticated_clients):
     uuid.UUID(str(game_response.gameplay_id))
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_invalid_board_returns_404(authenticated_clients):
     client = authenticated_clients[0]
     fake_board_id = str(uuid.uuid4())
@@ -38,7 +38,7 @@ async def test_start_game_invalid_board_returns_404(authenticated_clients):
     assert resp.status_code == 404
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_works_without_auth(client_no_auth):
     resp = await client_no_auth.post(
         "/game/single",
@@ -52,7 +52,7 @@ async def test_start_game_works_without_auth(client_no_auth):
     assert "gameplay_id" in resp.json()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_validates_difficulty_level(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
@@ -66,7 +66,7 @@ async def test_start_game_validates_difficulty_level(authenticated_clients):
     assert resp.status_code == 422
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_validates_generator_type(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
@@ -80,7 +80,7 @@ async def test_start_game_validates_generator_type(authenticated_clients):
     assert resp.status_code == 422
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_invalid_gameplay_returns_error(authenticated_clients):
     bundle = authenticated_clients[0]
     fake_gameplay_id = str(uuid.uuid4())

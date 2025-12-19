@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_chat_message_success(authenticated_clients):
     client = authenticated_clients[0]
     create_resp = await client.http.post("/lobbies")
@@ -18,7 +18,7 @@ async def test_send_chat_message_success(authenticated_clients):
     assert resp.status_code in [200, 204]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_empty_chat_message(authenticated_clients):
     client = authenticated_clients[0]
     create_resp = await client.http.post("/lobbies")
@@ -34,7 +34,7 @@ async def test_send_empty_chat_message(authenticated_clients):
     assert resp.status_code in [200, 204]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_send_chat_message_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.post(
         f"/lobbies/{uuid.uuid4()}/chat-messages",
@@ -45,7 +45,7 @@ async def test_send_chat_message_without_auth_returns_401(client_no_auth):
     assert resp.status_code == 401
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_chat_messages_returns_list(authenticated_clients):
     client = authenticated_clients[0]
     create_resp = await client.http.post("/lobbies")
@@ -88,7 +88,7 @@ async def test_get_chat_messages_returns_list(authenticated_clients):
         assert isinstance(msg["timestamp"], int)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_chat_messages_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.get(f"/lobbies/{uuid.uuid4()}/chat-messages")
     assert resp.status_code == 401

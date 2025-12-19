@@ -16,7 +16,7 @@ TEST_AVATAR = (
 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_upload_avatar_success(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
@@ -33,7 +33,7 @@ async def test_upload_avatar_success(authenticated_clients):
     assert urlparsed.path != ""
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_upload_avatar_invalid_file_type_returns_400(authenticated_clients):
     client = authenticated_clients[0]
     resp = await client.http.post(
@@ -47,7 +47,7 @@ async def test_upload_avatar_invalid_file_type_returns_400(authenticated_clients
     assert "Invalid file type" in data["detail"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_upload_avatar_without_auth_returns_401(client_no_auth):
     png_data = b"\x89PNG\r\n\x1a\n..."
 
@@ -59,7 +59,7 @@ async def test_upload_avatar_without_auth_returns_401(client_no_auth):
     assert resp.status_code == 401
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_avatar_success(authenticated_clients):
     client = authenticated_clients[0]
     await client.http.post(
@@ -81,7 +81,7 @@ async def test_delete_avatar_success(authenticated_clients):
     assert data.get("avatar_url") is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_delete_avatar_without_auth_returns_401(client_no_auth):
     resp = await client_no_auth.delete("/avatar")
     assert resp.status_code == 401

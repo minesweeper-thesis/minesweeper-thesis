@@ -4,7 +4,7 @@ from httpx_ws import WebSocketDisconnect
 from backend.tests.singleplayer.helpers import create_game
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_reveal_one_returns_response(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -26,7 +26,7 @@ async def test_websocket_reveal_one_returns_response(authenticated_clients, sess
         assert isinstance(data["revealed_cells"], list)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_reveal_start_field_is_safe(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -49,7 +49,7 @@ async def test_websocket_reveal_start_field_is_safe(authenticated_clients, sessi
             assert data["type"] == "reveal"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_reveal_returns_valid_cell_values(
     authenticated_clients, session
 ):
@@ -73,7 +73,7 @@ async def test_websocket_reveal_returns_valid_cell_values(
                     assert 0 <= val <= 8, f"Invalid cell value: {val}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_flag_returns_response(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -92,7 +92,7 @@ async def test_websocket_flag_returns_response(authenticated_clients, session):
         assert data["game_status"] in ["not_started", "in_progress", "finished"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_remove_flag_returns_response(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -113,7 +113,7 @@ async def test_websocket_remove_flag_returns_response(authenticated_clients, ses
         assert "game_status" in data
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_flag_and_unflag_same_cell(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -133,7 +133,7 @@ async def test_websocket_flag_and_unflag_same_cell(authenticated_clients, sessio
         assert unflag_resp["type"] == "remove_flag"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_flag_shows_in_state(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -155,7 +155,7 @@ async def test_websocket_flag_shows_in_state(authenticated_clients, session):
         assert cell_value == -4, f"Cell should be flagged (-4), got {cell_value}"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_use_hint_action(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -172,7 +172,7 @@ async def test_websocket_use_hint_action(authenticated_clients, session):
         assert data["type"] in ["hint", "error", "reveal", "game_state"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_reveal_out_of_bounds(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -192,7 +192,7 @@ async def test_websocket_reveal_out_of_bounds(authenticated_clients, session):
         pass
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_flag_revealed_cell(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
@@ -213,7 +213,7 @@ async def test_websocket_flag_revealed_cell(authenticated_clients, session):
         assert data["type"] in ["flag", "error", "game_over"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_normal_mode(authenticated_clients, session):
     bundle = authenticated_clients[0]
 

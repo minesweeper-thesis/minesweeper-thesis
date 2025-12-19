@@ -8,62 +8,39 @@ from backend.config import REDIS_URL
 
 logger = logging.getLogger(__name__)
 
-_redis_clients: dict[int, redis.Redis] = {}
-
-
-def _get_loop_id() -> int:
-    try:
-        loop = asyncio.get_running_loop()
-        return id(loop)
-    except RuntimeError:
-        return 0
+_redis_client = None
 
 
 async def initialize_redis() -> None:
-    loop_id = _get_loop_id()
-    if loop_id in _redis_clients:
+    global _redis_client
+    if _redis_client is not None:
         return
 
     client = redis.from_url(REDIS_URL)
-    await client.config_set("notify-keyspace-events", "Ex")
-    _redis_clients[loop_id] = client
-    logger.info("Redis client initialized for loop %s: %s", loop_id, client)
+    if "localhost" in REDIS_URL:
+        await client.config_set("notify-keyspace-events", "Ex")
+
+    _redis_client = client
 
 
 async def shutdown_redis() -> None:
-    loop_id = _get_loop_id()
-    client = _redis_clients.pop(loop_id, None)
-    if client is not None:
-        await client.aclose()
-        logger.info("Redis client closed for loop %s", loop_id)
+    global _redis_client
+    if _redis_client is not None:
+        await _redis_client.aclose()
+        logger.info("Redis client closed")
 
 
 def get_redis_client() -> redis.Redis:
-    loop_id = _get_loop_id()
-    if loop_id not in _redis_clients:
-        client = redis.from_url(REDIS_URL)
-        _redis_clients[loop_id] = client
-        logger.debug("Redis client created lazily for loop %s: %s", loop_id, client)
-    return _redis_clients[loop_id]
+    global _redis_client
+
+    if asyncio.get_event_loop().is_closed():
+        _redis_client = redis.from_url(REDIS_URL)
+
+    return _redis_client  # type: ignore
 
 
 async def get_redis() -> AsyncIterator[redis.Redis]:
     yield get_redis_client()
-
-
-def set_redis_client_for_loop(
-    client: redis.Redis | None, loop_id: int | None = None
-) -> None:
-    if loop_id is None:
-        loop_id = _get_loop_id()
-    if client is None:
-        _redis_clients.pop(loop_id, None)
-    else:
-        _redis_clients[loop_id] = client
-
-
-def clear_all_redis_clients() -> None:
-    _redis_clients.clear()
 
 
 def decode_redis_value(value):

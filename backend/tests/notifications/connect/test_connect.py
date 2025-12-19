@@ -2,7 +2,7 @@ import pytest
 from httpx_ws import WebSocketDisconnect
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_connect_returns_current_lobby_response(
     authenticated_clients,
 ):
@@ -22,7 +22,7 @@ async def test_notifications_websocket_connect_returns_current_lobby_response(
         assert "game_config" in lobby
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_connect_with_active_lobby(authenticated_clients):
     bundle = authenticated_clients[0]
 
@@ -40,7 +40,7 @@ async def test_notifications_websocket_connect_with_active_lobby(authenticated_c
         assert lobby["host"]["nickname"] == bundle.user_data["nickname"]
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_without_auth_fails(client_no_auth):
     try:
         async with client_no_auth.ws():
