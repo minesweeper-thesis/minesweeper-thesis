@@ -34,12 +34,22 @@ class RoundScheduler:
         self.pending_store = pending_store
         self.session_lock = session_lock
 
-    async def lock_ready(self, session_id: uuid.UUID):
+    async def _lock_ready_and_schedule_start(
+        self, session_id: uuid.UUID, start_at: datetime, immediately: bool
+    ):
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
             if session.all_players_ready():
                 session.lock_ready()
                 await self.multi_repo.save_session(session)
+
+        self.scheduler.schedule(
+            self.start_round,
+            start_at,
+            session_id=session_id,
+            start_at=start_at,
+            immediately=immediately,
+        )
 
     async def on_board_generated(
         self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
@@ -71,7 +81,7 @@ class RoundScheduler:
         session.add_round(round)
         await self.multi_repo.save_session(session)
 
-    async def end_round(self, session_id: uuid.UUID, round_index: int):
+    async def _end_round(self, session_id: uuid.UUID, round_index: int):
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
 
@@ -108,11 +118,11 @@ class RoundScheduler:
             await self._publish_events(session.id, events_by_user)
 
             self.scheduler.schedule(
-                self.end_round,
+                self._end_round,
                 end_at,
                 session_id=session_id,
                 round_index=session.current_round_index,
-            )  # todo: save job id
+            )
 
     async def _send_countdown(
         self,
@@ -158,18 +168,12 @@ class RoundScheduler:
         await self._send_countdown(session, start_at, countdown_to, in_game=in_game)
 
         self.scheduler.schedule(
-            self.lock_ready,
+            self._lock_ready_and_schedule_start,
             countdown_to,
             session_id=session.id,
-        )
-
-        self.scheduler.schedule(
-            self.start_round,
-            start_at,
             start_at=start_at,
-            session_id=session.id,
             immediately=immediately,
-        )  # todo: save job id
+        )
 
 
 __all__ = ["RoundScheduler"]

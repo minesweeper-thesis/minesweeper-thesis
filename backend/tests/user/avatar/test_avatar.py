@@ -19,8 +19,8 @@ TEST_AVATAR = (
 @pytest.mark.asyncio
 async def test_upload_avatar_success(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.post(
-        "/api/avatar",
+    resp = await client.http.post(
+        "/avatar",
         files={"file": ("avatar.png", io.BytesIO(TEST_AVATAR), "image/png")},
     )
 
@@ -36,8 +36,8 @@ async def test_upload_avatar_success(authenticated_clients):
 @pytest.mark.asyncio
 async def test_upload_avatar_invalid_file_type_returns_400(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.post(
-        "/api/avatar",
+    resp = await client.http.post(
+        "/avatar",
         files={"file": ("test.txt", io.BytesIO(b"not an image"), "text/plain")},
     )
 
@@ -52,7 +52,7 @@ async def test_upload_avatar_without_auth_returns_401(client_no_auth):
     png_data = b"\x89PNG\r\n\x1a\n..."
 
     resp = await client_no_auth.post(
-        "/api/avatar",
+        "/avatar",
         files={"file": ("avatar.png", io.BytesIO(png_data), "image/png")},
     )
 
@@ -62,20 +62,20 @@ async def test_upload_avatar_without_auth_returns_401(client_no_auth):
 @pytest.mark.asyncio
 async def test_delete_avatar_success(authenticated_clients):
     client = authenticated_clients[0]
-    await client.post(
-        "/api/avatar",
+    await client.http.post(
+        "/avatar",
         files={"file": ("avatar.png", io.BytesIO(TEST_AVATAR), "image/png")},
     )
-    me = await client.get("/api/auth/me")
+    me = await client.http.get("/auth/me")
     assert me.status_code == 200
     data = me.json()
     assert data.get("avatar_url") is not None
 
-    resp = await client.delete("/api/avatar")
+    resp = await client.http.delete("/avatar")
 
     assert resp.status_code == 200
 
-    me = await client.get("/api/auth/me")
+    me = await client.http.get("/auth/me")
     assert me.status_code == 200
     data = me.json()
     assert data.get("avatar_url") is None
@@ -83,5 +83,5 @@ async def test_delete_avatar_success(authenticated_clients):
 
 @pytest.mark.asyncio
 async def test_delete_avatar_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.delete("/api/avatar")
+    resp = await client_no_auth.delete("/avatar")
     assert resp.status_code == 401

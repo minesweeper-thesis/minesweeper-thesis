@@ -47,10 +47,10 @@ class StartRoundService:
 
     def _ensure_user_in_session(self, session: MultiplayerSession, user: User):
         if user.id not in session.player_ids:
-            raise PermissionError("User is not part of this session")
+            raise UserNotInSession()
 
         if session.is_over():
-            raise ValueError("Session is already over")
+            raise SessionAlreadyOver()
 
     async def toggle_user_ready(self, session_id: uuid.UUID, user: User):
         logger.debug(f"User {user.id} toggling ready status in session {session_id}")

@@ -1,30 +1,15 @@
-import json
 import random
 from typing import Any, Iterable
 
 import anyio
 
 
-def ws_receive_json(ws, *, timeout_s: float = 10.0) -> dict[str, Any]:
-    async def _recv() -> Any:
-        with anyio.fail_after(timeout_s):
-            return await ws._send_rx.receive()
-
-    message: dict[str, Any] = ws.portal.call(_recv)
-    if message["type"] == "websocket.close":
-        raise AssertionError(f"WebSocket closed while waiting for message: {message}")
-    if message["type"] != "websocket.send":
-        raise AssertionError(f"Unexpected ASGI message type from WS: {message}")
-
-    if "text" in message:
-        payload = message["text"]
-    else:
-        payload = message["bytes"].decode("utf-8")
-
-    return json.loads(payload)
+async def ws_receive_json(ws, *, timeout_s: float = 10.0) -> dict[str, Any]:
+    with anyio.fail_after(timeout_s):
+        return await ws.receive_json()
 
 
-def recv_until(
+async def recv_until(
     ws,
     expected_types: set[str] | Iterable[str],
     *,
@@ -35,7 +20,7 @@ def recv_until(
     seen: list[dict[str, Any]] = []
 
     for _ in range(max_messages):
-        msg = ws_receive_json(ws, timeout_s=timeout_s)
+        msg = await ws_receive_json(ws, timeout_s=timeout_s)
         seen.append(msg)
         if msg.get("type") in expected:
             return msg
@@ -46,7 +31,7 @@ def recv_until(
     )
 
 
-def recv_until_all(
+async def recv_until_all(
     ws,
     expected_types: set[str] | Iterable[str],
     *,
@@ -58,7 +43,7 @@ def recv_until_all(
     seen: list[dict[str, Any]] = []
 
     for _ in range(max_messages):
-        msg = ws_receive_json(ws, timeout_s=timeout_s)
+        msg = await ws_receive_json(ws, timeout_s=timeout_s)
         seen.append(msg)
         msg_type = msg.get("type")
         if msg_type in remaining:
@@ -73,19 +58,19 @@ def recv_until_all(
     )
 
 
-def drain_ws(ws, *, max_messages: int = 50) -> None:
+async def drain_ws(ws, *, max_messages: int = 50) -> None:
     for _ in range(max_messages):
         try:
-            ws_receive_json(ws, timeout_s=0.01)
+            await ws_receive_json(ws, timeout_s=0.01)
         except TimeoutError:
             return
 
 
-def recv_round_ready(*, notif_ws, game_ws) -> None:
+async def recv_round_ready(*, notif_ws, game_ws) -> None:
     try:
-        recv_until(notif_ws, {"round_ready"}, timeout_s=1.0)
+        await recv_until(notif_ws, {"round_ready"}, timeout_s=1.0)
     except TimeoutError:
-        recv_until(game_ws, {"round_ready"}, timeout_s=5.0)
+        await recv_until(game_ws, {"round_ready"}, timeout_s=5.0)
 
 
 def random_cell(

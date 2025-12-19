@@ -8,6 +8,8 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
+from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend import protocols

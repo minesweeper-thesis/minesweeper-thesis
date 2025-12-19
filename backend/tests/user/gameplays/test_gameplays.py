@@ -6,7 +6,7 @@ import pytest
 @pytest.mark.asyncio
 async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.get("/api/gameplays")
+    resp = await client.http.get("/gameplays")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -24,11 +24,11 @@ async def test_get_gameplays_returns_paginated_gameplay_response(authenticated_c
 async def test_get_gameplays_validates_gameplay_response_schema(authenticated_clients):
     client = authenticated_clients[0]
     from backend.core.board import Board, DifficultyLevel, GenerationSettings
-    from backend.db.db import async_session_maker
+    from backend.db import db
     from backend.repositories.board_repo import BoardRepository
 
     async def create_board():
-        async with async_session_maker() as session:
+        async with db.async_session_maker() as session:
             repo = BoardRepository(session)
             difficulty = DifficultyLevel(rows=3, columns=3, mine_count=1)
             board = Board(
@@ -47,8 +47,8 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
     board_id = await create_board()
 
-    game_resp = await client.post(
-        "/api/game/singleplayer",
+    game_resp = await client.http.post(
+        "/game/singleplayer",
         json={
             "board_id": board_id,
             "mode": "normal",
@@ -57,7 +57,7 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
     if game_resp.status_code == 200:
 
-        resp = await client.get("/api/gameplays")
+        resp = await client.http.get("/gameplays")
         assert resp.status_code == 200
         data = resp.json()
 
@@ -78,5 +78,5 @@ async def test_get_gameplays_validates_gameplay_response_schema(authenticated_cl
 
 @pytest.mark.asyncio
 async def test_get_gameplays_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.get("/api/gameplays")
+    resp = await client_no_auth.get("/gameplays")
     assert resp.status_code == 401

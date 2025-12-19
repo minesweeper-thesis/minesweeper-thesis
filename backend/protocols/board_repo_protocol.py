@@ -5,6 +5,14 @@ from backend.core.board import *
 from backend.core.board import Minefields
 
 
+class UnsolvedBoardNotFound(Exception):
+    pass
+
+
+class BoardNotFound(Exception):
+    pass
+
+
 class BoardRepository(Protocol):
     async def add_board(self, board: Board) -> None: ...
 

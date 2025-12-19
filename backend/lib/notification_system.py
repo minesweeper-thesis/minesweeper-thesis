@@ -109,6 +109,6 @@ def create_game_notification(
     }
 
     if type(data) not in mapping:
-        raise RuntimeError(f"Unsupported response type: {type(data)}")
+        raise ValueError(f"Unsupported response type: {type(data)}")
 
     return mapping[type(data)].create(data, include_ws_type=True)

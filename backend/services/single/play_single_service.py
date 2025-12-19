@@ -5,6 +5,8 @@ from typing import Optional
 
 from fastapi_pagination import Params
 
+from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend.core.game import *

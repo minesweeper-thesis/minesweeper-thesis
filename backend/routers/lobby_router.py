@@ -1,12 +1,15 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params
 
 from backend import services
+from backend.core.lobby.lobby import UserNotInLobby
+from backend.core.multi.session import ReadyChangeLocked
 from backend.lib.auth import CurrentUser
 from backend.schemas.lobby import *
+from backend.services.exceptions import *
 
 PaginationParams = Annotated[Params, Depends()]
 
@@ -17,6 +20,19 @@ StartRoundService = Annotated[services.StartRoundService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
 invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
+
+lobby_exceptions: dict[type[Exception], HTTPException] = {
+    UserNotExists: HTTPException(status_code=404, detail="User not found."),
+    UserNotHost: HTTPException(
+        status_code=403, detail="User is not the host of the lobby."
+    ),
+    UserNotInLobby: HTTPException(
+        status_code=403, detail="User is not a member of the lobby."
+    ),
+    LobbyNotExists: HTTPException(status_code=404, detail="Lobby not found."),
+    InvitationNotExists: HTTPException(status_code=404, detail="Invitation not found."),
+    ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
+}
 
 
 @lobby_router.post("")

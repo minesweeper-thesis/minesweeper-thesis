@@ -6,6 +6,14 @@ from fastapi_pagination import Page, Params
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship, User
 
 
+class FriendRequestNotFound(Exception):
+    pass
+
+
+class FriendshipNotFound(Exception):
+    pass
+
+
 class FriendsRepository(Protocol):
     async def get_friends(
         self, user_id: uuid.UUID, pagination_params: Params

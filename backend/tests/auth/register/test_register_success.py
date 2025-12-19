@@ -15,7 +15,7 @@ async def test_register_success_validates_current_user_response(client_no_auth):
         "settings": {"theme": "dark"},
     }
 
-    resp = await client_no_auth.post("/api/auth/register", json=payload)
+    resp = await client_no_auth.post("/auth/register", json=payload)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -34,11 +34,11 @@ async def test_register_success_validates_current_user_response(client_no_auth):
 
 
 @pytest.mark.asyncio
-async def test_login_success_sets_auth_cookie(client_no_auth):
+async def test_login_success_sets_auth_cookie(http_client):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
-    await client_no_auth.post(
-        "/api/auth/register",
+    await http_client.post(
+        "/auth/register",
         json={
             "email": email,
             "password": "mypassword",
@@ -47,8 +47,8 @@ async def test_login_success_sets_auth_cookie(client_no_auth):
         },
     )
 
-    resp = await client_no_auth.post(
-        "/api/auth/login",
+    resp = await http_client.post(
+        "/auth/login",
         data={
             "username": email,
             "password": "mypassword",
@@ -56,4 +56,4 @@ async def test_login_success_sets_auth_cookie(client_no_auth):
     )
 
     assert resp.status_code == 204 or resp.status_code == 200
-    assert "auth" in client_no_auth.cookies
+    assert "auth" in resp.cookies

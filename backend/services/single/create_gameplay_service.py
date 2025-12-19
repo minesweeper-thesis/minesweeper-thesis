@@ -2,6 +2,8 @@ import logging
 import uuid
 from typing import Optional
 
+from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend.core.board import Board, GenerationSettings

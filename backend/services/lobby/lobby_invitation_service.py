@@ -37,7 +37,7 @@ class LobbyInvitationService:
 
         invitee = await self.user_repo.get_user(invitee_id)
         if not invitee:
-            raise ValueError("Invitee not found")
+            raise UserNotExists()
 
         invitation = Invitation(
             id=uuid.uuid4(),
@@ -54,11 +54,8 @@ class LobbyInvitationService:
             f"reject_game_invitation(invitation_id={invitation_id}, user_id={user.id})"
         )
         invitation = await self.lobby_repo.get_invitation(invitation_id)
-        if not invitation:
-            raise ValueError("Invitation not found")
-
-        if invitation.invitee != user:
-            raise PermissionError("User not authorized to reject this invitation")
+        if not invitation or invitation.invitee != user:
+            raise InvitationNotExists()
 
         response = InvitationAnswer(invitation=invitation, answer="rejected")
         await self.notification_system.notify(invitation.inviter.id, response)
