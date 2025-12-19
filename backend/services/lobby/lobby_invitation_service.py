@@ -46,7 +46,7 @@ class LobbyInvitationService:
             invitee=invitee,
         )
         await self.notification_system.notify(invitation.invitee.id, invitation)
-        await self.lobby_repo.save_invitation(invitation)
+        await self.lobby_repo.save_invitation(invitation, timedelta(hours=1))
         logger.info(f"User {user.id} invited user {invitee_id} to lobby {lobby_id}")
 
     async def reject_game_invitation(self, invitation_id: uuid.UUID, user: User):

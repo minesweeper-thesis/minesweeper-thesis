@@ -2,11 +2,12 @@ import logging
 import pickle
 import uuid
 from contextlib import suppress
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi_pagination import Page, Params
 from redis.asyncio import Redis
+from redis.asyncio.client import Pipeline
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +80,38 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         except LobbyNotFound:
             pass
 
-    async def save_invitation(self, invitation: Invitation):
+    async def _delete_invitations(self, lobby: Lobby, pipe: Pipeline) -> None:
+        logger.debug(f"_delete_invitations(lobby_id={lobby.id})")
+        for user in lobby.users:
+            invitation_ids = await self.redis.smembers(  # type: ignore
+                f"{self.user_invitation_prefix}{user.id}"
+            )
+            for inv_id in invitation_ids:
+                try:
+                    inv_id_str = decode_redis_value(inv_id)
+                    invitation = await self.get_invitation(uuid.UUID(inv_id_str))
+                    if invitation.lobby.id == lobby.id:
+                        await pipe.delete(f"{self.invitation_prefix}{invitation.id}")
+                        await pipe.srem(
+                            f"{self.user_invitation_prefix}{invitation.invitee.id}",
+                            str(invitation.id),
+                        )  # type: ignore
+                        logger.info(
+                            f"Deleted invitation {invitation.id} for user {invitation.invitee.id}"
+                        )
+                except Exception as e:
+                    logger.warning(f"Error while deleting invitation {inv_id}: {e}")
+
+    async def save_invitation(self, invitation: Invitation, ttl: timedelta) -> None:
         logger.debug(
             f"save_invitation(invitation_id={invitation.id}, inviter={invitation.inviter.id}, invitee={invitation.invitee.id})"
         )
         data = pickle.dumps(invitation)
+        ttl_seconds = int(ttl.total_seconds())
         async with self.redis.pipeline() as pipe:
-            await pipe.set(f"{self.invitation_prefix}{invitation.id}", data)
+            await pipe.set(
+                f"{self.invitation_prefix}{invitation.id}", data, ex=ttl_seconds
+            )
             await pipe.sadd(
                 f"{self.user_invitation_prefix}{invitation.invitee.id}",
                 str(invitation.id),
