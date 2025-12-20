@@ -62,6 +62,7 @@ class StartRoundService:
             await self.set_user_ready(session_id, user)
 
     async def cancel_user_ready(self, session_id: uuid.UUID, user: User):
+        logger.debug(f"User {user.id} cancelling ready status in session {session_id}")
         should_notify = False
 
         async with self.session_lock.acquire(session_id):
@@ -79,6 +80,7 @@ class StartRoundService:
             )
 
     async def set_user_ready(self, session_id: uuid.UUID, user: User):
+        logger.debug(f"User {user.id} setting ready status in session {session_id}")
         should_notify = False
         all_ready = False
 
@@ -108,14 +110,23 @@ class StartRoundService:
             await self.readiness_notifier.send_round_ready(
                 self.notification_system.notify, session
             )
+            logger.info(f"Preparing boards for first round in session {session.id}")
             await self.boards_preparer.prepare(session)
             session = await self.multi_repo.get_session(session.id)
         else:
             await self.readiness_notifier.send_round_ready(transport.send, session)
 
+        is_not_first_round = session.current_round_index != -1
+
         if session.is_next_round_available:
-            await self.round_scheduler.schedule_start(session)
+            logger.info(f"Scheduling start of next round in session {session.id}")
+            await self.round_scheduler.schedule_start(
+                session, in_game=is_not_first_round
+            )
         else:
+            logger.info(
+                f"No next round available in session {session.id}, waiting for boards"
+            )
             self.background_tasks.add_task(
                 self.pending_board_waiter.wait_and_schedule_next_round,
                 session.id,

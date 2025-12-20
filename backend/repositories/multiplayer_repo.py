@@ -54,14 +54,17 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         logger.debug(
             f"save_session(session_id={session.id}, current_round_index={session.current_round_index})"
         )
-        data = pickle.dumps(session)
-        await self.redis.set(f"{self.prefix}{session.id}", data)
+
+        if session.is_over():
+            await self.delete_pending(session.id)
+            await self._save_to_db(session)
+        else:
+            data = pickle.dumps(session)
+            await self.redis.set(f"{self.prefix}{session.id}", data)
+
         logger.info(
             f"Multiplayer session {session.id} saved with current_round_index={session.current_round_index}"
         )
-
-        if session.is_over():
-            await self._save_to_db(session)
 
     async def save_pending(self, session: MultiplayerSession):
         logger.debug(

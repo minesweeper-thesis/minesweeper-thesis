@@ -1,6 +1,9 @@
+import logging
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 from backend.core.board import Board
 from backend.core.game import *
@@ -35,8 +38,9 @@ class RoundScheduler:
         self.session_lock = session_lock
 
     async def _lock_ready_and_schedule_start(
-        self, session_id: uuid.UUID, start_at: datetime, immediately: bool
+        self, session_id: uuid.UUID, start_at: datetime
     ):
+        logger.debug(f"Locking ready and scheduling start for session {session_id}")
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
             if session.all_players_ready():
@@ -48,12 +52,12 @@ class RoundScheduler:
             start_at,
             session_id=session_id,
             start_at=start_at,
-            immediately=immediately,
         )
 
     async def on_board_generated(
         self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
     ):  # todo: board juz istnieje
+        logger.debug(f"Board generated for session {session_id}")
         try:
             await self.multi_repo.get_session(session_id)
         except SessionNotFound:
@@ -66,6 +70,7 @@ class RoundScheduler:
         await self._add_round_to_session(session_id, board)
 
     async def _add_round_to_session(self, session_id: uuid.UUID, board: Board):
+        logger.debug(f"Adding round with board {board.id} to session {session_id}")
         session = await self.multi_repo.get_session(session_id)
 
         round_time = timedelta(seconds=session.game_config.max_round_time)
@@ -82,6 +87,7 @@ class RoundScheduler:
         await self.multi_repo.save_session(session)
 
     async def _end_round(self, session_id: uuid.UUID, round_index: int):
+        logger.debug(f"Ending round {round_index} in session {session_id}")
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
 
@@ -99,12 +105,11 @@ class RoundScheduler:
                 for user_id in session.player_ids:
                     await transport.close(user_id)
 
-    async def start_round(
-        self, session_id: uuid.UUID, start_at: datetime, immediately: bool = False
-    ):
+    async def start_round(self, session_id: uuid.UUID, start_at: datetime):
+        logger.debug(f"Starting round in session {session_id}")
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
-            if not immediately and not session.all_players_ready():
+            if not session.all_players_ready():
                 return
 
             end_at = start_at + timedelta(seconds=session.game_config.max_round_time)
@@ -157,14 +162,12 @@ class RoundScheduler:
             for event in events:
                 await transport.send(user_id, event)
 
-    async def schedule_start(
-        self,
-        session: MultiplayerSession,
-        immediately=False,
-    ):
+    async def schedule_start(self, session: MultiplayerSession, in_game=True):
+        logger.debug(
+            f"Scheduling start of round in session {session.id}, in_game={in_game}"
+        )
         countdown_to, start_at = calc_round_start_times()
 
-        in_game = not immediately
         await self._send_countdown(session, start_at, countdown_to, in_game=in_game)
 
         self.scheduler.schedule(
@@ -172,7 +175,6 @@ class RoundScheduler:
             countdown_to,
             session_id=session.id,
             start_at=start_at,
-            immediately=immediately,
         )
 
 
