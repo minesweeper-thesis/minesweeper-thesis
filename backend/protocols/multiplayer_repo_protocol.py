@@ -13,9 +13,7 @@ class MultiplayerRepository(Protocol):
 
     async def save_session(self, multiplayer_session: MultiplayerSession): ...
 
-    async def save_pending(self, multiplayer_session: MultiplayerSession): ...
-
-    async def get_pending_for_lobby(
+    async def get_for_lobby(
         self, lobby_id: uuid.UUID
     ) -> Optional[MultiplayerSession]: ...
 

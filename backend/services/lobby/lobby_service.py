@@ -61,11 +61,18 @@ class LobbyService:
         lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
+
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         await self.lobby_repo.save_lobby(lobby)
+
         session = await create_session(lobby.id, lobby)
         await self.multi_repo.save_session(session)
+        logger.debug(
+            f"Created session {session.id} for lobby {lobby.id}, game_config={session.game_config}"
+        )
+
         logger.info(f"Lobby {lobby.id} created by user {user.id}")
+
         return lobby
 
     async def join_lobby(self, user: User, invitation_id: uuid.UUID):
@@ -113,10 +120,17 @@ class LobbyService:
         ensure_user_is_host(lobby, user)
 
         event = lobby.update_game_config(game_config)
-        session = await self.multi_repo.get_pending_for_lobby(lobby.id)
+        session = await self.multi_repo.get_for_lobby(lobby.id)
+        logger.debug(
+            f"Fetched session {session.id if session else 'None'} for lobby {lobby.id} to update"
+        )
+
         if session is not None:
             session.game_config = game_config
             await self.multi_repo.save_session(session)
+
+        session = await self.multi_repo.get_for_lobby(lobby.id)
+        logger.debug(f"Updated session game_config to {session.game_config}")  # type: ignore
 
         await self.lobby_repo.save_lobby(lobby)
 

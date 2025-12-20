@@ -1,5 +1,5 @@
-from datetime import datetime, timedelta
 import logging
+from datetime import datetime, timedelta
 
 from backend.core.user import User
 from backend.di.dependencies import (
@@ -46,9 +46,7 @@ class UserConnectionService:
 
     async def _notify_current_lobby(self, user: User):
         lobby = await self.lobby_repo.get_user_lobby(user.id)
-        session = (
-            await self.multi_repo.get_pending_for_lobby(lobby.id) if lobby else None
-        )
+        session = await self.multi_repo.get_for_lobby(lobby.id) if lobby else None
         await self.notification_system.notify(user.id, UserCurrentLobby(lobby))
 
         if session is not None:
