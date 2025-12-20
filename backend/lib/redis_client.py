@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import ssl
 from typing import AsyncIterator
 
 import redis.asyncio as redis
@@ -17,7 +18,7 @@ async def initialize_redis() -> None:
     if loop in _redis_clients:
         return
 
-    client = redis.from_url(REDIS_URL)
+    client = redis.from_url(REDIS_URL, ssl_cert_reqs=ssl.CERT_NONE)
     if "localhost" in REDIS_URL:
         await client.config_set("notify-keyspace-events", "Ex")
 
