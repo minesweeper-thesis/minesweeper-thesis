@@ -8,6 +8,7 @@ from backend.core.multi import create_multiplayer_round
 from backend.db import async_session_maker
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis_client
+from backend.lib.session_lock import SessionLock
 from backend.protocols import SessionNotFound
 from backend.protocols.board_repo_protocol import BoardNotFound
 
@@ -25,6 +26,7 @@ class BackgroundRoundHandler:
         )
 
         redis_client = await get_redis_client()
+        session_lock = SessionLock(redis_client)
 
         async with async_session_maker() as db_session:
             board_repo = BoardRepository(db_session)
@@ -39,29 +41,30 @@ class BackgroundRoundHandler:
             except BoardNotFound:
                 await board_repo.add_board(board)
 
-            try:
-                session = await multi_repo.get_session(session_id)
-            except SessionNotFound:
-                logger.warning(
-                    f"Session {session_id} not found during background board generation"
+            async with session_lock.acquire(session_id):
+                try:
+                    session = await multi_repo.get_session(session_id)
+                except SessionNotFound:
+                    logger.warning(
+                        f"Session {session_id} not found during background board generation"
+                    )
+                    return
+
+                if generation_id:
+                    await pending_store.mark_ready(generation_id, board.id)
+
+                round_time = timedelta(seconds=session.game_config.max_round_time)
+                round = await create_multiplayer_round(
+                    session_id=session.id,
+                    round_index=len(session.rounds),
+                    round_time=round_time,
+                    board=board,
+                    player_ids=session.player_ids,
+                    mode=session.game_config.game_mode,
                 )
-                return
 
-            if generation_id:
-                await pending_store.mark_ready(generation_id, board.id)
-
-            round_time = timedelta(seconds=session.game_config.max_round_time)
-            round = await create_multiplayer_round(
-                session_id=session.id,
-                round_index=len(session.rounds),
-                round_time=round_time,
-                board=board,
-                player_ids=session.player_ids,
-                mode=session.game_config.game_mode,
-            )
-
-            session.add_round(round)
-            await multi_repo.save_session(session)
-            logger.info(
-                f"Added round {round.round_index} to session {session_id} in background"
-            )
+                session.add_round(round)
+                await multi_repo.save_session(session)
+                logger.info(
+                    f"Added round {round.round_index} to session {session_id} in background"
+                )
