@@ -2,6 +2,8 @@ import uuid
 
 import pytest
 
+from backend.tests.conftest import AuthenticatedClientBundle
+
 
 @pytest.mark.parametrize(
     "authenticated_clients",
@@ -59,7 +61,7 @@ async def test_notifications_websocket_pending_invitations_request(
 )
 @pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_pending_invitations_has_invitation(
-    authenticated_clients,
+    authenticated_clients: list[AuthenticatedClientBundle],
 ):
     host_bundle = authenticated_clients[0]
     guest_bundle = authenticated_clients[1]
@@ -67,8 +69,7 @@ async def test_notifications_websocket_pending_invitations_has_invitation(
     create_resp = await host_bundle.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_me = await guest_bundle.http.get("/auth/me")
-    guest_id = guest_me.json()["id"]
+    guest_id = guest_bundle.user_id
 
     await host_bundle.http.post(
         f"/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}

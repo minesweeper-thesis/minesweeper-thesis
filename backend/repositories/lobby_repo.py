@@ -1,5 +1,4 @@
 import logging
-import pickle
 import uuid
 from contextlib import suppress
 from datetime import datetime, timedelta
@@ -13,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
-from backend.lib.redis_client import decode_redis_value
+from backend.lib.redis_client import decode, encode
 
 
 class LobbyNotFound(Exception):
@@ -37,12 +36,12 @@ class RedisLobbyRepository(protocols.LobbyRepository):
     async def save_lobby(self, lobby: Lobby):
         logger.debug(f"save_lobby(lobby_id={lobby.id}, users={len(lobby.users)})")
         lobby_key = f"{self.lobby_prefix}{lobby.id}"
-        data = pickle.dumps(lobby)
+        data = encode(lobby)
 
         previous_user_ids: set[uuid.UUID] = set()
         existing_lobby_data = await self.redis.get(lobby_key)
         if existing_lobby_data:
-            existing_lobby = pickle.loads(existing_lobby_data)
+            existing_lobby = decode(existing_lobby_data)
             previous_user_ids = {user.id for user in existing_lobby.users}
 
         current_user_ids = {user.id for user in lobby.users}
@@ -51,7 +50,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         async with self.redis.pipeline() as pipe:
             await pipe.set(lobby_key, data)
             for user in lobby.users:
-                await pipe.set(f"{self.user_lobby_prefix}{user.id}", str(lobby.id))
+                await pipe.set(f"{self.user_lobby_prefix}{user.id}", encode(lobby.id))
             for user_id in removed_user_ids:
                 await pipe.delete(f"{self.user_lobby_prefix}{user_id}")
                 await pipe.delete(f"{self.user_kick_prefix}{lobby.id}:{user_id}")
@@ -63,7 +62,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         data = await self.redis.get(f"{self.lobby_prefix}{lobby_id}")
         if not data:
             raise LobbyNotFound(f"Lobby with id {lobby_id} not found.")
-        return pickle.loads(data)
+        return decode(data)
 
     async def delete_lobby(self, lobby_id: uuid.UUID) -> None:
         logger.debug(f"delete_lobby(lobby_id={lobby_id})")
@@ -86,15 +85,15 @@ class RedisLobbyRepository(protocols.LobbyRepository):
             invitation_ids = await self.redis.smembers(  # type: ignore
                 f"{self.user_invitation_prefix}{user.id}"
             )
-            for inv_id in invitation_ids:
+            for inv_id_bytes in invitation_ids:
                 try:
-                    inv_id_str = decode_redis_value(inv_id)
-                    invitation = await self.get_invitation(uuid.UUID(inv_id_str))
+                    inv_id = decode(inv_id_bytes)
+                    invitation = await self.get_invitation(inv_id)
                     if invitation.lobby.id == lobby.id:
                         await pipe.delete(f"{self.invitation_prefix}{invitation.id}")
                         await pipe.srem(
                             f"{self.user_invitation_prefix}{invitation.invitee.id}",
-                            str(invitation.id),
+                            encode(invitation.id),
                         )  # type: ignore
                         logger.info(
                             f"Deleted invitation {invitation.id} for user {invitation.invitee.id}"
@@ -106,7 +105,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         logger.debug(
             f"save_invitation(invitation_id={invitation.id}, inviter={invitation.inviter.id}, invitee={invitation.invitee.id})"
         )
-        data = pickle.dumps(invitation)
+        data = encode(invitation)
         ttl_seconds = int(ttl.total_seconds())
         async with self.redis.pipeline() as pipe:
             await pipe.set(
@@ -114,7 +113,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
             )
             await pipe.sadd(
                 f"{self.user_invitation_prefix}{invitation.invitee.id}",
-                str(invitation.id),
+                encode(invitation.id),
             )  # type: ignore
             await pipe.execute()
         logger.info(
@@ -126,7 +125,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         data = await self.redis.get(f"{self.invitation_prefix}{invitation_id}")
         if not data:
             raise InvitationNotFound(f"Invitation with id {invitation_id} not found.")
-        return pickle.loads(data)
+        return decode(data)
 
     async def delete_invitation(self, invitation_id: uuid.UUID) -> None:
         logger.debug(f"delete_invitation(invitation_id={invitation_id})")
@@ -136,7 +135,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
                 await pipe.delete(f"{self.invitation_prefix}{invitation_id}")
                 await pipe.srem(
                     f"{self.user_invitation_prefix}{invitation.invitee.id}",
-                    str(invitation_id),
+                    encode(invitation_id),
                 )  # type: ignore
                 await pipe.execute()
             logger.debug(f"Invitation {invitation_id} deleted")
@@ -147,22 +146,22 @@ class RedisLobbyRepository(protocols.LobbyRepository):
             f"{self.user_invitation_prefix}{user_id}"
         )
         invitations = []
-        for inv_id in invitation_ids:
+        for inv_id_bytes in invitation_ids:
             try:
-                inv_id_str = decode_redis_value(inv_id)
-                inv = await self.get_invitation(uuid.UUID(inv_id_str))
+                inv_id = decode(inv_id_bytes)
+                inv = await self.get_invitation(inv_id)
                 invitations.append(inv)
             except InvitationNotFound:
-                await self.redis.srem(f"{self.user_invitation_prefix}{user_id}", inv_id)  # type: ignore
+                await self.redis.srem(f"{self.user_invitation_prefix}{user_id}", inv_id_bytes)  # type: ignore
         return invitations
 
     async def get_user_lobby(self, user_id: uuid.UUID) -> Optional[Lobby]:
         logger.debug(f"get_user_lobby(user_id={user_id})")
-        lobby_id_str = await self.redis.get(f"{self.user_lobby_prefix}{user_id}")
-        if lobby_id_str:
+        lobby_id_bytes = await self.redis.get(f"{self.user_lobby_prefix}{user_id}")
+        if lobby_id_bytes:
             try:
-                lobby_id_str = decode_redis_value(lobby_id_str)
-                return await self.get_lobby(uuid.UUID(lobby_id_str))
+                lobby_id = decode(lobby_id_bytes)
+                return await self.get_lobby(lobby_id)
             except LobbyNotFound:
                 await self.redis.delete(f"{self.user_lobby_prefix}{user_id}")
         return None
@@ -171,7 +170,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         logger.debug(
             f"add_message(lobby_id={message.lobby_id}, sender={message.sender.id})"
         )
-        data = pickle.dumps(message)
+        data = encode(message)
         await self.redis.lpush(f"{self.message_prefix}{message.lobby_id}", data)  # type: ignore
 
     async def get_messages(self, lobby_id: uuid.UUID, pagination_params: Params):
@@ -185,7 +184,7 @@ class RedisLobbyRepository(protocols.LobbyRepository):
         end = start + pagination_params.size - 1
 
         messages_data = await self.redis.lrange(key, start, end)  # type: ignore
-        items = [pickle.loads(m) for m in messages_data]
+        items = [decode(m) for m in messages_data]
 
         return Page.create(items=items, total=total, params=pagination_params)
 

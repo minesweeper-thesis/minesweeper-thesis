@@ -1,4 +1,5 @@
 import logging
+import pickle
 
 import redis.asyncio as redis
 
@@ -32,7 +33,9 @@ async def get_redis_client() -> redis.Redis:
     return _client
 
 
-def decode_redis_value(value):
-    if isinstance(value, bytes):
-        return value.decode("utf-8")
-    return value
+def encode(data) -> bytes:
+    return pickle.dumps(data)
+
+
+def decode(data: bytes):
+    return pickle.loads(data)

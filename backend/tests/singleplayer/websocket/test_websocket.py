@@ -72,9 +72,7 @@ async def test_websocket_game_over_loss_schema(authenticated_clients, session):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_websocket_get_game_state_returns_current_state(
-    authenticated_clients, session
-):
+async def test_websocket_get_game_state_returns_current_state(authenticated_clients):
     bundle = authenticated_clients[0]
 
     gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=5)
@@ -100,9 +98,7 @@ async def test_websocket_get_game_state_returns_current_state(
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_websocket_board_state_shows_revealed_cell(
-    authenticated_clients, session
-):
+async def test_websocket_board_state_shows_revealed_cell(authenticated_clients):
     bundle = authenticated_clients[0]
 
     gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=3)
