@@ -24,7 +24,7 @@ class BackgroundRoundHandler:
             f"Background handling board {board.id} for session {session_id} (generation {generation_id})"
         )
 
-        redis_client = get_redis_client()
+        redis_client = await get_redis_client()
 
         async with async_session_maker() as db_session:
             board_repo = BoardRepository(db_session)

@@ -16,7 +16,7 @@ from backend.protocols.board_repo_protocol import BoardNotFound
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 
 from backend.db import db
-from backend.main import api, app
+from backend.main import api, app, lifespan
 from backend.repositories.board_repo import BoardRepository
 
 
@@ -110,30 +110,26 @@ class HTTPClient:
             ) as ws:
                 yield ws
 
-    async def get(self, url: str, **kwargs):
+    async def _request(self, method: str, url: str, **kwargs):
         async with self._client() as client:
             kwargs["headers"] = self._headers(kwargs.get("headers"))
-            return await client.get(url, **kwargs)
+            func = getattr(client, method)
+            return await func(url, **kwargs)
+
+    async def get(self, url: str, **kwargs):
+        return await self._request("get", url, **kwargs)
 
     async def post(self, url: str, **kwargs):
-        async with self._client() as client:
-            kwargs["headers"] = self._headers(kwargs.get("headers"))
-            return await client.post(url, **kwargs)
+        return await self._request("post", url, **kwargs)
 
     async def put(self, url: str, **kwargs):
-        async with self._client() as client:
-            kwargs["headers"] = self._headers(kwargs.get("headers"))
-            return await client.put(url, **kwargs)
+        return await self._request("put", url, **kwargs)
 
     async def patch(self, url: str, **kwargs):
-        async with self._client() as client:
-            kwargs["headers"] = self._headers(kwargs.get("headers"))
-            return await client.patch(url, **kwargs)
+        return await self._request("patch", url, **kwargs)
 
     async def delete(self, url: str, **kwargs):
-        async with self._client() as client:
-            kwargs["headers"] = self._headers(kwargs.get("headers"))
-            return await client.delete(url, **kwargs)
+        return await self._request("delete", url, **kwargs)
 
 
 class AuthenticatedClientBundle:
@@ -163,7 +159,8 @@ class AuthenticatedClientBundle:
 
 @pytest.fixture(scope="session")
 async def test_app():
-    yield app
+    async with lifespan(app):
+        yield app
 
 
 @pytest.fixture
