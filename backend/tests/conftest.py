@@ -8,9 +8,9 @@ from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from httpx_ws import AsyncWebSocketSession, aconnect_ws
 from httpx_ws.transport import ASGIWebSocketTransport
+from sqlalchemy import StaticPool
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import StaticPool
 
 from backend.core.board import Board, DifficultyLevel, GenerationSettings
 from backend.protocols.board_repo_protocol import BoardNotFound

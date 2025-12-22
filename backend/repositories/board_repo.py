@@ -16,7 +16,6 @@ from backend import protocols
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
 from backend.db import DBSession
 
-from .exceptions import *
 from .orm import *
 
 

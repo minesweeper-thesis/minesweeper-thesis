@@ -33,7 +33,9 @@ async def test_search_users_returns_paginated_user_response(authenticated_client
 @pytest.mark.asyncio(loop_scope="session")
 async def test_search_users_finds_matching_user(authenticated_clients):
     bundle = authenticated_clients[0]
-    resp = await bundle.http.get("/search", params={"query": "test_"})
+    resp = await bundle.http.get(
+        "/search", params={"query": "test_", "pagination_params": {"size": 1000}}
+    )
 
     assert resp.status_code == 200
     data = resp.json()

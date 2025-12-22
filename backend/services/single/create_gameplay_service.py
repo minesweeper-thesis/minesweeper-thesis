@@ -19,7 +19,6 @@ from backend.di.dependencies import (
 )
 from backend.lib.auth import OptionalCurrentUser
 from backend.protocols.pending_boards import PendingBoardMetadata
-from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
 

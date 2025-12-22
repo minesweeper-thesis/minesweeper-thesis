@@ -13,7 +13,6 @@ from backend.core.multi.session import MultiplayerSession
 from backend.db.db import DBSession
 from backend.lib.redis_client import decode_redis_value
 
-from .exceptions import *
 from .orm import *
 
 

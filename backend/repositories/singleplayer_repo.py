@@ -16,7 +16,6 @@ from backend import protocols
 from backend.core.single.gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
 
-from .exceptions import *
 from .orm import *
 
 

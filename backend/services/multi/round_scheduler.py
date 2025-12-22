@@ -11,7 +11,6 @@ from backend.core.multi import MultiplayerSession, create_multiplayer_round
 from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
 from backend.protocols import SessionNotFound
-from backend.repositories.exceptions import *
 from backend.services.dto import RoundCountdown
 from backend.services.exceptions import *
 from backend.services.multi.helpers import calc_round_start_times

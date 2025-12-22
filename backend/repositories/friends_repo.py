@@ -21,7 +21,6 @@ from backend.db.db import DBSession
 from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 
-from .exceptions import *
 from .orm import *
 
 

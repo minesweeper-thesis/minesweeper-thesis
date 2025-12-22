@@ -14,7 +14,6 @@ from backend.core.game.game_actions import GameAction, GameActionResult
 from backend.core.single import SingleplayerGameplay
 from backend.di.dependencies import *
 from backend.lib.auth import CurrentUser
-from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.single.single_exceptions import GenerationTimeout

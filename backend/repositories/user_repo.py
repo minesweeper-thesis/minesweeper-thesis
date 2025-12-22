@@ -18,7 +18,6 @@ from backend.lib.avatar_storage import get_avatar_storage
 from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 
-from .exceptions import *
 from .orm import *
 
 
