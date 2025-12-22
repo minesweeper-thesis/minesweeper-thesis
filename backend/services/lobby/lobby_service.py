@@ -13,6 +13,7 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
+from backend.di.session_lock import SessionLockDep
 from backend.services.dto import KickedFromLobby
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
@@ -49,11 +50,13 @@ class LobbyService:
         user_repo: UserRepositoryDep,
         multi_repo: MultiplayerRepositoryDep,
         notification_system: NotificationSystemDep,
+        session_lock: SessionLockDep,
     ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo
         self.multi_repo = multi_repo
         self.notification_system = notification_system
+        self.session_lock = session_lock
 
     async def create_lobby(self, user: User) -> Lobby:
         logger.debug(f"create_lobby(user_id={user.id})")
@@ -119,14 +122,16 @@ class LobbyService:
             ensure_user_is_host(lobby, user)
 
             event = lobby.update_game_config(game_config)
-            session = await self.multi_repo.get_for_lobby(lobby.id)
-            logger.debug(
-                f"Fetched session {session.id if session else 'None'} for lobby {lobby.id} to update"
-            )
 
-            if session is not None:
-                session.game_config = game_config
-                await self.multi_repo.save_session(session)
+            async with self.session_lock.acquire(lobby.id):
+                session = await self.multi_repo.get_for_lobby(lobby.id)
+                logger.debug(
+                    f"Fetched session {session.id if session else 'None'} for lobby {lobby.id} to update"
+                )
+
+                if session is not None:
+                    session.game_config = game_config
+                    await self.multi_repo.save_session(session)
 
             session = await self.multi_repo.get_for_lobby(lobby.id)
             logger.debug(f"Updated session game_config to {session.game_config}")  # type: ignore
@@ -193,11 +198,12 @@ class LobbyService:
                 await self.notification_system.notify(lobby_user.id, data)
 
     async def _sync_session_players(self, lobby: Lobby) -> None:
-        session = await self.multi_repo.get_session(lobby.id)
+        async with self.session_lock.acquire(lobby.id):
+            session = await self.multi_repo.get_session(lobby.id)
 
-        if not session.is_started() and not session.is_over():
-            session.set_player_ids([user.id for user in lobby.users])
-            await self.multi_repo.save_session(session)
+            if not session.is_started() and not session.is_over():
+                session.set_player_ids([user.id for user in lobby.users])
+                await self.multi_repo.save_session(session)
 
 
 __all__ = ["LobbyService"]
