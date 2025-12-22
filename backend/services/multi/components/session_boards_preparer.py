@@ -82,7 +82,6 @@ class SessionBoardsPreparer:
                 session_id=session.id,
                 round_index=round_index,
             ),
-            24 * 3600,
         )
 
 

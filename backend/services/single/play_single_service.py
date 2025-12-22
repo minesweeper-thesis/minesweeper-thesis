@@ -31,12 +31,8 @@ class PlaySingleService:
         self.pending_store = pending_store
         self.gameplay: Optional[SingleplayerGameplay] = None
 
-    async def load_gameplay(
-        self,
-        gameplay_id: uuid.UUID,
-        timeout: float = 120.0,
-    ):
-        logger.debug(f"load_gameplay(gameplay_id={gameplay_id}, timeout={timeout})")
+    async def load_gameplay(self, gameplay_id: uuid.UUID):
+        logger.debug(f"load_gameplay(gameplay_id={gameplay_id})")
         logger.debug(f"Loading singleplayer gameplay {gameplay_id}")
         pending = await self.pending_store.get_pending_gameplay(gameplay_id)
 

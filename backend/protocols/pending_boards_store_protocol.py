@@ -18,14 +18,11 @@ class PendingBoardsStore(Protocol):
     ) -> None: ...
 
     async def wait_for_ready(
-        self, generation_id: uuid.UUID, timeout: Optional[float] = None
+        self, generation_id: uuid.UUID
     ) -> Optional["PendingBoard"]: ...
 
     async def create_pending(
-        self,
-        generation_id: uuid.UUID,
-        metadata: PendingBoardMetadata,
-        ttl_seconds: int,
+        self, generation_id: uuid.UUID, metadata: PendingBoardMetadata
     ) -> PendingBoard: ...
 
 
