@@ -18,7 +18,7 @@ class PendingBoardsStore(Protocol):
     ) -> None: ...
 
     async def wait_for_ready(
-        self, generation_id: uuid.UUID, timeout: float
+        self, generation_id: uuid.UUID, timeout: Optional[float] = None
     ) -> Optional["PendingBoard"]: ...
 
     async def create_pending(
