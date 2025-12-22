@@ -31,6 +31,8 @@ class LocalBoardGenerator(BoardGenerator):
             f"Starting board generation {generation_id} with settings: {settings.difficulty_level}"
         )
 
+        loop = asyncio.get_running_loop()
+
         def task():
             generator = CoreBoardGenerator(
                 settings.difficulty_level,
@@ -42,8 +44,7 @@ class LocalBoardGenerator(BoardGenerator):
             board = generator.generate_board()
             _generation_statuses[generation_id] = "completed"
             logger.info(f"Board generation {generation_id} completed")
-
-            asyncio.run(on_completed(generation_id, board))  # type: ignore
+            asyncio.run_coroutine_threadsafe(on_completed(generation_id, board), loop)
 
         self.background_tasks.add_task(task)
 

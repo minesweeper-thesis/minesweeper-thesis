@@ -1,12 +1,14 @@
 import uuid
-from typing import Awaitable, Callable, Literal, Protocol
+from typing import Any, Callable, Coroutine, Literal, Protocol
 
 from backend.core.board import Board, GenerationSettings
 
 type GenerationID = uuid.UUID
 type GenerationStatus = Literal["pending", "in_progress", "completed", "failed"]
 
-type OnBoardGeneratedCallback = Callable[[GenerationID, Board], Awaitable[None]]
+type OnBoardGeneratedCallback = Callable[
+    [GenerationID, Board], Coroutine[Any, Any, None]
+]
 
 
 class GenerationNotFound(Exception):
