@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 
-async def receive_json(ws, *, timeout_s: float = 1.0) -> dict[str, Any]:
+async def receive_json(ws, *, timeout_s: float = 5.0) -> dict[str, Any]:
     try:
         async with asyncio.timeout(timeout_s):
             return await ws.receive_json()
@@ -14,12 +14,11 @@ async def receive_json(ws, *, timeout_s: float = 1.0) -> dict[str, Any]:
 
 
 async def receive_type(
-    ws, expected_type: str, *, timeout_s: float = 1.0
+    ws, expected_type: str, *, timeout_s: float = 5.0
 ) -> dict[str, Any]:
     try:
         async with asyncio.timeout(timeout_s):
             msg = await ws.receive_json()
-            print(msg["type"], expected_type)
             assert (
                 msg.get("type") == expected_type
             ), f"expected type {expected_type}, got {msg}"

@@ -2,12 +2,14 @@ import uuid
 
 import pytest
 
+from backend.tests.conftest import HTTPClient
+
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_logout_clears_auth_cookie(http_client):
+async def test_logout_clears_auth_cookie(client_no_auth: HTTPClient):
     email = f"logout-{uuid.uuid4().hex[:8]}@example.com"
 
-    await http_client.post(
+    await client_no_auth.post(
         "/auth/register",
         json={
             "email": email,
@@ -17,7 +19,7 @@ async def test_logout_clears_auth_cookie(http_client):
         },
     )
 
-    login_resp = await http_client.post(
+    login_resp = await client_no_auth.post(
         "/auth/login",
         data={
             "username": email,
@@ -27,7 +29,9 @@ async def test_logout_clears_auth_cookie(http_client):
     assert login_resp.status_code == 204
     assert "auth" in login_resp.cookies
 
-    logout_resp = await http_client.post("/auth/logout")
+    client_no_auth._auth_cookie = login_resp.cookies.get("auth")
+
+    logout_resp = await client_no_auth.post("/auth/logout")
     assert logout_resp.status_code == 204
 
     auth_cookie = logout_resp.cookies.get("auth")

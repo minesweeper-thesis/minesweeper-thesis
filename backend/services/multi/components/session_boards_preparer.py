@@ -44,7 +44,7 @@ class SessionBoardsPreparer:
         board = await self._get_unsolved_or_generate_board(session, round_index)
 
         if board is not None:
-            await self.round_scheduler.on_board_generated(session.id, None, board)
+            await self.background_handler.on_board_generated(session.id, None, board)
 
     async def _get_unsolved_or_generate_board(
         self,

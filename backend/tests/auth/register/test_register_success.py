@@ -34,10 +34,10 @@ async def test_register_success_validates_current_user_response(client_no_auth):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_login_success_sets_auth_cookie(http_client):
+async def test_login_success_sets_auth_cookie(client_no_auth):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
-    await http_client.post(
+    await client_no_auth.post(
         "/auth/register",
         json={
             "email": email,
@@ -47,7 +47,7 @@ async def test_login_success_sets_auth_cookie(http_client):
         },
     )
 
-    resp = await http_client.post(
+    resp = await client_no_auth.post(
         "/auth/login",
         data={
             "username": email,

@@ -1,16 +1,14 @@
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-from backend.core.board import Board
 from backend.core.game import *
-from backend.core.multi import MultiplayerSession, create_multiplayer_round
+from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
-from backend.protocols import SessionNotFound
 from backend.services.dto import RoundCountdown
 from backend.services.exceptions import *
 from backend.services.multi.helpers import calc_round_start_times
@@ -52,38 +50,6 @@ class RoundScheduler:
             session_id=session_id,
             start_at=start_at,
         )
-
-    async def on_board_generated(
-        self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
-    ):  # todo: board juz istnieje
-        logger.debug(f"Board generated for session {session_id}")
-        try:
-            await self.multi_repo.get_session(session_id)
-        except SessionNotFound:
-            await self.board_repo.add_board(board)
-            return
-
-        if generation_id is not None:
-            await self.pending_store.mark_ready(generation_id, board.id)
-
-        await self._add_round_to_session(session_id, board)
-
-    async def _add_round_to_session(self, session_id: uuid.UUID, board: Board):
-        logger.debug(f"Adding round with board {board.id} to session {session_id}")
-        session = await self.multi_repo.get_session(session_id)
-
-        round_time = timedelta(seconds=session.game_config.max_round_time)
-        round = await create_multiplayer_round(
-            session_id=session.id,
-            round_index=len(session.rounds),
-            round_time=round_time,
-            board=board,
-            player_ids=session.player_ids,
-            mode=session.game_config.game_mode,
-        )
-
-        session.add_round(round)
-        await self.multi_repo.save_session(session)
 
     async def _end_round(self, session_id: uuid.UUID, round_index: int):
         logger.debug(f"Ending round {round_index} in session {session_id}")

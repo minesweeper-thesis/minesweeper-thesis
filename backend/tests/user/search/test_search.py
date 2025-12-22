@@ -34,7 +34,8 @@ async def test_search_users_returns_paginated_user_response(authenticated_client
 async def test_search_users_finds_matching_user(authenticated_clients):
     bundle = authenticated_clients[0]
     resp = await bundle.http.get(
-        "/search", params={"query": "test_", "pagination_params": {"size": 1000}}
+        "/search",
+        params={"query": bundle.user_data["nickname"]},
     )
 
     assert resp.status_code == 200

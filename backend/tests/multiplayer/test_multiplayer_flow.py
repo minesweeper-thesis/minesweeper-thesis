@@ -33,7 +33,7 @@ from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 )
 @pytest.mark.asyncio(loop_scope="session")
 async def test_multiplayer_full_flow_many_players(
-    authenticated_clients, fake_scheduler, background_handler_override
+    authenticated_clients, fake_scheduler
 ):
     random.seed(0)
 

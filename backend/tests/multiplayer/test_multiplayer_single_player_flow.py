@@ -24,9 +24,7 @@ from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 )
 @pytest.mark.asyncio(loop_scope="session")
 async def test_multiplayer_single_player_flow(
-    authenticated_clients: list[AuthenticatedClientBundle],
-    fake_scheduler,
-    background_handler_override,
+    authenticated_clients: list[AuthenticatedClientBundle], fake_scheduler
 ):
     random.seed(0)
 

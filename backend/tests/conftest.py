@@ -4,35 +4,20 @@ import uuid
 from contextlib import asynccontextmanager, suppress
 
 import pytest
-from asgi_lifespan import LifespanManager
 from httpx import ASGITransport, AsyncClient
 from httpx_ws import AsyncWebSocketSession, aconnect_ws
 from httpx_ws.transport import ASGIWebSocketTransport
-from sqlalchemy import StaticPool
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from backend.core.board import Board, DifficultyLevel, GenerationSettings
+from backend.lib.board_generator import LocalBoardGenerator
 from backend.protocols.board_repo_protocol import BoardNotFound
 
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
-os.environ["AUTH_SECRET"] = "test-secret-key"
 
 from backend.db import db
 from backend.main import api, app
 from backend.repositories.board_repo import BoardRepository
-from backend.repositories.orm import Base
-
-db.engine = create_async_engine(
-    os.environ["DATABASE_URL"],
-    poolclass=StaticPool,
-    connect_args={"check_same_thread": False},
-)
-db.async_session_maker = async_sessionmaker(db.engine, expire_on_commit=False)
-
-engine = db.engine
-
-_test_app_instance = None
 
 
 async def create_or_get_board(
@@ -67,16 +52,21 @@ async def create_or_get_board(
 
 
 def generate_board_data(
-    rows: int, cols: int, mines: int, seed: int | None = None
+    difficulty_level: DifficultyLevel,
 ) -> tuple[list[tuple[int, int]], tuple[int, int]]:
-    rng = random.Random(seed)
+
+    rows = difficulty_level.rows
+    cols = difficulty_level.columns
+    mines = difficulty_level.mine_count
+
+    rng = random.Random(0)
     start_field = (0, 0)
     cells = [(i, j) for i in range(rows) for j in range(cols) if (i, j) != start_field]
     minefields = sorted(rng.sample(cells, k=mines))
     return minefields, start_field
 
 
-class HttpClient:
+class HTTPClient:
     def __init__(self, test_app, auth_cookie: str | None = None):
         self._test_app = test_app
         self._auth_cookie = auth_cookie
@@ -152,7 +142,7 @@ class AuthenticatedClientBundle:
         self.user_data = user_data
         self.auth_cookie = auth_cookie
         self.user_id = None
-        self._http = HttpClient(test_app, auth_cookie)
+        self._http = HTTPClient(test_app, auth_cookie)
 
     @property
     def http(self):
@@ -173,18 +163,7 @@ class AuthenticatedClientBundle:
 
 @pytest.fixture(scope="session")
 async def test_app():
-    global _test_app_instance
-    async with LifespanManager(app) as manager:
-        _test_app_instance = manager.app
-        yield manager.app
-        _test_app_instance = None
-
-
-@pytest.fixture(scope="session", autouse=True)
-async def init_db(test_app):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    yield
+    yield app
 
 
 @pytest.fixture
@@ -194,17 +173,8 @@ async def session():
 
 
 @pytest.fixture
-async def http_client(test_app):
-    transport = ASGITransport(test_app)
-    async with AsyncClient(
-        transport=transport, base_url="https://testserver/api"
-    ) as client:
-        yield client
-
-
-@pytest.fixture
 async def client_no_auth(test_app):
-    yield HttpClient(test_app)
+    yield HTTPClient(test_app)
 
 
 @pytest.fixture
@@ -258,44 +228,28 @@ async def authenticated_clients(request, test_app):
     yield bundles
 
 
-@pytest.fixture(scope="session", autouse=True)
-def board_generator_override():
-    from backend.lib.board_generator import LocalBoardGenerator
+class ImmediateBoardGenerator:
+    def __init__(self):
+        self._statuses = {}
 
-    class ImmediateBoardGenerator:
-        def __init__(self):
-            self._statuses = {}
+    async def generate_board(self, settings, on_completed):
+        generation_id = uuid.uuid4()
+        self._statuses[generation_id] = "completed"
 
-        async def generate_board(self, settings, on_completed):
-            generation_id = uuid.uuid4()
-            self._statuses[generation_id] = "completed"
+        minefields, start_field = generate_board_data(settings.difficulty_level)
 
-            rows = settings.difficulty_level.rows
-            cols = settings.difficulty_level.columns
-            mines = settings.difficulty_level.mine_count
+        board = await create_or_get_board(
+            difficulty=settings.difficulty_level,
+            minefields=minefields,
+            start_field=start_field,
+            generation_settings=settings,
+        )
 
-            minefields, start_field = generate_board_data(
-                rows, cols, mines, seed=int.from_bytes(generation_id.bytes, "big")
-            )
+        await on_completed(generation_id, board)
+        return generation_id
 
-            board = await create_or_get_board(
-                difficulty=settings.difficulty_level,
-                minefields=minefields,
-                start_field=start_field,
-                generation_settings=settings,
-            )
+    async def get_generation_status(self, generation_id):
+        return self._statuses.get(generation_id, "completed")
 
-            await on_completed(generation_id, board)
-            return generation_id
 
-        async def get_generation_status(self, generation_id):
-            return self._statuses.get(generation_id, "completed")
-
-    generator = ImmediateBoardGenerator()
-
-    def _override():
-        return generator
-
-    api.dependency_overrides[LocalBoardGenerator] = _override
-    yield
-    api.dependency_overrides.pop(LocalBoardGenerator, None)
+api.dependency_overrides[LocalBoardGenerator] = ImmediateBoardGenerator

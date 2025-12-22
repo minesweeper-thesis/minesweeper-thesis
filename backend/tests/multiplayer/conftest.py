@@ -1,30 +1,10 @@
 from datetime import datetime, timedelta
-from pprint import pprint
-from typing import Annotated, Callable
+from typing import Callable
 
 import pytest
-from fastapi import Depends
 
-from backend.lib.background_handler import BackgroundRoundHandler
 from backend.lib.scheduler import get_scheduler
 from backend.main import api
-from backend.services.multi.round_scheduler import RoundScheduler
-
-
-@pytest.fixture
-def background_handler_override():
-    class TestBackgroundRoundHandler:
-        def __init__(self, round_scheduler: Annotated[RoundScheduler, Depends()]):
-            self.round_scheduler = round_scheduler
-
-        async def on_board_generated(self, session_id, generation_id, board):
-            await self.round_scheduler.on_board_generated(
-                session_id, generation_id, board
-            )
-
-    api.dependency_overrides[BackgroundRoundHandler] = TestBackgroundRoundHandler
-    yield
-    api.dependency_overrides.pop(BackgroundRoundHandler, None)
 
 
 class FakeScheduler:
@@ -59,8 +39,6 @@ class FakeScheduler:
                 if payload[0] <= now
             ]
             jobs.sort(key=lambda item: item[1])  # type: ignore
-
-            pprint(jobs)
 
             for job_id, _when, func, args, kwargs in jobs:
                 self._jobs.pop(job_id, None)
