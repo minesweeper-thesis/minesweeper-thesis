@@ -1,6 +1,7 @@
 import logging
 import uuid
 from datetime import timedelta
+from typing import Optional
 
 from backend.core.board import Board
 from backend.core.multi import create_multiplayer_round
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class BackgroundRoundHandler:
     async def on_board_generated(
-        self, session_id: uuid.UUID, generation_id: uuid.UUID, board: Board
+        self, session_id: uuid.UUID, generation_id: Optional[uuid.UUID], board: Board
     ):
         from backend.repositories import BoardRepository, RedisMultiplayerRepository
 

@@ -14,7 +14,6 @@ from backend.core.game import *
 from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
 from backend.protocols.game_transport_protocol import GameTransport
-from backend.repositories.exceptions import *
 from backend.services.exceptions import *
 
 

@@ -60,7 +60,7 @@ class MultiplayerSession:
         )
 
     def is_started(self) -> bool:
-        return len(self.rounds) > 0 and self.rounds[0].state == "playing"
+        return len(self.rounds) > 0 and self.rounds[0].state != "not_started"
 
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)

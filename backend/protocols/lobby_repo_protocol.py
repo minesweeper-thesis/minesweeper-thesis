@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional, Protocol
 
 from fastapi_pagination import Page, Params
@@ -14,7 +14,7 @@ class LobbyRepository(Protocol):
 
     async def delete_lobby(self, lobby_id: uuid.UUID) -> None: ...
 
-    async def save_invitation(self, invitation: Invitation) -> None: ...
+    async def save_invitation(self, invitation: Invitation, ttl: timedelta) -> None: ...
 
     async def get_invitation(self, invitation_id: uuid.UUID) -> Invitation: ...
 

@@ -6,6 +6,8 @@ from typing import Optional
 
 from redis.asyncio import Redis
 
+from backend.lib.redis_client import decode_redis_value
+
 logger = logging.getLogger(__name__)
 
 from backend import protocols
@@ -111,9 +113,8 @@ class RedisPendingStore(protocols.PendingBoardsStore):
     async def get_pending_gameplay(self, id: uuid.UUID) -> Optional[PendingBoard]:
         logger.debug(f"get_pending_gameplay(id={id})")
         gen_id_str = await self.redis.get(f"{self.prefix}lookup:gameplay:{id}")
+        gen_id_str = decode_redis_value(gen_id_str)
         if gen_id_str:
-            if isinstance(gen_id_str, bytes):
-                gen_id_str = gen_id_str.decode("utf-8")
             data = await self.redis.get(f"{self.prefix}{gen_id_str}")
             if data:
                 return pickle.loads(data)
@@ -128,9 +129,8 @@ class RedisPendingStore(protocols.PendingBoardsStore):
         gen_id_str = await self.redis.get(
             f"{self.prefix}lookup:round:{session_id}:{round_index}"
         )
+        gen_id_str = decode_redis_value(gen_id_str)
         if gen_id_str:
-            if isinstance(gen_id_str, bytes):
-                gen_id_str = gen_id_str.decode("utf-8")
             data = await self.redis.get(f"{self.prefix}{gen_id_str}")
             if data:
                 return pickle.loads(data)

@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from backend.repositories.lobby_repo import InvitationNotFound
+from backend.repositories.lobby_repo import InvitationNotFound, LobbyNotFound
 from backend.services.exceptions import UserNotExists
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,6 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.repositories.exceptions import *
 from backend.services.dto import KickedFromLobby
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
@@ -61,11 +60,18 @@ class LobbyService:
         lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
             await self._remove_user(lobby_to_leave, user)
+
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         await self.lobby_repo.save_lobby(lobby)
+
         session = await create_session(lobby.id, lobby)
         await self.multi_repo.save_session(session)
+        logger.debug(
+            f"Created session {session.id} for lobby {lobby.id}, game_config={session.game_config}"
+        )
+
         logger.info(f"Lobby {lobby.id} created by user {user.id}")
+
         return lobby
 
     async def join_lobby(self, user: User, invitation_id: uuid.UUID):
@@ -76,7 +82,7 @@ class LobbyService:
 
         try:
             invitation = await self.lobby_repo.get_invitation(invitation_id)
-            lobby = invitation.lobby
+            lobby = await self.lobby_repo.get_lobby(invitation.lobby.id)
 
             if invitation.invitee != user or invitation.lobby != lobby:
                 logger.warning(
@@ -106,56 +112,73 @@ class LobbyService:
     async def update_lobby(
         self, lobby_id: uuid.UUID, user: User, game_config: GameConfig
     ):
-        logger.debug(f"update_lobby(lobby_id={lobby_id}, user_id={user.id})")
-        lobby = await self.lobby_repo.get_lobby(lobby_id)
+        try:
+            logger.debug(f"update_lobby(lobby_id={lobby_id}, user_id={user.id})")
+            lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-        ensure_lobby_exists(lobby)
-        ensure_user_is_host(lobby, user)
+            ensure_user_is_host(lobby, user)
 
-        event = lobby.update_game_config(game_config)
-        session = await self.multi_repo.get_pending_for_lobby(lobby.id)
-        if session is not None:
-            session.game_config = game_config
-            await self.multi_repo.save_session(session)
+            event = lobby.update_game_config(game_config)
+            session = await self.multi_repo.get_for_lobby(lobby.id)
+            logger.debug(
+                f"Fetched session {session.id if session else 'None'} for lobby {lobby.id} to update"
+            )
 
-        await self.lobby_repo.save_lobby(lobby)
+            if session is not None:
+                session.game_config = game_config
+                await self.multi_repo.save_session(session)
 
-        for lobby_user in lobby.users:
-            await self.notification_system.notify(lobby_user.id, event)
+            session = await self.multi_repo.get_for_lobby(lobby.id)
+            logger.debug(f"Updated session game_config to {session.game_config}")  # type: ignore
 
-        logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
+            await self.lobby_repo.save_lobby(lobby)
+
+            for lobby_user in lobby.users:
+                await self.notification_system.notify(lobby_user.id, event)
+
+            logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
+        except LobbyNotFound:
+            raise LobbyNotExists() from None
 
     async def remove_user_from_lobby(self, lobby_id: uuid.UUID, user: User):
-        logger.debug(f"remove_user_from_lobby(lobby_id={lobby_id}, user_id={user.id})")
-        lobby = await self.lobby_repo.get_lobby(lobby_id)
+        try:
+            logger.debug(
+                f"remove_user_from_lobby(lobby_id={lobby_id}, user_id={user.id})"
+            )
+            lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-        ensure_lobby_exists(lobby)
-        ensure_user_in_lobby(lobby, user)
+            ensure_user_in_lobby(lobby, user)
 
-        await self._remove_user(lobby, user)
+            await self._remove_user(lobby, user)
+        except LobbyNotFound:
+            raise LobbyNotExists() from None
 
     async def kick_from_lobby(
         self, lobby_id: uuid.UUID, user: User, target_user_id: uuid.UUID
     ):
-        logger.debug(
-            f"kick_from_lobby(lobby_id={lobby_id}, user_id={user.id}, target_user_id={target_user_id})"
-        )
-        lobby = await self.lobby_repo.get_lobby(lobby_id)
+        try:
+            logger.debug(
+                f"kick_from_lobby(lobby_id={lobby_id}, user_id={user.id}, target_user_id={target_user_id})"
+            )
+            lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-        ensure_lobby_exists(lobby)
-        ensure_user_is_host(lobby, user)
+            ensure_user_is_host(lobby, user)
 
-        target_user = await self.user_repo.get_user(target_user_id)
-        if not target_user:
-            raise UserNotExists()
+            target_user = await self.user_repo.get_user(target_user_id)
+            if not target_user:
+                raise UserNotExists()
 
-        ensure_user_in_lobby(lobby, target_user)
+            ensure_user_in_lobby(lobby, target_user)
 
-        await self._remove_user(lobby, target_user)
+            await self._remove_user(lobby, target_user)
 
-        kicked_data = KickedFromLobby(lobby_id)
-        await self.notification_system.notify(target_user.id, kicked_data)
-        logger.info(f"User {target_user_id} kicked from lobby {lobby_id} by {user.id}")
+            kicked_data = KickedFromLobby(lobby_id)
+            await self.notification_system.notify(target_user.id, kicked_data)
+            logger.info(
+                f"User {target_user_id} kicked from lobby {lobby_id} by {user.id}"
+            )
+        except LobbyNotFound:
+            raise LobbyNotExists() from None
 
     async def _remove_user(self, lobby: Lobby, user: User):
         logger.debug(f"_remove_user(lobby_id={lobby.id}, user_id={user.id})")

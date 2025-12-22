@@ -8,9 +8,7 @@ from backend.tests.singleplayer.helpers import create_game
 async def test_websocket_initial_game_state_schema(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=5, columns=5, mine_count=2, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=2)
 
     async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         data = await ws.receive_json()
@@ -40,9 +38,7 @@ async def test_websocket_initial_game_state_schema(authenticated_clients, sessio
 async def test_websocket_game_over_loss_schema(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=3, columns=3, mine_count=7, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=3, columns=3, mine_count=7)
 
     game_over = None
     finished = False
@@ -81,9 +77,7 @@ async def test_websocket_get_game_state_returns_current_state(
 ):
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=5, columns=5, mine_count=5, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=5)
 
     async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
         initial = await ws.receive_json()
@@ -111,9 +105,7 @@ async def test_websocket_board_state_shows_revealed_cell(
 ):
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=5, columns=5, mine_count=3, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=3)
 
     try:
         async with bundle.ws(f"/game/single/{gameplay_id}") as ws:

@@ -13,7 +13,6 @@ from backend.core.multi.session import MultiplayerSession
 from backend.db.db import DBSession
 from backend.lib.redis_client import decode_redis_value
 
-from .exceptions import *
 from .orm import *
 
 
@@ -54,16 +53,18 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         logger.debug(
             f"save_session(session_id={session.id}, current_round_index={session.current_round_index})"
         )
-        data = pickle.dumps(session)
-        await self.redis.set(f"{self.prefix}{session.id}", data)
+
+        if session.is_over():
+            await self.delete_pending(session.id)
+            await self._save_to_db(session)
+        else:
+            await self._save_pending(session)
+
         logger.info(
             f"Multiplayer session {session.id} saved with current_round_index={session.current_round_index}"
         )
 
-        if session.is_over():
-            await self._save_to_db(session)
-
-    async def save_pending(self, session: MultiplayerSession):
+    async def _save_pending(self, session: MultiplayerSession):
         logger.debug(
             f"save_pending(session_id={session.id}, lobby_id={session.lobby_id})"
         )
@@ -78,9 +79,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             f"Pending multiplayer session {session.id} saved for lobby {session.lobby_id}"
         )
 
-    async def get_pending_for_lobby(
-        self, lobby_id: uuid.UUID
-    ) -> Optional[MultiplayerSession]:
+    async def get_for_lobby(self, lobby_id: uuid.UUID) -> Optional[MultiplayerSession]:
         logger.debug(f"get_pending_for_lobby(lobby_id={lobby_id})")
         session_id_str = await self.redis.get(f"{self.pending_prefix}lobby:{lobby_id}")
         if session_id_str:

@@ -134,6 +134,8 @@ class BoardORM(Base):
 
     difficulty_level: Mapped[DifficultyLevelORM] = relationship(back_populates="boards")
 
+    __table_args__ = (Index("uq_difficulty_level_minefields", difficulty_level_id),)
+
     def to_board(self) -> Board:
         return Board(
             id=self.id,
@@ -155,6 +157,7 @@ class BoardORM(Base):
 
 @event.listens_for(BoardORM.__table__, "after_create")
 def _create_postgres_unique_index(target, connection, **kw):
+    connection.execute(text("DROP INDEX IF EXISTS uq_difficulty_level_minefields"))
     if connection.dialect.name == "postgresql":
         connection.execute(
             text(

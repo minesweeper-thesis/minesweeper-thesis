@@ -1,24 +1,21 @@
-import random
-import uuid
-
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.core.board import Board, DifficultyLevel, GenerationSettings
+from backend.core.board import DifficultyLevel, GenerationSettings
 from backend.tests.conftest import create_or_get_board, generate_board_data
 
 
-async def create_board(
-    session: AsyncSession, rows=5, columns=5, mine_count=2
-) -> tuple[str, tuple[int, int]]:
-    difficulty = DifficultyLevel(rows=rows, columns=columns, mine_count=mine_count)
-    minefields, start_field = generate_board_data(rows, columns, mine_count)
+async def create_board(rows=5, columns=5, mine_count=2) -> tuple[str, tuple[int, int]]:
+    difficulty_level = DifficultyLevel(
+        rows=rows, columns=columns, mine_count=mine_count
+    )
+    minefields, start_field = generate_board_data(difficulty_level)
 
     board = await create_or_get_board(
-        difficulty=difficulty,
+        difficulty=difficulty_level,
         minefields=minefields,
         start_field=start_field,
         generation_settings=GenerationSettings(
-            type="random", settings=None, difficulty_level=difficulty
+            type="random", settings=None, difficulty_level=difficulty_level
         ),
     )
     return str(board.id), board.start_field
@@ -55,13 +52,10 @@ async def create_game(
     columns=5,
     mine_count=2,
     board_id: str | None = None,
-    session: AsyncSession | None = None,
 ) -> str:
     if board_id is None:
-        if session is None:
-            raise ValueError("session is required if board_id is not provided")
         board_id, _ = await create_board(
-            session, rows=rows, columns=columns, mine_count=mine_count
+            rows=rows, columns=columns, mine_count=mine_count
         )
 
     resp = await client.post(
