@@ -8,7 +8,7 @@ from backend.lib.background_handler import BackgroundRoundHandler
 from backend.lib.board_generator import LocalBoardGenerator
 from backend.lib.board_persister import BackgroundBoardPersister
 from backend.lib.pending_boards import RedisPendingStore
-from backend.lib.redis_client import get_redis
+from backend.lib.redis_client import get_redis_client
 from backend.lib.scheduler import get_scheduler
 from backend.repositories import *
 
@@ -25,17 +25,17 @@ def _get_game_transport_factory():
     return get_game_transport_factory()
 
 
-def _get_lobby_repository(redis=Depends(get_redis)):
+def _get_lobby_repository(redis=Depends(get_redis_client)):
     return RedisLobbyRepository(redis)
 
 
 def _get_multiplayer_repository(
-    session=Depends(get_async_session), redis=Depends(get_redis)
+    session=Depends(get_async_session), redis=Depends(get_redis_client)
 ):
     return RedisMultiplayerRepository(session, redis)
 
 
-def _get_pending_boards_store(redis=Depends(get_redis)):
+def _get_pending_boards_store(redis=Depends(get_redis_client)):
     return RedisPendingStore(redis)
 
 

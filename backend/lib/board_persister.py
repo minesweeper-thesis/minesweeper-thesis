@@ -26,6 +26,6 @@ class BackgroundBoardPersister:
             except BoardNotFound:
                 await board_repo.add_board(board)
 
-        redis_client = get_redis_client()
+        redis_client = await get_redis_client()
         pending_store = RedisPendingStore(redis_client)
         await pending_store.mark_ready(generation_id, board.id)

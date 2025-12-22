@@ -41,9 +41,7 @@ class PlaySingleService:
         pending = await self.pending_store.get_pending_gameplay(gameplay_id)
 
         if pending is not None:
-            pending = await self.pending_store.wait_for_ready(
-                pending.generation_id, timeout=timeout
-            )
+            pending = await self.pending_store.wait_for_ready(pending.generation_id)
             if pending is None or pending.board_id is None:
                 raise GenerationTimeout()
 

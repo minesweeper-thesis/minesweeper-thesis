@@ -46,7 +46,7 @@ class LobbyOfflineUsersKicker:
 
     async def _run(self) -> None:
         logger.debug("LobbyOfflineUsersKicker _run() loop starting")
-        redis_client = get_redis_client()
+        redis_client = await get_redis_client()
         pubsub = redis_client.pubsub()
 
         await pubsub.psubscribe("__keyevent@*__:expired")
@@ -115,7 +115,7 @@ class LobbyOfflineUsersKicker:
             f"Handling offline lobby kick for lobby_id={lobby_id}, user_id={user_id}"
         )
 
-        redis_client = get_redis_client()
+        redis_client = await get_redis_client()
 
         async with async_session_maker() as db_session:
             lobby_repo = RedisLobbyRepository(redis_client)
