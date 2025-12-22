@@ -6,7 +6,7 @@ from contextlib import suppress
 from backend.core.lobby.lobby import UserNotInLobby
 from backend.db import async_session_maker
 from backend.lib.notification_system import get_notification_system
-from backend.lib.redis_client import decode_redis_value, get_redis_client
+from backend.lib.redis_client import decode, get_redis_client
 from backend.lib.session_lock import SessionLock
 from backend.repositories import (
     RedisLobbyRepository,
@@ -74,7 +74,7 @@ class LobbyOfflineUsersKicker:
                     )
                     continue
 
-                key_str = decode_redis_value(key)
+                key_str = decode(key)
                 if not isinstance(key_str, str):
                     logger.debug(
                         "Decoded Redis key is not a string, skipping: %r", key_str
