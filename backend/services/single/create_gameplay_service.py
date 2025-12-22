@@ -181,7 +181,6 @@ class CreateSingleGameplayService:
                 mode=game_settings.mode,
                 user_id=user.id if user else None,
             ),
-            ttl_seconds=180,
         )
 
 

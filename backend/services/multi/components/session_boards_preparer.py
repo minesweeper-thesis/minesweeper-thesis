@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import Depends
@@ -62,12 +63,14 @@ class SessionBoardsPreparer:
             return None
 
     async def _generate_board(self, session: MultiplayerSession, round_index: int):
+        async def on_completed(generation_id: uuid.UUID, board: Board):
+            await self.background_handler.on_board_generated(
+                session.id, generation_id, board
+            )
+
         game_config = session.game_config
         generation_id = await self.board_generator.generate_board(
-            game_config.generation_settings,
-            on_completed=lambda generation_id, board: self.background_handler.on_board_generated(
-                session.id, generation_id, board
-            ),
+            game_config.generation_settings, on_completed=on_completed
         )
 
         await self.pending_store.create_pending(
@@ -79,7 +82,6 @@ class SessionBoardsPreparer:
                 session_id=session.id,
                 round_index=round_index,
             ),
-            24 * 3600,
         )
 
 

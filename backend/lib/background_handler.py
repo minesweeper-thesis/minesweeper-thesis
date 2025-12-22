@@ -50,9 +50,6 @@ class BackgroundRoundHandler:
                     )
                     return
 
-                if generation_id:
-                    await pending_store.mark_ready(generation_id, board.id)
-
                 round_time = timedelta(seconds=session.game_config.max_round_time)
                 round = await create_multiplayer_round(
                     session_id=session.id,
@@ -65,6 +62,10 @@ class BackgroundRoundHandler:
 
                 session.add_round(round)
                 await multi_repo.save_session(session)
+
+                if generation_id:
+                    await pending_store.mark_ready(generation_id, board.id)
+
                 logger.info(
                     f"Added round {round.round_index} to session {session_id} in background"
                 )

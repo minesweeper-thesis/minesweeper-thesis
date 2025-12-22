@@ -7,6 +7,7 @@ from backend.core.lobby.lobby import UserNotInLobby
 from backend.db import async_session_maker
 from backend.lib.notification_system import get_notification_system
 from backend.lib.redis_client import decode_redis_value, get_redis_client
+from backend.lib.session_lock import SessionLock
 from backend.repositories import (
     RedisLobbyRepository,
     RedisMultiplayerRepository,
@@ -122,12 +123,14 @@ class LobbyOfflineUsersKicker:
             multi_repo = RedisMultiplayerRepository(db_session, redis_client)
             user_repo = UserRepository(db_session)
             notification_system = get_notification_system()
+            session_lock = SessionLock(redis_client)
 
             lobby_service = LobbyService(
                 lobby_repo=lobby_repo,
                 user_repo=user_repo,
                 multi_repo=multi_repo,
                 notification_system=notification_system,
+                session_lock=session_lock,
             )
 
             user = await user_repo.get_user(user_id)

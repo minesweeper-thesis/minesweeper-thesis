@@ -132,9 +132,7 @@ class StartRoundService:
                 f"No next round available in session {session.id}, waiting for boards"
             )
             self.background_tasks.add_task(
-                self.pending_board_waiter.wait_and_schedule_next_round,
-                session.id,
-                24 * 3600,
+                self.pending_board_waiter.wait_and_schedule_next_round, session.id
             )
 
 
