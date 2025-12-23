@@ -175,9 +175,7 @@ class MultiplayerRound:
                 )
             )
 
-        if self.all_gameplays_finished():
-            self.end()
-        else:
+        if not self.all_gameplays_finished():
             before = copy(self._get_user_score_item(user_id))
             self._update_user_score_item(user_id)
             after = self._get_user_score_item(user_id)

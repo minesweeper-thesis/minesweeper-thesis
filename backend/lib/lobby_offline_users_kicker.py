@@ -6,7 +6,7 @@ from contextlib import suppress
 from backend.core.lobby.lobby import UserNotInLobby
 from backend.db import async_session_maker
 from backend.lib.notification_system import get_notification_system
-from backend.lib.redis_client import decode, get_redis_client
+from backend.lib.redis_client import get_redis_client
 from backend.lib.session_lock import SessionLock
 from backend.repositories import (
     RedisLobbyRepository,
@@ -74,24 +74,22 @@ class LobbyOfflineUsersKicker:
                     )
                     continue
 
-                key_str = decode(key)
-                if not isinstance(key_str, str):
-                    logger.debug(
-                        "Decoded Redis key is not a string, skipping: %r", key_str
-                    )
+                key = key.decode("utf-8") if isinstance(key, bytes) else key
+                if not isinstance(key, str):
+                    logger.debug("Decoded Redis key is not a string, skipping: %r", key)
                     continue
 
-                logger.debug("Received expired Redis key event for key=%s", key_str)
+                logger.debug("Received expired Redis key event for key=%s", key)
 
-                if not key_str.startswith(self.prefix):
+                if not key.startswith(self.prefix):
                     logger.debug(
                         "Expired Redis key %s does not match kick prefix %s, skipping",
-                        key_str,
+                        key,
                         self.prefix,
                     )
                     continue
 
-                suffix = key_str[len(self.prefix) :]
+                suffix = key[len(self.prefix) :]
                 await self._handle_expired_kick(suffix)
         except Exception:
             logger.exception("Unexpected error in LobbyOfflineUsersKicker _run() loop")

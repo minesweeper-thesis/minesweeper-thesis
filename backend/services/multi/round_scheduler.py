@@ -56,6 +56,9 @@ class RoundScheduler:
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
 
+            if session.rounds[round_index].state != "playing":
+                return
+
             session.end_round(round_index)
 
             events_by_user = session.consume_events()
@@ -63,12 +66,12 @@ class RoundScheduler:
 
             await self.multi_repo.save_session(session)
 
-            await self._publish_events(session.id, events_by_user)
+        await self._publish_events(session.id, events_by_user)
 
-            if session_over:
-                transport = self.game_transport_factory.create(session_id)
-                for user_id in session.player_ids:
-                    await transport.close(user_id)
+        if session_over:
+            transport = self.game_transport_factory.create(session_id)
+            for user_id in session.player_ids:
+                await transport.close(user_id)
 
     async def start_round(self, session_id: uuid.UUID, start_at: datetime):
         logger.debug(f"Starting round in session {session_id}")
