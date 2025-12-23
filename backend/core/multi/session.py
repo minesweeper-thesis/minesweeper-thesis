@@ -124,20 +124,13 @@ class MultiplayerSession:
     def end_round(self, round_index: int) -> None:
         round = self.rounds[round_index]
 
-        if round.state != "playing":
-            return
-
-        round.end()
-        self._consume_round_events()
-
         self.clear_ready_players()
         self.ready_locked = False
 
-        for item in round.scoreboard.items:
-            for session_item in self.scoreboard.items:
-                if session_item.user_id == item.user_id:
-                    session_item.score += item.score
-                    break
+        if round.state == "playing":
+            round.end()
+            self._consume_round_events()
+            self._update_scoreboard(round)
 
         if self.is_over():
             self.scoreboard.sort()
@@ -145,6 +138,13 @@ class MultiplayerSession:
                 self.events[user_id].append(
                     SessionOver(session_id=self.id, scoreboard=self.scoreboard)
                 )
+
+    def _update_scoreboard(self, round: MultiplayerRound) -> None:
+        for round_item in round.scoreboard.items:
+            for session_item in self.scoreboard.items:
+                if session_item.user_id == round_item.user_id:
+                    session_item.score = round_item.score
+                    break
 
     def start_next_round(self, start_at: datetime):
         if self.current_round_index != -1:
@@ -173,15 +173,7 @@ class MultiplayerSession:
         self._consume_round_events()
 
         if self._current_round.all_gameplays_finished():
-            self.clear_ready_players()
-            self.ready_locked = False
-
-        if self.is_over():
-            self.scoreboard.sort()
-            for user_id in self.player_ids:
-                self.events[user_id].append(
-                    SessionOver(session_id=self.id, scoreboard=self.scoreboard)
-                )
+            self.end_round(self.current_round_index)
 
     def _consume_round_events(self) -> None:
         for user_id, events in self._current_round.consume_events().items():
