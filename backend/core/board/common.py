@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Literal, Optional
 
 type ClassifierType = Literal["lightgbm", "catboost", "gaussiannb", "xgboost"]
-type HeuristicType = Literal["no", "naive", "GA", "MCTS", "PSO", "SA"]
+type HeuristicType = Literal["no", "naive", "GA", "PSO", "SA"]
 type GeneratorType = Literal["random", "ml"]
 
 

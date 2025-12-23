@@ -25,17 +25,9 @@ class OnnxClassifier(BaseClassifier):
 
         model_data = board.model_input().reshape(1, -1).astype(np.float32)
         result = self.session.run([self.output_name], {self.input_name: model_data})
-        output = result[0]
 
-        if isinstance(output, np.ndarray):
-            if output.shape[-1] == 2:
-                return float(output[0, 1])
-            elif output.ndim == 2 and output.shape[1] == 1:
-                return float(output[0, 0])
-            else:
-                return float(output.flat[0])
-        else:
-            return float(output)
+        output = np.array(result[0]).flatten()
+        return float(output[-1])
 
     @classmethod
     def load(cls, filename: str) -> "OnnxClassifier":
