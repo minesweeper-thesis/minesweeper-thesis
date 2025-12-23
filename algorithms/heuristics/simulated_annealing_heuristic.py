@@ -1,10 +1,11 @@
-from algorithms.heuristics.base_heuristic import BaseHeuristic
+import math
+import random
+
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.boards.random_neighbour_board import RandomNeighbourBoard
 from algorithms.classifiers.base_classifier import BaseClassifier
-import math
-import random
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 
 
 class SimulatedAnnealingHeuristic(BaseHeuristic):
@@ -27,10 +28,11 @@ class SimulatedAnnealingHeuristic(BaseHeuristic):
         self.T_MIN = T_MIN
 
     def run(self) -> BaseBoard:
-        best_board = None
-        best_score = 0.0
         board = RandomBoard(self.rows, self.columns, self.start_field, self.mine_count)
         score = self.classifier.classify(board)
+
+        best_board = board
+        best_score = score
 
         if self.iterations > 1:
             alpha = (self.T_MIN / self.T_MAX) ** (1 / (self.iterations - 1))
