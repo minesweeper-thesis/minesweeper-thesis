@@ -38,7 +38,6 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
     create_resp = await host_bundle.http.post("/lobbies")
     assert create_resp.status_code == 200
     lobby_id = create_resp.json()["id"]
-    session_id = lobby_id  # todo
 
     update_resp = await host_bundle.http.put(
         f"/lobbies/{lobby_id}",
@@ -71,38 +70,39 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         )
         assert join_resp.status_code == 200
 
-        host_game = await stack.enter_async_context(
-            host_bundle.ws(f"/game/multi/{session_id}")
-        )
-        guest_game = await stack.enter_async_context(
-            guest_bundle.ws(f"/game/multi/{session_id}")
-        )
-
         await receive_type(host_notif, "user_ready")
         await receive_type(host_notif, "user_online_status")
         await receive_type(host_notif, "invitation_response")
         await receive_type(host_notif, "user_connection_status")
         await receive_type(guest_notif, "user_connection_status")
 
-        await host_game.send_json({"type": "ready"})
+        await host_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
         for ws in (host_notif, guest_notif):
             assert (await receive_type(ws, "user_ready"))["value"] is True
 
-        await guest_game.send_json({"type": "ready"})
+        await guest_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
         for ws in (host_notif, guest_notif):
             assert (await receive_type(ws, "user_ready"))["value"] is True
             await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
-        await guest_game.send_json({"type": "not_ready"})
+        await guest_bundle.http.post(f"/lobbies/{lobby_id}/ready/cancel")
         for ws in (host_notif, guest_notif):
             assert (await receive_type(ws, "user_ready"))["value"] is False
 
-        await guest_game.send_json({"type": "ready"})
+        await guest_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
         for ws in (host_notif, guest_notif):
             assert (await receive_type(ws, "user_ready"))["value"] is True
-            await receive_type(ws, "round_ready")
+            msg = await receive_type(ws, "round_ready")
+            session_id = msg["session_id"]
             await receive_type(ws, "round_countdown")
+
+        host_game = await stack.enter_async_context(
+            host_bundle.ws(f"/game/multi/{session_id}")
+        )
+        guest_game = await stack.enter_async_context(
+            guest_bundle.ws(f"/game/multi/{session_id}")
+        )
 
         await fake_scheduler.skip(timedelta(seconds=10))
 

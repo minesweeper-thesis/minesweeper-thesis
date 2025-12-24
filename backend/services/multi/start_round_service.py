@@ -53,21 +53,51 @@ class StartRoundService:
         if session.is_over():
             raise SessionAlreadyOver()
 
-    async def toggle_user_ready(self, session_id: uuid.UUID, user: User):
+    async def toggle_user_ready(
+        self,
+        user: User,
+        *,
+        session_id: Optional[uuid.UUID] = None,
+        lobby_id: Optional[uuid.UUID] = None,
+    ):
         logger.debug(f"User {user.id} toggling ready status in session {session_id}")
-        session = await self.multi_repo.get_session(session_id)
+
+        assert session_id or lobby_id, "Either session_id or lobby_id must be provided"
+
+        if lobby_id:
+            session = await self.multi_repo.get_for_lobby(lobby_id)
+        else:
+            session = await self.multi_repo.get_session(session_id)  # type: ignore
+        assert session is not None, "Session not found"
+
         self._ensure_user_in_session(session, user)
         if session.is_user_ready(user.id):
-            await self.cancel_user_ready(session_id, user)
+            await self.cancel_user_ready(user, session_id=session_id, lobby_id=lobby_id)
         else:
-            await self.set_user_ready(session_id, user)
+            await self.set_user_ready(user, session_id=session_id, lobby_id=lobby_id)
 
-    async def cancel_user_ready(self, session_id: uuid.UUID, user: User):
+    async def cancel_user_ready(
+        self,
+        user: User,
+        *,
+        session_id: Optional[uuid.UUID] = None,
+        lobby_id: Optional[uuid.UUID] = None,
+    ):
         logger.debug(f"User {user.id} cancelling ready status in session {session_id}")
         should_notify = False
 
-        async with self.session_lock.acquire(session_id):
-            session = await self.multi_repo.get_session(session_id)
+        assert session_id or lobby_id, "Either session_id or lobby_id must be provided"
+
+        if lobby_id:
+            session = await self.multi_repo.get_for_lobby(lobby_id)
+        else:
+            session = await self.multi_repo.get_session(session_id)  # type: ignore
+        assert session is not None, "Session not found"
+
+        async with self.session_lock.acquire(session.id):
+            session = await self.multi_repo.get_session(session.id)
+            assert session is not None, "Session not found"
+
             self._ensure_user_in_session(session, user)
 
             if session.is_user_ready(user.id) and not session.ready_locked:
@@ -80,13 +110,29 @@ class StartRoundService:
                 self.notification_system.notify, session, user
             )
 
-    async def set_user_ready(self, session_id: uuid.UUID, user: User):
-        logger.debug(f"User {user.id} setting ready status in session {session_id}")
+    async def set_user_ready(
+        self,
+        user: User,
+        *,
+        session_id: Optional[uuid.UUID] = None,
+        lobby_id: Optional[uuid.UUID] = None,
+    ):
+        logger.debug(f"User {user.id} setting ready status in lobby {lobby_id}")
         should_notify = False
         all_ready = False
 
-        async with self.session_lock.acquire(session_id):
-            session = await self.multi_repo.get_session(session_id)
+        assert session_id or lobby_id, "Either session_id or lobby_id must be provided"
+
+        if lobby_id:
+            session = await self.multi_repo.get_for_lobby(lobby_id)
+        else:
+            session = await self.multi_repo.get_session(session_id)  # type: ignore
+        assert session is not None, "Session not found"
+
+        async with self.session_lock.acquire(session.id):
+            session = await self.multi_repo.get_session(session.id)
+            assert session is not None, "Session not found"
+
             self._ensure_user_in_session(session, user)
 
             if not session.is_user_ready(user.id) and not session.ready_locked:

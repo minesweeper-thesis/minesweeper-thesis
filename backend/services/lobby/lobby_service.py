@@ -67,7 +67,7 @@ class LobbyService:
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         await self.lobby_repo.save_lobby(lobby)
 
-        session = await create_session(lobby.id, lobby)
+        session = await create_session(lobby)
         await self.multi_repo.save_session(session)
         logger.debug(
             f"Created session {session.id} for lobby {lobby.id}, game_config={session.game_config}"
@@ -123,8 +123,10 @@ class LobbyService:
 
             event = lobby.update_game_config(game_config)
 
-            async with self.session_lock.acquire(lobby.id):
-                session = await self.multi_repo.get_for_lobby(lobby.id)
+            session = await self.multi_repo.get_for_lobby(lobby.id)
+            if not session:
+                raise RuntimeError("Session not found for lobby during update")
+            async with self.session_lock.acquire(session.id):
                 logger.debug(
                     f"Fetched session {session.id if session else 'None'} for lobby {lobby.id} to update"
                 )
@@ -198,8 +200,10 @@ class LobbyService:
                 await self.notification_system.notify(lobby_user.id, data)
 
     async def _sync_session_players(self, lobby: Lobby) -> None:
-        async with self.session_lock.acquire(lobby.id):
-            session = await self.multi_repo.get_session(lobby.id)
+        session = await self.multi_repo.get_for_lobby(lobby.id)
+        if not session:
+            raise RuntimeError("Session not found for lobby during sync")
+        async with self.session_lock.acquire(session.id):
 
             if not session.is_started() and not session.is_over():
                 session.set_player_ids([user.id for user in lobby.users])
