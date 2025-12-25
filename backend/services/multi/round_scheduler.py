@@ -1,7 +1,9 @@
 import logging
 import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Annotated, Any
+
+from fastapi import Depends
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,7 @@ from backend.di.session_lock import SessionLockDep
 from backend.services.dto import RoundCountdown
 from backend.services.exceptions import *
 from backend.services.multi.helpers import calc_round_start_times
+from backend.services.multi.session_renewer import SessionRenewer
 
 
 class RoundScheduler:
@@ -24,6 +27,7 @@ class RoundScheduler:
         notification_system: NotificationSystemDep,
         pending_store: PendingBoardsStoreDep,
         session_lock: SessionLockDep,
+        session_renewer: Annotated[SessionRenewer, Depends()],
     ):
         self.multi_repo = multi_repo
         self.scheduler = scheduler
@@ -33,6 +37,7 @@ class RoundScheduler:
         self.notification_system = notification_system
         self.pending_store = pending_store
         self.session_lock = session_lock
+        self.session_renewer = session_renewer
 
     async def _lock_ready_and_schedule_start(
         self, session_id: uuid.UUID, start_at: datetime
@@ -72,6 +77,8 @@ class RoundScheduler:
             transport = self.game_transport_factory.create(session_id)
             for user_id in session.player_ids:
                 await transport.close(user_id)
+
+            await self.session_renewer.renew_session(session.lobby_id)
 
     async def start_round(self, session_id: uuid.UUID, start_at: datetime):
         logger.debug(f"Starting round in session {session_id}")
