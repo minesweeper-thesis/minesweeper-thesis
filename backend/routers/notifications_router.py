@@ -1,5 +1,5 @@
-from contextlib import suppress
 from typing import Annotated
+from venv import logger
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
@@ -27,13 +27,15 @@ async def send_notifications(
     async def receiver():
         while True:
             data = await websocket.receive_json()
-            with suppress(ValueError):
+            try:
                 _ = WSRequest.from_dict(data)
                 invitations = await lobby_invitation_service.get_pending_invitations(
                     user
                 )
                 response = PendingInvitationsResponse.create(invitations)
                 await websocket.send_text(response)
+            except Exception as e:
+                logger.warning(f"Error processing WS request: {e}")
 
     try:
         await websocket.accept()

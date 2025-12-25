@@ -21,8 +21,14 @@ class SessionRenewer:
         lobby = await self.lobby_repo.get_lobby(lobby_id)
 
         existing_session = await self.multi_repo.get_for_lobby(lobby_id)
-        if existing_session and not existing_session.is_over():
-            logger.debug(f"Session for lobby {lobby_id} exists: {existing_session.id}")
+        if (
+            existing_session
+            and existing_session.is_started()
+            and not existing_session.is_over()
+        ):
+            logger.info(
+                f"Session for lobby {lobby_id} is still active: {existing_session.id}"
+            )
             return
 
         session = await create_session(lobby)
