@@ -33,7 +33,6 @@ async def test_multiplayer_single_player_flow(
     create_resp = await host_bundle.http.post("/lobbies")
     assert create_resp.status_code == 200
     lobby_id = create_resp.json()["id"]
-    session_id = lobby_id
 
     update_resp = await host_bundle.http.put(
         f"/lobbies/{lobby_id}",
@@ -58,15 +57,16 @@ async def test_multiplayer_single_player_flow(
         msg = await receive_type(notif_ws, "user_ready")
         assert msg["value"] is True, f"received {msg}"
 
-        await receive_type(notif_ws, "round_ready")
+        msg = await receive_type(notif_ws, "round_ready")
+        session_id = msg["session_id"]
 
         game_ws = await stack.enter_async_context(
             host_bundle.ws(f"/game/multi/{session_id}")
         )
+        await receive_type(notif_ws, "round_countdown")
 
         await fake_scheduler.skip(timedelta=timedelta(seconds=10))
 
-        await receive_type(notif_ws, "round_countdown")
         start_msg = await receive_type(game_ws, "round_start")
         start_field = tuple(start_msg["start_field"])
 

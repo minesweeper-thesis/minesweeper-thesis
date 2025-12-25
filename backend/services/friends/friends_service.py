@@ -110,8 +110,14 @@ class FriendsService:
             await self.friends_repo.add_friendship(
                 Friendship(user=friend_request.friend, friend=friend_request.user)
             )
+
+            friend_request.status = FriendRequestStatus.accepted
             await self.friends_repo.change_friend_request_status(
                 friend_request.id, FriendRequestStatus.accepted
+            )
+
+            await self.notification_system.notify(
+                friend_request.user.id, friend_request
             )
         except FriendRequestNotFound:
             raise FriendRequestNotExists() from None
@@ -124,8 +130,13 @@ class FriendsService:
                 status=FriendRequestStatus.pending,
             )
 
+            friend_request.status = FriendRequestStatus.rejected
             await self.friends_repo.change_friend_request_status(
                 friend_request.id, FriendRequestStatus.rejected
+            )
+
+            await self.notification_system.notify(
+                friend_request.user.id, friend_request
             )
         except FriendRequestNotFound:
             raise FriendRequestNotExists() from None

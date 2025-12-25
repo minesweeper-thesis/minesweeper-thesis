@@ -1,8 +1,9 @@
-from algorithms.heuristics.base_heuristic import BaseHeuristic
+from copy import deepcopy
+
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.pso_board import PSOBoard
 from algorithms.classifiers.base_classifier import BaseClassifier
-from copy import deepcopy
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 
 
 class ParticleSwarmHeuristic(BaseHeuristic):
@@ -27,7 +28,6 @@ class ParticleSwarmHeuristic(BaseHeuristic):
         self.particle_count = particle_count
 
     def run(self) -> BaseBoard:
-        best_global_position = None
         best_score = 0
         particles = [
             PSOBoard(
@@ -41,6 +41,7 @@ class ParticleSwarmHeuristic(BaseHeuristic):
             )
             for _ in range(self.particle_count)
         ]
+        best_global_position = deepcopy(particles[0].mined_fields)
 
         for board in particles:
             score = self.classifier.classify(board)

@@ -117,7 +117,7 @@ async def set_user_ready(
     user: CurrentUser,
 ):
     """Sets the user as ready in the lobby."""
-    await service.set_user_ready(lobby_id, user)
+    await service.set_user_ready(user, lobby_id=lobby_id)
 
 
 @lobby_router.post("/{lobby_id}/ready/cancel")
@@ -127,7 +127,7 @@ async def cancel_user_ready(
     service: StartRoundService,
 ):
     """Sets the user as not ready in the lobby."""
-    await service.cancel_user_ready(lobby_id, user)
+    await service.cancel_user_ready(user, lobby_id=lobby_id)
 
 
 @lobby_router.post("/{lobby_id}/ready/toggle")
@@ -136,7 +136,7 @@ async def toggle_user_ready(
     user: CurrentUser,
     service: StartRoundService,
 ):
-    await service.toggle_user_ready(lobby_id, user)
+    await service.toggle_user_ready(user, lobby_id=lobby_id)
 
 
 @lobby_router.post("/{lobby_id}/chat-messages")

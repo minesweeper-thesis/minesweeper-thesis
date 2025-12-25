@@ -1,8 +1,9 @@
 import logging
 import uuid
 from contextlib import suppress
+from typing import Annotated
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, Depends
 
 from backend.core.multi.gameplay import GameplayNotInProgress
 from backend.core.user import User
@@ -15,6 +16,7 @@ from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
 from backend.protocols.game_transport_protocol import GameTransport
 from backend.services.exceptions import *
+from backend.services.multi.session_renewer import SessionRenewer
 
 
 class PlayMultiService:
@@ -26,6 +28,7 @@ class PlayMultiService:
         scheduler: SchedulerDep,
         game_transport_factory: GameTransportFactoryDep,
         session_lock: SessionLockDep,
+        session_renewer: Annotated[SessionRenewer, Depends()],
     ):
         self.multi_repo = multi_repo
         self.background_tasks = background_tasks
@@ -33,6 +36,7 @@ class PlayMultiService:
         self.scheduler = scheduler
         self.game_transport_factory = game_transport_factory
         self.session_lock = session_lock
+        self.session_renewer = session_renewer
 
         self.transport: GameTransport = None  # type: ignore
 
@@ -98,6 +102,9 @@ class PlayMultiService:
             for user_id, events in events_by_user.items():
                 for event in events:
                     await self.transport.send(user_id, event)
+
+            if self.session.is_over():
+                await self.session_renewer.renew_session(self.session.lobby_id)
 
 
 __all__ = ["PlayMultiService"]

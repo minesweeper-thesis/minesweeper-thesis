@@ -15,6 +15,7 @@ from backend.repositories import (
 )
 from backend.services.exceptions import LobbyNotExists
 from backend.services.lobby.lobby_service import LobbyService
+from backend.services.multi.session_renewer import SessionRenewer
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,10 @@ class LobbyOfflineUsersKicker:
             user_repo = UserRepository(db_session)
             notification_system = get_notification_system()
             session_lock = SessionLock(redis_client)
+            session_renewer = SessionRenewer(
+                lobby_repo=lobby_repo,
+                multi_repo=multi_repo,
+            )
 
             lobby_service = LobbyService(
                 lobby_repo=lobby_repo,
@@ -129,6 +134,7 @@ class LobbyOfflineUsersKicker:
                 multi_repo=multi_repo,
                 notification_system=notification_system,
                 session_lock=session_lock,
+                session_renewer=session_renewer,
             )
 
             user = await user_repo.get_user(user_id)

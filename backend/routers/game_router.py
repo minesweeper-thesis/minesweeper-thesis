@@ -120,13 +120,13 @@ async def handle_multi(
             await play.get_game_state()
 
         case "ready":
-            await start_round.set_user_ready(session_id, user)
+            await start_round.set_user_ready(user, session_id=session_id)
 
         case "not_ready":
-            await start_round.cancel_user_ready(session_id, user)
+            await start_round.cancel_user_ready(user, session_id=session_id)
 
         case "toggle_ready":
-            await start_round.toggle_user_ready(session_id, user)
+            await start_round.toggle_user_ready(user, session_id=session_id)
 
         case _:
             action = _create_action_from_data_multi(data)

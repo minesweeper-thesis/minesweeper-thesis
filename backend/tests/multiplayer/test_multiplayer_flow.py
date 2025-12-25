@@ -44,7 +44,6 @@ async def test_multiplayer_full_flow_many_players(
     create_resp = await host_bundle.http.post("/lobbies")
     assert create_resp.status_code == 200
     lobby_id = create_resp.json()["id"]
-    session_id = lobby_id
 
     update_resp = await host_bundle.http.put(
         f"/lobbies/{lobby_id}",
@@ -98,16 +97,6 @@ async def test_multiplayer_full_flow_many_players(
         )
         assert join_resp.status_code == 200
 
-        host_game = await stack.enter_async_context(
-            host_bundle.ws(f"/game/multi/{session_id}")
-        )
-        g1_game = await stack.enter_async_context(
-            g1_bundle.ws(f"/game/multi/{session_id}")
-        )
-        g2_game = await stack.enter_async_context(
-            g2_bundle.ws(f"/game/multi/{session_id}")
-        )
-
         await receive_type(host_notif, "invitation_response")
         await receive_type(host_notif, "user_connection_status")
         await receive_type(host_notif, "invitation_response")
@@ -117,17 +106,17 @@ async def test_multiplayer_full_flow_many_players(
         await receive_type(g1_notif, "user_connection_status")
         await receive_type(g2_notif, "user_connection_status")
 
-        await host_game.send_json({"type": "ready"})
+        await host_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
         for ws in (host_notif, g1_notif, g2_notif):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        await g1_game.send_json({"type": "ready"})
+        await g1_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
         for ws in (host_notif, g1_notif, g2_notif):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        await g2_game.send_json({"type": "ready"})
+        await g2_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
         for ws in (host_notif, g1_notif, g2_notif):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
@@ -138,19 +127,30 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_notif, g1_notif, g2_notif):
             await receive_type(ws, "round_countdown")
 
-        await g1_game.send_json({"type": "not_ready"})
+        await g1_bundle.http.post(f"/lobbies/{lobby_id}/ready/cancel")
         for ws in (host_notif, g1_notif, g2_notif):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is False
 
-        await g1_game.send_json({"type": "ready"})
+        await g1_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
         for ws in (host_notif, g1_notif, g2_notif):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
         for ws in (host_notif, g1_notif, g2_notif):
-            await receive_type(ws, "round_ready")
+            msg = await receive_type(ws, "round_ready")
+            session_id = msg["session_id"]
             await receive_type(ws, "round_countdown")
+
+        host_game = await stack.enter_async_context(
+            host_bundle.ws(f"/game/multi/{session_id}")
+        )
+        g1_game = await stack.enter_async_context(
+            g1_bundle.ws(f"/game/multi/{session_id}")
+        )
+        g2_game = await stack.enter_async_context(
+            g2_bundle.ws(f"/game/multi/{session_id}")
+        )
 
         await fake_scheduler.skip(timedelta(seconds=10))
 
@@ -163,6 +163,7 @@ async def test_multiplayer_full_flow_many_players(
         await host_game.send_json(
             {"type": "reveal_one", "cell": [start_field[0], start_field[1]]}
         )
+
         await receive_type(host_game, "reveal")
         for ws in (host_game, g1_game, g2_game):
             await receive_type(ws, "score_update")

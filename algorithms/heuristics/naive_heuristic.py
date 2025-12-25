@@ -1,7 +1,7 @@
-from algorithms.heuristics.base_heuristic import BaseHeuristic
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.classifiers.base_classifier import BaseClassifier
+from algorithms.heuristics.base_heuristic import BaseHeuristic
 
 
 class NaiveHeuristic(BaseHeuristic):
@@ -30,4 +30,4 @@ class NaiveHeuristic(BaseHeuristic):
                 best_score = score
                 best_board = board
 
-        return best_board
+        return best_board if best_board is not None else board

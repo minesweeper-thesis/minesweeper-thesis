@@ -1,8 +1,12 @@
 import logging
 import uuid
+from typing import Annotated
+
+from fastapi import Depends
 
 from backend.repositories.lobby_repo import InvitationNotFound, LobbyNotFound
 from backend.services.exceptions import UserNotExists
+from backend.services.multi.session_renewer import SessionRenewer
 
 logger = logging.getLogger(__name__)
 
@@ -51,12 +55,14 @@ class LobbyService:
         multi_repo: MultiplayerRepositoryDep,
         notification_system: NotificationSystemDep,
         session_lock: SessionLockDep,
+        session_renewer: Annotated[SessionRenewer, Depends()],
     ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo
         self.multi_repo = multi_repo
         self.notification_system = notification_system
         self.session_lock = session_lock
+        self.session_renewer = session_renewer
 
     async def create_lobby(self, user: User) -> Lobby:
         logger.debug(f"create_lobby(user_id={user.id})")
@@ -67,7 +73,7 @@ class LobbyService:
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         await self.lobby_repo.save_lobby(lobby)
 
-        session = await create_session(lobby.id, lobby)
+        session = await create_session(lobby)
         await self.multi_repo.save_session(session)
         logger.debug(
             f"Created session {session.id} for lobby {lobby.id}, game_config={session.game_config}"
@@ -122,21 +128,9 @@ class LobbyService:
             ensure_user_is_host(lobby, user)
 
             event = lobby.update_game_config(game_config)
-
-            async with self.session_lock.acquire(lobby.id):
-                session = await self.multi_repo.get_for_lobby(lobby.id)
-                logger.debug(
-                    f"Fetched session {session.id if session else 'None'} for lobby {lobby.id} to update"
-                )
-
-                if session is not None:
-                    session.game_config = game_config
-                    await self.multi_repo.save_session(session)
-
-            session = await self.multi_repo.get_for_lobby(lobby.id)
-            logger.debug(f"Updated session game_config to {session.game_config}")  # type: ignore
-
             await self.lobby_repo.save_lobby(lobby)
+
+            await self.session_renewer.renew_session(lobby_id)
 
             for lobby_user in lobby.users:
                 await self.notification_system.notify(lobby_user.id, event)
@@ -198,8 +192,10 @@ class LobbyService:
                 await self.notification_system.notify(lobby_user.id, data)
 
     async def _sync_session_players(self, lobby: Lobby) -> None:
-        async with self.session_lock.acquire(lobby.id):
-            session = await self.multi_repo.get_session(lobby.id)
+        session = await self.multi_repo.get_for_lobby(lobby.id)
+        if not session:
+            raise RuntimeError("Session not found for lobby during sync")
+        async with self.session_lock.acquire(session.id):
 
             if not session.is_started() and not session.is_over():
                 session.set_player_ids([user.id for user in lobby.users])
