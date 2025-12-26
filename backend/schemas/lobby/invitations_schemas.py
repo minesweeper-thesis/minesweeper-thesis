@@ -13,10 +13,6 @@ class InviteUserToLobbyRequest(BaseModel):
     user_id: uuid.UUID
 
 
-class JoinLobbyRequest(BaseModel):
-    invitation_id: uuid.UUID
-
-
 class PendingInvitationsRequest(WSRequest):
     ws_type: Literal["pending_invitations"] = "pending_invitations"
 
@@ -79,7 +75,6 @@ class PendingInvitationsResponse(Response):
 
 __all__ = [
     "InviteUserToLobbyRequest",
-    "JoinLobbyRequest",
     "InvitationResponse",
     "InvitationAnswerResponse",
     "InvitationLobbyResponse",

@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
@@ -35,6 +35,9 @@ game_exceptions = {
         400, "Multiplayer session is already over"
     ),
     ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
+    exceptions.InvitationNotExists: HTTPException(
+        status_code=404, detail="Invitation not found."
+    ),
 }
 
 
@@ -156,9 +159,12 @@ async def play_multi(
     play: PlayMultiService,
     start: StartRoundService,
     user: CurrentUserWebSocket,
+    lobby_service: LobbyService,
     user_connection_service: UserConnectionService,
+    invitation_id: Optional[uuid.UUID] = None,
 ):
     try:
+        await lobby_service.join_lobby(user, invitation_id) if invitation_id else None
         await play.validate_session(lobby_id, user)
         await websocket.accept()
         lobby_websockets.add(lobby_id, user.id, websocket)

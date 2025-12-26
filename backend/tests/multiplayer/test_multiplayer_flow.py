@@ -81,13 +81,6 @@ async def test_multiplayer_full_flow_many_players(
         assert inv_resp.status_code == 200
 
         inv1 = await receive_type(g1_notif, "invitation")
-        join_resp = await g1_bundle.http.post(
-            f"/lobbies/{lobby_id}/join",
-            json={"invitation_id": inv1["id"]},
-        )
-        assert join_resp.status_code == 200
-        await receive_type(host_lobby, "invitation_response")
-        await receive_type(host_lobby, "user_connection_status")
 
         inv_resp = await host_bundle.http.post(
             f"/lobbies/{lobby_id}/invitations",
@@ -95,25 +88,24 @@ async def test_multiplayer_full_flow_many_players(
         )
         assert inv_resp.status_code == 200
         inv2 = await receive_type(g2_notif, "invitation")
-        join_resp = await g2_bundle.http.post(
-            f"/lobbies/{lobby_id}/join",
-            json={"invitation_id": inv2["id"]},
-        )
-        assert join_resp.status_code == 200
-        await receive_type(host_lobby, "invitation_response")
-        await receive_type(host_lobby, "user_connection_status")
-        # await receive_type(g1_lobby, "user_connection_status") # comes if g1 already connected
 
         g1_lobby = await stack.enter_async_context(
-            g1_bundle.ws(f"/game/multi/{lobby_id}")
+            g1_bundle.ws(f"/game/multi/{lobby_id}?invitation_id={inv1['id']}")
         )
-        await receive_type(g1_lobby, "user_ready")
+        await receive_type(host_lobby, "invitation_response")
+        await receive_type(host_lobby, "user_connection_status")
+
         await receive_type(g1_lobby, "user_ready")
         await receive_type(g1_lobby, "user_ready")
 
         g2_lobby = await stack.enter_async_context(
-            g2_bundle.ws(f"/game/multi/{lobby_id}")
+            g2_bundle.ws(f"/game/multi/{lobby_id}?invitation_id={inv2['id']}")
         )
+
+        await receive_type(host_lobby, "invitation_response")
+        await receive_type(host_lobby, "user_connection_status")
+        await receive_type(g1_lobby, "user_connection_status")
+
         await receive_type(g2_lobby, "user_ready")
         await receive_type(g2_lobby, "user_ready")
         await receive_type(g2_lobby, "user_ready")

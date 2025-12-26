@@ -35,17 +35,6 @@ async def test_join_lobby_returns_lobby_response(authenticated_clients):
 
 
 @pytest.mark.asyncio(loop_scope="session")
-async def test_join_lobby_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.post(
-        f"/lobbies/{uuid.uuid4()}/join",
-        json={
-            "invitation_id": str(uuid.uuid4()),
-        },
-    )
-    assert resp.status_code == 401
-
-
-@pytest.mark.asyncio(loop_scope="session")
 async def test_leave_lobby_success(authenticated_clients):
     client = authenticated_clients[0]
     create_resp = await client.http.post("/lobbies")

@@ -67,18 +67,6 @@ async def invite_user_to_lobby(
     await service.invite_to_lobby(lobby_id, user, request.user_id)
 
 
-@lobby_router.post("/{lobby_id}/join")
-async def join_lobby(
-    lobby_id: uuid.UUID,
-    service: LobbyService,
-    user: CurrentUser,
-    request: JoinLobbyRequest,
-):
-    """Joins a lobby using an invitation."""
-    lobby = await service.join_lobby(user, request.invitation_id)
-    return LobbyResponse.build(lobby)
-
-
 @lobby_router.post("/{lobby_id}/leave")
 async def leave_lobby(
     lobby_id: uuid.UUID,
