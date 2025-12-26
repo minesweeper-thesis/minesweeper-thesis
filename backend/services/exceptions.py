@@ -77,6 +77,10 @@ class InvitationNotExists(Exception):
     pass
 
 
+class GenerationError(Exception):
+    pass
+
+
 __all__ = [
     "UsersNotFriends",
     "FriendRequestNotExists",
@@ -94,4 +98,5 @@ __all__ = [
     "UserNotInSession",
     "SessionAlreadyOver",
     "InvitationNotExists",
+    "GenerationError",
 ]

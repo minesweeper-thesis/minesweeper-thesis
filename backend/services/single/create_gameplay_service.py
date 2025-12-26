@@ -10,13 +10,7 @@ from backend.core.board import Board, GenerationSettings
 from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
-from backend.di.dependencies import (
-    BoardGeneratorDep,
-    BoardPersisterDep,
-    BoardRepositoryDep,
-    PendingBoardsStoreDep,
-    SingleplayerRepositoryDep,
-)
+from backend.di.dependencies import *
 from backend.lib.auth import OptionalCurrentUser
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.services.dto import *

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import uuid
 from typing import Optional
@@ -88,8 +87,6 @@ class RedisPendingStore(protocols.PendingBoardsStore):
 
             result = await wait()
             return result
-        except asyncio.TimeoutError:
-            return None
         finally:
             await pubsub.aclose()
 

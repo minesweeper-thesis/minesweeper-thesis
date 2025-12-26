@@ -11,7 +11,6 @@ from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.lobby_websockets import lobby_websockets
 from backend.schemas.game import NewGameRequest, NewGameResponse
 from backend.services import exceptions
-from backend.services.single.single_exceptions import GenerationTimeout
 
 CreateSingleGameplayService = Annotated[services.CreateSingleGameplayService, Depends()]
 UserConnectionService = Annotated[services.UserConnectionService, Depends()]
@@ -109,8 +108,8 @@ async def play_single(
     except WebSocketDisconnect:
         await service.save_gameplay_progress()
 
-    except GenerationTimeout:
-        await websocket.close(code=1001, reason="Board generation timeout")
+    except exceptions.GenerationError:
+        await websocket.close(code=1001, reason="Board generation error")
 
 
 async def handle_multi(

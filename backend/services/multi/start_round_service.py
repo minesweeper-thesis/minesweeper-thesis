@@ -58,9 +58,9 @@ class StartRoundService:
 
         self._ensure_user_in_session(session, user)
         if session.is_user_ready(user.id):
-            await self.cancel_user_ready(user, lobby_id=lobby_id)
+            await self.cancel_user_ready(user, lobby_id)
         else:
-            await self.set_user_ready(user, lobby_id=lobby_id)
+            await self.set_user_ready(user, lobby_id)
 
     async def cancel_user_ready(self, user: User, lobby_id: uuid.UUID):
         logger.debug(f"User {user.id} cancelling ready status in lobby {lobby_id}")
@@ -85,11 +85,7 @@ class StartRoundService:
             next_round_index = session.current_round_index + 1
             await transport.broadcast(UserNotReady(user.id, next_round_index))
 
-    async def set_user_ready(
-        self,
-        user: User,
-        lobby_id: uuid.UUID,
-    ):
+    async def set_user_ready(self, user: User, lobby_id: uuid.UUID):
         logger.debug(f"User {user.id} setting ready status in lobby {lobby_id}")
         should_notify = False
         all_ready = False

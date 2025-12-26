@@ -16,7 +16,6 @@ from backend.di.dependencies import *
 from backend.lib.auth import CurrentUser
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.single.single_exceptions import GenerationTimeout
 
 
 class PlaySingleService:
@@ -39,7 +38,7 @@ class PlaySingleService:
         if pending is not None:
             pending = await self.pending_store.wait_for_ready(pending.generation_id)
             if pending is None or pending.board_id is None:
-                raise GenerationTimeout()
+                raise GenerationError()
 
             board = await self.board_repo.get_board_by_id(pending.board_id)
 
@@ -134,4 +133,4 @@ class PlaySingleService:
         await self.game_repo.update_gameplay(self.gameplay)
 
 
-__all__ = ["PlaySingleService", "GenerationTimeout"]
+__all__ = ["PlaySingleService", "GenerationError"]
