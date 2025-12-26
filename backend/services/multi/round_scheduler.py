@@ -13,7 +13,7 @@ from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
 from backend.services.dto import RoundCountdown
 from backend.services.exceptions import *
-from backend.services.multi.helpers import calc_round_start_times
+from backend.services.multi.constants import COUNTDOWN_DELAY, START_DELAY
 from backend.services.multi.session_renewer import SessionRenewer
 
 
@@ -143,6 +143,12 @@ class RoundScheduler:
             session_id=session.id,
             start_at=start_at,
         )
+
+
+def calc_round_start_times():
+    countdown_to = datetime.now() + COUNTDOWN_DELAY
+    start_at = countdown_to + START_DELAY
+    return countdown_to, start_at
 
 
 __all__ = ["RoundScheduler"]
