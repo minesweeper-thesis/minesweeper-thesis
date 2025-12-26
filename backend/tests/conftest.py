@@ -19,6 +19,8 @@ from backend.db import db
 from backend.main import api, app, lifespan
 from backend.repositories.board_repo import BoardRepository
 
+db.engine.echo = False
+
 
 async def create_or_get_board(
     difficulty: DifficultyLevel,

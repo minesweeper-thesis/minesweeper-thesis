@@ -22,19 +22,17 @@ class RoundScheduler:
         self,
         multi_repo: MultiplayerRepositoryDep,
         scheduler: SchedulerDep,
-        game_transport_factory: GameTransportFactoryDep,
+        lobby_transport_factory: LobbyTransportFactoryDep,
         board_repo: BoardRepositoryDep,
-        notification_system: NotificationSystemDep,
         pending_store: PendingBoardsStoreDep,
         session_lock: SessionLockDep,
         session_renewer: Annotated[SessionRenewer, Depends()],
     ):
         self.multi_repo = multi_repo
         self.scheduler = scheduler
-        self.game_transport_factory = game_transport_factory
+        self.lobby_transport_factory = lobby_transport_factory
 
         self.board_repo = board_repo
-        self.notification_system = notification_system
         self.pending_store = pending_store
         self.session_lock = session_lock
         self.session_renewer = session_renewer
@@ -71,10 +69,10 @@ class RoundScheduler:
 
             await self.multi_repo.save_session(session)
 
-        await self._publish_events(session.id, events_by_user)
+        await self._publish_events(session.lobby_id, events_by_user)
 
         if session_over:
-            transport = self.game_transport_factory.create(session_id)
+            transport = self.lobby_transport_factory.create(session.lobby_id)
             for user_id in session.player_ids:
                 await transport.close(user_id)
 
@@ -95,7 +93,7 @@ class RoundScheduler:
 
             await self.multi_repo.save_session(session)
 
-            await self._publish_events(session.id, events_by_user)
+            await self._publish_events(session.lobby_id, events_by_user)
 
             self.scheduler.schedule(
                 self._end_round,
@@ -109,13 +107,9 @@ class RoundScheduler:
         session: MultiplayerSession,
         round_start_time: datetime,
         countdown_to: datetime,
-        in_game: bool = False,
     ):
-        if in_game:
-            transport = self.game_transport_factory.create(session.id)
-            sender = transport.send
-        else:
-            sender = self.notification_system.notify
+        transport = self.lobby_transport_factory.create(session.lobby_id)
+        sender = transport.send
 
         for user_id in session.player_ids:
             await sender(
@@ -130,20 +124,18 @@ class RoundScheduler:
             )
 
     async def _publish_events(
-        self, session_id: uuid.UUID, events_by_user: dict[uuid.UUID, list[Any]]
+        self, lobby_id: uuid.UUID, events_by_user: dict[uuid.UUID, list[Any]]
     ):
-        transport = self.game_transport_factory.create(session_id)
+        transport = self.lobby_transport_factory.create(lobby_id)
         for user_id, events in events_by_user.items():
             for event in events:
                 await transport.send(user_id, event)
 
-    async def schedule_start(self, session: MultiplayerSession, in_game=True):
-        logger.debug(
-            f"Scheduling start of round in session {session.id}, in_game={in_game}"
-        )
+    async def schedule_start(self, session: MultiplayerSession):
+        logger.debug(f"Scheduling start of round in session {session.id}")
         countdown_to, start_at = calc_round_start_times()
 
-        await self._send_countdown(session, start_at, countdown_to, in_game=in_game)
+        await self._send_countdown(session, start_at, countdown_to)
 
         self.scheduler.schedule(
             self._lock_ready_and_schedule_start,

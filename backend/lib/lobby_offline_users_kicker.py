@@ -5,6 +5,7 @@ from contextlib import suppress
 
 from backend.core.lobby.lobby import UserNotInLobby
 from backend.db import async_session_maker
+from backend.lib.lobby_transport import LobbyTransportFactory
 from backend.lib.notification_system import get_notification_system
 from backend.lib.redis_client import get_redis_client
 from backend.lib.session_lock import SessionLock
@@ -127,6 +128,7 @@ class LobbyOfflineUsersKicker:
                 lobby_repo=lobby_repo,
                 multi_repo=multi_repo,
             )
+            lobby_transport_factory = LobbyTransportFactory()
 
             lobby_service = LobbyService(
                 lobby_repo=lobby_repo,
@@ -135,6 +137,7 @@ class LobbyOfflineUsersKicker:
                 notification_system=notification_system,
                 session_lock=session_lock,
                 session_renewer=session_renewer,
+                lobby_transport_factory=lobby_transport_factory,
             )
 
             user = await user_repo.get_user(user_id)

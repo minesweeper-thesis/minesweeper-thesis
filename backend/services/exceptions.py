@@ -65,6 +65,10 @@ class UserNotInSession(Exception):
     pass
 
 
+class SessionNotExists(Exception):
+    pass
+
+
 class SessionAlreadyOver(Exception):
     pass
 

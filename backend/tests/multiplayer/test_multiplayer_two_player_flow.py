@@ -54,8 +54,13 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
     async with AsyncExitStack() as stack:
         host_notif = await stack.enter_async_context(host_bundle.ws())
         guest_notif = await stack.enter_async_context(guest_bundle.ws())
-        assert await receive_type(host_notif, "current_lobby")
-        assert await receive_type(guest_notif, "current_lobby")
+        await receive_type(host_notif, "current_lobby")
+        await receive_type(guest_notif, "current_lobby")
+
+        host_lobby = await stack.enter_async_context(
+            host_bundle.ws(f"/game/multi/{lobby_id}")
+        )
+        await receive_type(host_lobby, "user_ready")
 
         inv_resp = await host_bundle.http.post(
             f"/lobbies/{lobby_id}/invitations",
@@ -69,128 +74,123 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
             json={"invitation_id": invitation["id"]},
         )
         assert join_resp.status_code == 200
+        await receive_type(host_lobby, "invitation_response")
 
-        await receive_type(host_notif, "user_ready")
-        await receive_type(host_notif, "user_online_status")
-        await receive_type(host_notif, "invitation_response")
-        await receive_type(host_notif, "user_connection_status")
-        await receive_type(guest_notif, "user_connection_status")
+        guest_lobby = await stack.enter_async_context(
+            guest_bundle.ws(f"/game/multi/{lobby_id}")
+        )
+        await receive_type(guest_lobby, "user_ready")
+        await receive_type(guest_lobby, "user_ready")
 
-        await host_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
-        for ws in (host_notif, guest_notif):
+        await receive_type(host_lobby, "user_connection_status")
+
+        await host_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             assert (await receive_type(ws, "user_ready"))["value"] is True
 
-        await guest_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
-        for ws in (host_notif, guest_notif):
+        await guest_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             assert (await receive_type(ws, "user_ready"))["value"] is True
             await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
-        await guest_bundle.http.post(f"/lobbies/{lobby_id}/ready/cancel")
-        for ws in (host_notif, guest_notif):
+        await guest_lobby.send_json({"type": "not_ready"})
+        for ws in (host_lobby, guest_lobby):
             assert (await receive_type(ws, "user_ready"))["value"] is False
 
-        await guest_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
-        for ws in (host_notif, guest_notif):
+        await guest_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             assert (await receive_type(ws, "user_ready"))["value"] is True
             msg = await receive_type(ws, "round_ready")
-            session_id = msg["session_id"]
             await receive_type(ws, "round_countdown")
-
-        host_game = await stack.enter_async_context(
-            host_bundle.ws(f"/game/multi/{session_id}")
-        )
-        guest_game = await stack.enter_async_context(
-            guest_bundle.ws(f"/game/multi/{session_id}")
-        )
 
         await fake_scheduler.skip(timedelta(seconds=10))
 
-        start_host = await receive_type(host_game, "round_start")
-        await receive_type(guest_game, "round_start")
+        start_host = await receive_type(host_lobby, "round_start")
+        await receive_type(guest_lobby, "round_start")
         start_field = tuple(start_host["start_field"])
 
         flagged = random_cell(rows=3, cols=3, exclude=start_field)
-        await host_game.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
-        await receive_type(host_game, "flag")
+        await host_lobby.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
+        await receive_type(host_lobby, "flag")
 
-        await host_game.send_json(
+        await host_lobby.send_json(
             {"type": "reveal_one", "cell": [flagged[0], flagged[1]]}
         )
 
         await fake_scheduler.skip(timedelta(seconds=60))
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "game_over")
 
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_end")
 
         fake_scheduler.reset()
 
-        await host_game.send_json({"type": "ready"})
-        for ws in (host_notif, guest_notif):
+        await host_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "user_ready")
 
-        await guest_game.send_json({"type": "ready"})
-        for ws in (host_notif, guest_notif):
+        await guest_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "user_ready")
 
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
-        await host_game.send_json({"type": "not_ready"})
-        for ws in (host_notif, guest_notif):
+        await host_lobby.send_json({"type": "not_ready"})
+        for ws in (host_lobby, guest_lobby):
             msg = await receive_type(ws, "user_ready")
             assert msg["value"] is False
 
-        await host_game.send_json({"type": "ready"})
-        for ws in (host_notif, guest_notif):
+        await host_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "user_ready")
 
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
         await fake_scheduler.skip(timedelta(seconds=10))
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             start_msg = await receive_type(ws, "round_start")
 
         start_field = tuple(start_msg["start_field"])
-        await guest_game.send_json({"type": "flag", "cell": start_field})
-        await receive_type(guest_game, "flag")
+        await guest_lobby.send_json({"type": "flag", "cell": start_field})
+        await receive_type(guest_lobby, "flag")
 
         await fake_scheduler.skip(timedelta(seconds=60))
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "game_over")
 
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_end")
 
         fake_scheduler.reset()
 
-        await host_game.send_json({"type": "ready"})
-        for ws in (host_notif, guest_notif):
+        await host_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "user_ready")
 
-        await guest_game.send_json({"type": "ready"})
-        for ws in (host_notif, guest_notif):
+        await guest_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "user_ready")
 
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
         await fake_scheduler.skip(timedelta(seconds=10))
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_start")
 
         await fake_scheduler.skip(timedelta(seconds=60))
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "game_over")
 
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_end")
 
-        for ws in (host_game, guest_game):
+        for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "session_over")

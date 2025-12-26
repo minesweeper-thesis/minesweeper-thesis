@@ -65,12 +65,14 @@ async def test_multiplayer_full_flow_many_players(
         g1_notif = await stack.enter_async_context(g1_bundle.ws())
         g2_notif = await stack.enter_async_context(g2_bundle.ws())
 
-        assert await receive_type(host_notif, "current_lobby")
-        assert await receive_type(g1_notif, "current_lobby")
-        assert await receive_type(g2_notif, "current_lobby")
+        await receive_type(host_notif, "current_lobby")
+        await receive_type(g1_notif, "current_lobby")
+        await receive_type(g2_notif, "current_lobby")
 
-        await receive_type(host_notif, "user_ready")
-        await receive_type(host_notif, "user_online_status")
+        host_lobby = await stack.enter_async_context(
+            host_bundle.ws(f"/game/multi/{lobby_id}")
+        )
+        await receive_type(host_lobby, "user_ready")
 
         inv_resp = await host_bundle.http.post(
             f"/lobbies/{lobby_id}/invitations",
@@ -84,6 +86,8 @@ async def test_multiplayer_full_flow_many_players(
             json={"invitation_id": inv1["id"]},
         )
         assert join_resp.status_code == 200
+        await receive_type(host_lobby, "invitation_response")
+        await receive_type(host_lobby, "user_connection_status")
 
         inv_resp = await host_bundle.http.post(
             f"/lobbies/{lobby_id}/invitations",
@@ -96,176 +100,173 @@ async def test_multiplayer_full_flow_many_players(
             json={"invitation_id": inv2["id"]},
         )
         assert join_resp.status_code == 200
+        await receive_type(host_lobby, "invitation_response")
+        await receive_type(host_lobby, "user_connection_status")
+        # await receive_type(g1_lobby, "user_connection_status") # comes if g1 already connected
 
-        await receive_type(host_notif, "invitation_response")
-        await receive_type(host_notif, "user_connection_status")
-        await receive_type(host_notif, "invitation_response")
-        await receive_type(host_notif, "user_connection_status")
+        g1_lobby = await stack.enter_async_context(
+            g1_bundle.ws(f"/game/multi/{lobby_id}")
+        )
+        await receive_type(g1_lobby, "user_ready")
+        await receive_type(g1_lobby, "user_ready")
+        await receive_type(g1_lobby, "user_ready")
 
-        await receive_type(g1_notif, "user_connection_status")
-        await receive_type(g1_notif, "user_connection_status")
-        await receive_type(g2_notif, "user_connection_status")
+        g2_lobby = await stack.enter_async_context(
+            g2_bundle.ws(f"/game/multi/{lobby_id}")
+        )
+        await receive_type(g2_lobby, "user_ready")
+        await receive_type(g2_lobby, "user_ready")
+        await receive_type(g2_lobby, "user_ready")
 
-        await host_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
-        for ws in (host_notif, g1_notif, g2_notif):
+        await host_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        await g1_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g1_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        await g2_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g2_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        for ws in (host_notif, g1_notif, g2_notif):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_ready")
 
-        for ws in (host_notif, g1_notif, g2_notif):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_countdown")
 
-        await g1_bundle.http.post(f"/lobbies/{lobby_id}/ready/cancel")
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g1_lobby.send_json({"type": "not_ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is False
 
-        await g1_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g1_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        for ws in (host_notif, g1_notif, g2_notif):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             msg = await receive_type(ws, "round_ready")
-            session_id = msg["session_id"]
             await receive_type(ws, "round_countdown")
-
-        host_game = await stack.enter_async_context(
-            host_bundle.ws(f"/game/multi/{session_id}")
-        )
-        g1_game = await stack.enter_async_context(
-            g1_bundle.ws(f"/game/multi/{session_id}")
-        )
-        g2_game = await stack.enter_async_context(
-            g2_bundle.ws(f"/game/multi/{session_id}")
-        )
 
         await fake_scheduler.skip(timedelta(seconds=10))
 
         starts = [
             await receive_type(ws, "round_start")
-            for ws in (host_game, g1_game, g2_game)
+            for ws in (host_lobby, g1_lobby, g2_lobby)
         ]
         start_field = tuple(starts[0]["start_field"])
 
-        await host_game.send_json(
+        await host_lobby.send_json(
             {"type": "reveal_one", "cell": [start_field[0], start_field[1]]}
         )
 
-        await receive_type(host_game, "reveal")
-        for ws in (host_game, g1_game, g2_game):
+        await receive_type(host_lobby, "reveal")
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "score_update")
 
         cell = random_cell(rows=3, cols=3, exclude=start_field)
-        await host_game.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
-        await receive_type(host_game, "flag")
+        await host_lobby.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
+        await receive_type(host_lobby, "flag")
 
         cell = random_cell(rows=3, cols=3, exclude=start_field)
-        await g1_game.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
-        await receive_type(g1_game, "flag")
+        await g1_lobby.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
+        await receive_type(g1_lobby, "flag")
 
         await fake_scheduler.skip(timedelta(seconds=60))
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
             await receive_type(ws, "round_end")
 
         fake_scheduler.reset()
 
-        await host_game.send_json({"type": "ready"})
-        for ws in (host_notif, g1_notif, g2_notif):
+        await host_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        await g1_game.send_json({"type": "ready"})
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g1_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        await g1_game.send_json({"type": "not_ready"})
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g1_lobby.send_json({"type": "not_ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is False
 
-        await g1_game.send_json({"type": "ready"})
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g1_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        await g2_game.send_json({"type": "ready"})
-        for ws in (host_notif, g1_notif, g2_notif):
+        await g2_lobby.send_json({"type": "ready"})
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             ready_msg = await receive_type(ws, "user_ready")
             assert ready_msg["value"] is True
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
         await fake_scheduler.skip(timedelta(seconds=10))
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             start_msg = await receive_type(ws, "round_start")
 
         start_field = tuple(start_msg["start_field"])
 
-        await host_game.send_json({"type": "reveal_one", "cell": start_field})
-        await receive_type(host_game, "reveal")
+        await host_lobby.send_json({"type": "reveal_one", "cell": start_field})
+        await receive_type(host_lobby, "reveal")
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "score_update")
 
-        await g1_game.send_json({"type": "reveal_one", "cell": start_field})
-        await receive_type(g1_game, "reveal")
+        await g1_lobby.send_json({"type": "reveal_one", "cell": start_field})
+        await receive_type(g1_lobby, "reveal")
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "score_update")
 
-        await g2_game.send_json({"type": "reveal_one", "cell": start_field})
-        await receive_type(g2_game, "reveal")
+        await g2_lobby.send_json({"type": "reveal_one", "cell": start_field})
+        await receive_type(g2_lobby, "reveal")
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "score_update")
 
         await fake_scheduler.skip(timedelta(seconds=60))
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_end")
 
         fake_scheduler.reset()
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await ws.send_json({"type": "ready"})
 
-        for ws in (host_notif, g1_notif, g2_notif):
-            ready_msg = await receive_type(ws, "user_ready")
-            assert ready_msg["value"] is True
+            for ws in (host_lobby, g1_lobby, g2_lobby):
+                ready_msg = await receive_type(ws, "user_ready")
+                assert ready_msg["value"] is True
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
         await fake_scheduler.skip(timedelta(seconds=10))
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_start")
 
         await fake_scheduler.skip(timedelta(seconds=60))
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
             await receive_type(ws, "round_end")
 
         fake_scheduler.reset()
 
-        for ws in (host_game, g1_game, g2_game):
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "session_over")

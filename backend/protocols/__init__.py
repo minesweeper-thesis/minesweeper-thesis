@@ -3,6 +3,7 @@ from .board_repo_protocol import *
 from .friends_repo_protocol import *
 from .game_transport_protocol import *
 from .lobby_repo_protocol import *
+from .lobby_transport_protocol import *
 from .multiplayer_repo_protocol import *
 from .notification_system_protocol import *
 from .pending_boards_store_protocol import *

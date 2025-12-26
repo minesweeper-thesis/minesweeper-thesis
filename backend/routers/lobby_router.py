@@ -110,35 +110,6 @@ async def reject_game_invitation(
     await service.reject_game_invitation(invitation_id, user)
 
 
-@lobby_router.post("/{lobby_id}/ready/set")
-async def set_user_ready(
-    lobby_id: uuid.UUID,
-    service: StartRoundService,
-    user: CurrentUser,
-):
-    """Sets the user as ready in the lobby."""
-    await service.set_user_ready(user, lobby_id=lobby_id)
-
-
-@lobby_router.post("/{lobby_id}/ready/cancel")
-async def cancel_user_ready(
-    lobby_id: uuid.UUID,
-    user: CurrentUser,
-    service: StartRoundService,
-):
-    """Sets the user as not ready in the lobby."""
-    await service.cancel_user_ready(user, lobby_id=lobby_id)
-
-
-@lobby_router.post("/{lobby_id}/ready/toggle")
-async def toggle_user_ready(
-    lobby_id: uuid.UUID,
-    user: CurrentUser,
-    service: StartRoundService,
-):
-    await service.toggle_user_ready(user, lobby_id=lobby_id)
-
-
 @lobby_router.post("/{lobby_id}/chat-messages")
 async def send_chat_message(
     lobby_id: uuid.UUID,

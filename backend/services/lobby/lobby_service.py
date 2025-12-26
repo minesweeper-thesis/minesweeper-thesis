@@ -54,6 +54,7 @@ class LobbyService:
         user_repo: UserRepositoryDep,
         multi_repo: MultiplayerRepositoryDep,
         notification_system: NotificationSystemDep,
+        lobby_transport_factory: LobbyTransportFactoryDep,
         session_lock: SessionLockDep,
         session_renewer: Annotated[SessionRenewer, Depends()],
     ):
@@ -61,8 +62,18 @@ class LobbyService:
         self.user_repo = user_repo
         self.multi_repo = multi_repo
         self.notification_system = notification_system
+        self.lobby_transport_factory = lobby_transport_factory
         self.session_lock = session_lock
         self.session_renewer = session_renewer
+
+    async def broadcast(self, lobby: Lobby, data):
+        transport = self.lobby_transport_factory.create(lobby.id)
+        for user in lobby.users:
+            await transport.send(user.id, data)
+
+    async def notify(self, lobby_id: uuid.UUID, user_id: uuid.UUID, data):
+        transport = self.lobby_transport_factory.create(lobby_id)
+        await transport.send(user_id, data)
 
     async def create_lobby(self, user: User) -> Lobby:
         logger.debug(f"create_lobby(user_id={user.id})")
@@ -110,10 +121,9 @@ class LobbyService:
         await self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
-        await self.notification_system.notify(invitation.inviter.id, response)
+        await self.notify(invitation.lobby.id, invitation.inviter.id, response)
 
-        for lobby_user in lobby.users:
-            await self.notification_system.notify(lobby_user.id, data)
+        await self.broadcast(lobby, data)
 
         logger.info(f"User {user.id} joined lobby {lobby.id}")
         return lobby
@@ -132,8 +142,7 @@ class LobbyService:
 
             await self.session_renewer.renew_session(lobby_id)
 
-            for lobby_user in lobby.users:
-                await self.notification_system.notify(lobby_user.id, event)
+            await self.broadcast(lobby, event)
 
             logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
         except LobbyNotFound:
@@ -188,8 +197,7 @@ class LobbyService:
         else:
             await self.lobby_repo.save_lobby(lobby)
             await self._sync_session_players(lobby)
-            for lobby_user in lobby.users:
-                await self.notification_system.notify(lobby_user.id, data)
+            await self.broadcast(lobby, data)
 
     async def _sync_session_players(self, lobby: Lobby) -> None:
         session = await self.multi_repo.get_for_lobby(lobby.id)

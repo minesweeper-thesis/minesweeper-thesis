@@ -26,8 +26,7 @@ class StartRoundService:
         self,
         multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
-        notification_system: NotificationSystemDep,
-        game_transport_factory: GameTransportFactoryDep,
+        lobby_transport_factory: LobbyTransportFactoryDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
         readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
         pending_board_waiter: Annotated[PendingBoardWaiter, Depends()],
@@ -37,14 +36,17 @@ class StartRoundService:
     ):
         self.multi_repo = multi_repo
         self.background_tasks = background_tasks
-        self.game_transport_factory = game_transport_factory
+        self.lobby_transport_factory = lobby_transport_factory
         self.round_scheduler = round_scheduler
         self.pending_board_waiter = pending_board_waiter
         self.boards_preparer = boards_preparer
-        self.notification_system = notification_system
+        self.lobby_transport_factory = lobby_transport_factory
         self.readiness_notifier = readiness_notifier
         self.session_lock = session_lock
         self.pending_store = pending_store
+
+    def _get_transport(self, lobby_id: uuid.UUID):
+        return self.lobby_transport_factory.create(lobby_id)
 
     def _ensure_user_in_session(self, session: MultiplayerSession, user: User):
         if user.id not in session.player_ids:
@@ -56,42 +58,23 @@ class StartRoundService:
     async def toggle_user_ready(
         self,
         user: User,
-        *,
-        session_id: Optional[uuid.UUID] = None,
-        lobby_id: Optional[uuid.UUID] = None,
+        lobby_id: uuid.UUID,
     ):
-        logger.debug(f"User {user.id} toggling ready status in session {session_id}")
-
-        assert session_id or lobby_id, "Either session_id or lobby_id must be provided"
-
-        if lobby_id:
-            session = await self.multi_repo.get_for_lobby(lobby_id)
-        else:
-            session = await self.multi_repo.get_session(session_id)  # type: ignore
+        logger.debug(f"User {user.id} toggling ready status in lobby {lobby_id}")
+        session = await self.multi_repo.get_for_lobby(lobby_id)
         assert session is not None, "Session not found"
 
         self._ensure_user_in_session(session, user)
         if session.is_user_ready(user.id):
-            await self.cancel_user_ready(user, session_id=session_id, lobby_id=lobby_id)
+            await self.cancel_user_ready(user, lobby_id=lobby_id)
         else:
-            await self.set_user_ready(user, session_id=session_id, lobby_id=lobby_id)
+            await self.set_user_ready(user, lobby_id=lobby_id)
 
-    async def cancel_user_ready(
-        self,
-        user: User,
-        *,
-        session_id: Optional[uuid.UUID] = None,
-        lobby_id: Optional[uuid.UUID] = None,
-    ):
-        logger.debug(f"User {user.id} cancelling ready status in session {session_id}")
+    async def cancel_user_ready(self, user: User, lobby_id: uuid.UUID):
+        logger.debug(f"User {user.id} cancelling ready status in lobby {lobby_id}")
         should_notify = False
 
-        assert session_id or lobby_id, "Either session_id or lobby_id must be provided"
-
-        if lobby_id:
-            session = await self.multi_repo.get_for_lobby(lobby_id)
-        else:
-            session = await self.multi_repo.get_session(session_id)  # type: ignore
+        session = await self.multi_repo.get_for_lobby(lobby_id)
         assert session is not None, "Session not found"
 
         async with self.session_lock.acquire(session.id):
@@ -107,26 +90,19 @@ class StartRoundService:
 
         if should_notify:
             await self.readiness_notifier.send_user_not_ready(
-                self.notification_system.notify, session, user
+                self._get_transport(lobby_id).send, session, user
             )
 
     async def set_user_ready(
         self,
         user: User,
-        *,
-        session_id: Optional[uuid.UUID] = None,
-        lobby_id: Optional[uuid.UUID] = None,
+        lobby_id: uuid.UUID,
     ):
         logger.debug(f"User {user.id} setting ready status in lobby {lobby_id}")
         should_notify = False
         all_ready = False
 
-        assert session_id or lobby_id, "Either session_id or lobby_id must be provided"
-
-        if lobby_id:
-            session = await self.multi_repo.get_for_lobby(lobby_id)
-        else:
-            session = await self.multi_repo.get_session(session_id)  # type: ignore
+        session = await self.multi_repo.get_for_lobby(lobby_id)
         assert session is not None, "Session not found"
 
         async with self.session_lock.acquire(session.id):
@@ -143,7 +119,7 @@ class StartRoundService:
 
         if should_notify:
             await self.readiness_notifier.send_user_ready(
-                self.notification_system.notify, session, user
+                self._get_transport(lobby_id).send, session, user
             )
 
             if all_ready:
@@ -151,12 +127,8 @@ class StartRoundService:
 
     async def _on_all_ready(self, session: MultiplayerSession):
         logger.info(f"All players ready in session {session.id}, starting round")
-        transport = self.game_transport_factory.create(session.id)
 
-        if session.current_round_index == -1:
-            sender = self.notification_system.notify
-        else:
-            sender = transport.send
+        sender = self._get_transport(session.lobby_id).send
         await self.readiness_notifier.send_round_ready(sender, session)
 
         is_pending = await self.pending_store.get_pending_round(session.id, 0)
@@ -166,13 +138,9 @@ class StartRoundService:
             await self.boards_preparer.prepare(session)
             session = await self.multi_repo.get_session(session.id)
 
-        is_not_first_round = session.current_round_index != -1
-
         if session.is_next_round_available:
             logger.info(f"Scheduling start of next round in session {session.id}")
-            await self.round_scheduler.schedule_start(
-                session, in_game=is_not_first_round
-            )
+            await self.round_scheduler.schedule_start(session)
         else:
             logger.info(
                 f"No next round available in session {session.id}, waiting for boards"

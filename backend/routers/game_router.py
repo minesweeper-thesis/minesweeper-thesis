@@ -8,12 +8,13 @@ from backend.core.game.game_actions import *
 from backend.core.multi.session import ReadyChangeLocked
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
-from backend.lib.websockets.session_websockets import session_websockets
+from backend.lib.websockets.lobby_websockets import lobby_websockets
 from backend.schemas.game import NewGameRequest, NewGameResponse
 from backend.services import exceptions
 from backend.services.single.single_exceptions import GenerationTimeout
 
 CreateSingleGameplayService = Annotated[services.CreateSingleGameplayService, Depends()]
+UserConnectionService = Annotated[services.UserConnectionService, Depends()]
 PlaySingleService = Annotated[services.PlaySingleService, Depends()]
 PlayMultiService = Annotated[services.PlayMultiService, Depends()]
 StartRoundService = Annotated[services.StartRoundService, Depends()]
@@ -29,6 +30,7 @@ game_exceptions = {
     ),
     exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
     exceptions.UserNotInSession: HTTPException(403, "User not in multiplayer session"),
+    exceptions.SessionNotExists: HTTPException(404, "Multiplayer session not found"),
     exceptions.SessionAlreadyOver: HTTPException(
         400, "Multiplayer session is already over"
     ),
@@ -82,8 +84,8 @@ async def play_single(
     service: PlaySingleService,
 ):
     try:
-        await websocket.accept()
         game_state = await service.load_gameplay(gameplay_id)
+        await websocket.accept()
         await websocket.send_text(create_game_notification(game_state))
 
         while True:
@@ -110,7 +112,7 @@ async def play_single(
 
 async def handle_multi(
     user,
-    session_id,
+    lobby_id: uuid.UUID,
     data,
     play: PlayMultiService,
     start_round: StartRoundService,
@@ -120,13 +122,13 @@ async def handle_multi(
             await play.get_game_state()
 
         case "ready":
-            await start_round.set_user_ready(user, session_id=session_id)
+            await start_round.set_user_ready(user, lobby_id=lobby_id)
 
         case "not_ready":
-            await start_round.cancel_user_ready(user, session_id=session_id)
+            await start_round.cancel_user_ready(user, lobby_id=lobby_id)
 
         case "toggle_ready":
-            await start_round.toggle_user_ready(user, session_id=session_id)
+            await start_round.toggle_user_ready(user, lobby_id=lobby_id)
 
         case _:
             action = _create_action_from_data_multi(data)
@@ -147,28 +149,25 @@ def _create_action_from_data_multi(data) -> GameAction:
             raise ValueError(f"Unknown action type: {data['type']}")
 
 
-@game_router.websocket("/multi/{session_id}")
+@game_router.websocket("/multi/{lobby_id}")
 async def play_multi(
-    session_id: uuid.UUID,
+    lobby_id: uuid.UUID,
     websocket: WebSocket,
     play: PlayMultiService,
     start: StartRoundService,
     user: CurrentUserWebSocket,
+    user_connection_service: UserConnectionService,
 ):
     try:
+        await play.validate_session(lobby_id, user)
         await websocket.accept()
-        await play.validate_session(session_id, user)
-        session_websockets.add(session_id, user.id, websocket)
+        lobby_websockets.add(lobby_id, user.id, websocket)
+        await user_connection_service.notify_ready_users(user)
 
         while True:
             data = await websocket.receive_json()
             await play.reload(user)
-            await handle_multi(user, session_id, data, play, start)
-
-            if play.is_session_over():
-                break
-
-        await websocket.close()
+            await handle_multi(user, lobby_id, data, play, start)
 
     except WebSocketDisconnect:
-        session_websockets.remove(session_id, user.id)
+        lobby_websockets.remove(lobby_id, user.id)

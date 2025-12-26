@@ -62,19 +62,10 @@ def get_notification_system():
 
 def create_notification(data: Any) -> str:
     mapping: dict[type, type["Response"]] = {
-        GameConfigUpdated: GameConfigUpdatedResponse,
         Invitation: InvitationResponse,
-        InvitationAnswer: InvitationAnswerResponse,
-        UserConnectionUpdated: UserConnectionStatusResponse,
-        RoundReady: RoundReadyResponse,
-        RoundCountdown: RoundCountdownResponse,
-        UserReady: UserReadyResponse,
-        LobbyChatMessage: LobbyChatMessageResponse,
         FriendRequest: FriendRequestResponse,
-        UserNotReady: UserNotReadyResponse,
         KickedFromLobby: KickedResponse,
         UserChatMessage: UserChatMessageResponse,
-        UserOnlineUpdated: UserOnlineUpdatedResponse,
         UserCurrentLobby: CurrentLobbyResponse,
     }
 
@@ -87,9 +78,7 @@ def create_notification(data: Any) -> str:
 type Notifiable = RoundStart | RoundEnd | RoundCountdown | SessionOver | GameActionResult | GameState | UserReady
 
 
-def create_game_notification(
-    data: Notifiable,
-) -> str:
+def create_game_notification(data: Notifiable) -> str:
 
     mapping: dict[type[Any], type[Response]] = {
         RoundReady: RoundReadyResponse,
@@ -106,6 +95,11 @@ def create_game_notification(
         UserReady: UserReadyResponse,
         UserNotReady: UserNotReadyResponse,
         ScoreUpdate: ScoreUpdateResponse,
+        InvitationAnswer: InvitationAnswerResponse,
+        LobbyChatMessage: LobbyChatMessageResponse,
+        UserOnlineUpdated: UserOnlineUpdatedResponse,
+        UserConnectionUpdated: UserConnectionStatusResponse,
+        GameConfigUpdated: GameConfigUpdatedResponse,
     }
 
     if type(data) not in mapping:

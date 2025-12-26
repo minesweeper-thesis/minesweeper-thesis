@@ -7,7 +7,7 @@ from fastapi import BackgroundTasks, Depends
 
 from backend.core.multi.gameplay import GameplayNotInProgress
 from backend.core.user import User
-from backend.services.exceptions import UserNotInSession
+from backend.services.exceptions import SessionNotExists, UserNotInSession
 
 logger = logging.getLogger(__name__)
 
@@ -24,17 +24,15 @@ class PlayMultiService:
         self,
         multi_repo: MultiplayerRepositoryDep,
         background_tasks: BackgroundTasks,
-        notification_system: NotificationSystemDep,
         scheduler: SchedulerDep,
-        game_transport_factory: GameTransportFactoryDep,
+        lobby_transport_factory: LobbyTransportFactoryDep,
         session_lock: SessionLockDep,
         session_renewer: Annotated[SessionRenewer, Depends()],
     ):
         self.multi_repo = multi_repo
         self.background_tasks = background_tasks
-        self.notification_system = notification_system
         self.scheduler = scheduler
-        self.game_transport_factory = game_transport_factory
+        self.lobby_transport_factory = lobby_transport_factory
         self.session_lock = session_lock
         self.session_renewer = session_renewer
 
@@ -42,26 +40,34 @@ class PlayMultiService:
 
     async def validate_session(
         self,
-        session_id: uuid.UUID,
+        lobby_id: uuid.UUID,
         user: User,
     ):
-        logger.debug(f"validate_session(session_id={session_id}, user_id={user.id})")
-        logger.debug(f"Setting multiplayer session {session_id} for user {user.id}")
-        self.session_id = session_id
+        logger.debug(f"validate_session(lobby_id={lobby_id}, user_id={user.id})")
+
+        session = await self.multi_repo.get_for_lobby(lobby_id)
+
+        if session is None:
+            logger.warning(f"No active session for lobby {lobby_id}")
+            raise SessionNotExists()
+
+        self.session_id = session.id
         self.user = user
 
         await self.reload(user)
 
         if self.user.id not in self.session.player_ids:
-            logger.warning(f"User {user.id} is not part of session {session_id}")
+            logger.warning(f"User {user.id} is not part of session {self.session_id}")
             raise UserNotInSession()
 
         if self.session.is_over():
-            logger.warning(f"Attempted to join already finished session {session_id}")
+            logger.warning(
+                f"Attempted to join already finished session {self.session_id}"
+            )
             raise SessionAlreadyOver()
 
-        self.transport = self.game_transport_factory.create(session_id)
-        logger.info(f"User {user.id} set for multiplayer session {session_id}")
+        self.transport = self.lobby_transport_factory.create(session.lobby_id)
+        logger.info(f"User {user.id} set for multiplayer session {self.session_id}")
 
     async def reload(self, user: User):
         logger.debug(

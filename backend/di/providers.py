@@ -19,10 +19,10 @@ def _get_notification_system():
     return get_notification_system()
 
 
-def _get_game_transport_factory():
-    from backend.lib.session_game_transport import get_game_transport_factory
+def _get_lobby_transport_factory():
+    from backend.lib.lobby_transport import get_lobby_transport_factory
 
-    return get_game_transport_factory()
+    return get_lobby_transport_factory()
 
 
 def _get_lobby_repository(redis=Depends(get_redis_client)):
@@ -50,7 +50,7 @@ registry: dict[type, Callable] = {
     p.BoardGenerator: LocalBoardGenerator,
     p.PendingBoardsStore: _get_pending_boards_store,
     p.NotificationSystem: _get_notification_system,
-    p.GameTransportFactory: _get_game_transport_factory,
+    p.LobbyTransportFactory: _get_lobby_transport_factory,
     p.Scheduler: get_scheduler,
     BackgroundBoardPersister: BackgroundBoardPersister,
     BackgroundRoundHandler: BackgroundRoundHandler,

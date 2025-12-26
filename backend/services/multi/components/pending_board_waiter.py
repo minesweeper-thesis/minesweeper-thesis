@@ -25,7 +25,6 @@ class PendingBoardWaiter:
         logger.debug(f"Waiting for pending boards to be ready in session {session_id}")
         session = await self.multi_repo.get_session(session_id)
         next_round_index = session.current_round_index + 1
-        is_not_first_round = next_round_index != 0
 
         pending = await self.pending_store.get_pending_round(
             session.id, next_round_index
@@ -36,9 +35,7 @@ class PendingBoardWaiter:
         await self.pending_store.wait_for_ready(pending.generation_id)
 
         fresh_session = await self.multi_repo.get_session(session_id)
-        await self.round_scheduler.schedule_start(
-            fresh_session, in_game=is_not_first_round
-        )
+        await self.round_scheduler.schedule_start(fresh_session)
 
 
 __all__ = ["PendingBoardWaiter"]

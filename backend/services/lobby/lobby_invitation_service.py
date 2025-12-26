@@ -21,10 +21,16 @@ class LobbyInvitationService:
         lobby_repo: LobbyRepositoryDep,
         user_repo: UserRepositoryDep,
         notification_system: NotificationSystemDep,
+        lobby_transport_factory: LobbyTransportFactoryDep,
     ):
         self.lobby_repo = lobby_repo
         self.user_repo = user_repo
         self.notification_system = notification_system
+        self.lobby_transport_factory = lobby_transport_factory
+
+    async def lobby_notify(self, lobby: Lobby, receiver_id: uuid.UUID, data):
+        transport = self.lobby_transport_factory.create(lobby.id)
+        await transport.send(receiver_id, data)
 
     async def invite_to_lobby(
         self, lobby_id: uuid.UUID, user: User, invitee_id: uuid.UUID
@@ -62,7 +68,7 @@ class LobbyInvitationService:
             raise InvitationNotExists()
 
         response = InvitationAnswer(invitation=invitation, answer="rejected")
-        await self.notification_system.notify(invitation.inviter.id, response)
+        await self.lobby_notify(invitation.lobby, invitation.inviter.id, response)
         await self.lobby_repo.delete_invitation(invitation.id)
         logger.info(f"User {user.id} rejected invitation {invitation_id}")
 
