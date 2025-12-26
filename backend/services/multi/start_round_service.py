@@ -13,12 +13,8 @@ from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.multi.components import (
-    PendingBoardWaiter,
-    RoundReadinessNotifier,
-    SessionBoardsPreparer,
-)
 from backend.services.multi.round_scheduler import RoundScheduler
+from backend.services.multi.session_boards_preparer import SessionBoardsPreparer
 
 
 class StartRoundService:
@@ -28,8 +24,6 @@ class StartRoundService:
         background_tasks: BackgroundTasks,
         lobby_transport_factory: LobbyTransportFactoryDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
-        readiness_notifier: Annotated[RoundReadinessNotifier, Depends()],
-        pending_board_waiter: Annotated[PendingBoardWaiter, Depends()],
         boards_preparer: Annotated[SessionBoardsPreparer, Depends()],
         pending_store: PendingBoardsStoreDep,
         session_lock: SessionLockDep,
@@ -38,10 +32,8 @@ class StartRoundService:
         self.background_tasks = background_tasks
         self.lobby_transport_factory = lobby_transport_factory
         self.round_scheduler = round_scheduler
-        self.pending_board_waiter = pending_board_waiter
         self.boards_preparer = boards_preparer
         self.lobby_transport_factory = lobby_transport_factory
-        self.readiness_notifier = readiness_notifier
         self.session_lock = session_lock
         self.pending_store = pending_store
 
@@ -89,9 +81,9 @@ class StartRoundService:
                 should_notify = True
 
         if should_notify:
-            await self.readiness_notifier.send_user_not_ready(
-                self._get_transport(lobby_id).send, session, user
-            )
+            transport = self._get_transport(lobby_id)
+            next_round_index = session.current_round_index + 1
+            await transport.broadcast(UserNotReady(user.id, next_round_index))
 
     async def set_user_ready(
         self,
@@ -118,9 +110,9 @@ class StartRoundService:
                 all_ready = session.all_players_ready()
 
         if should_notify:
-            await self.readiness_notifier.send_user_ready(
-                self._get_transport(lobby_id).send, session, user
-            )
+            transport = self._get_transport(lobby_id)
+            next_round_index = session.current_round_index + 1
+            await transport.broadcast(UserReady(user.id, next_round_index))
 
             if all_ready:
                 await self._on_all_ready(session)
@@ -128,8 +120,12 @@ class StartRoundService:
     async def _on_all_ready(self, session: MultiplayerSession):
         logger.info(f"All players ready in session {session.id}, starting round")
 
-        sender = self._get_transport(session.lobby_id).send
-        await self.readiness_notifier.send_round_ready(sender, session)
+        next_round_index = session.current_round_index + 1
+        difficulty_level = session.game_config.difficulty_level
+        message = RoundReady(session.id, next_round_index, difficulty_level)
+
+        transport = self._get_transport(session.lobby_id)
+        await transport.broadcast(message)
 
         is_pending = await self.pending_store.get_pending_round(session.id, 0)
 
@@ -146,7 +142,7 @@ class StartRoundService:
                 f"No next round available in session {session.id}, waiting for boards"
             )
             self.background_tasks.add_task(
-                self.pending_board_waiter.wait_and_schedule_next_round, session.id
+                self.boards_preparer.wait_and_schedule_next_round, session.id
             )
 
 
