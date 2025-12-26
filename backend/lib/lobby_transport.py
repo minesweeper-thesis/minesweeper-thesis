@@ -13,6 +13,12 @@ class LobbyWebsocketsTransport(LobbyTransport):
     def __init__(self, lobby_id: uuid.UUID):
         self.lobby_id = lobby_id
 
+    async def broadcast(self, event: Any) -> None:
+        logger.debug(f"broadcast(event={event}, lobby_id={self.lobby_id})")
+        connected_users = lobby_websockets.get_connected_users(self.lobby_id)
+        for user_id in connected_users:
+            await self.send(user_id, event)
+
     async def send(self, receiver_id: uuid.UUID, event: Any) -> None:
         logger.debug(
             f"send(receiver_id={receiver_id}, event={event}, lobby_id={self.lobby_id})"

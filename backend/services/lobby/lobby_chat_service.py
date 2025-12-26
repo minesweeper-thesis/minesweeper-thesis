@@ -25,11 +25,6 @@ class LobbyChatService:
         self.lobby_repo = lobby_repo
         self.lobby_transport_factory = lobby_transport_factory
 
-    async def broadcast(self, lobby: Lobby, data):
-        transport = self.lobby_transport_factory.create(lobby.id)
-        for user in lobby.users:
-            await transport.send(user.id, data)
-
     async def send_chat_message(self, lobby_id: uuid.UUID, user: User, content: str):
         try:
             logger.debug(
@@ -48,7 +43,8 @@ class LobbyChatService:
 
             await self.lobby_repo.add_message(message)
 
-            await self.broadcast(lobby, message)
+            transport = self.lobby_transport_factory.create(lobby.id)
+            await transport.broadcast(message)
 
             logger.debug(f"Chat message sent in lobby {lobby_id} by user {user.id}")
         except LobbyNotFound:

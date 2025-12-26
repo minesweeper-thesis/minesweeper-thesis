@@ -1,8 +1,6 @@
 import logging
-import uuid
 from datetime import datetime, timedelta
 
-from backend.core.lobby import Lobby
 from backend.core.user import User
 from backend.di.dependencies import *
 from backend.services.dto import (
@@ -32,15 +30,6 @@ class UserConnectionService:
         self.notification_system = notification_system
         self.lobby_transport_factory = lobby_transport_factory
 
-    async def broadcast(self, lobby: Lobby, data):
-        transport = self.lobby_transport_factory.create(lobby.id)
-        for user in lobby.users:
-            await transport.send(user.id, data)
-
-    async def send(self, lobby: Lobby, user_id: uuid.UUID, data):
-        transport = self.lobby_transport_factory.create(lobby.id)
-        await transport.send(user_id, data)
-
     async def set_user_online(self, user: User):
         await self.user_repo.set_user_online(user.id)
 
@@ -67,14 +56,16 @@ class UserConnectionService:
                     data = UserReady(user_id, 0)
                 else:
                     data = UserNotReady(user_id, 0)
-                await self.send(lobby, user.id, data)
+                    transport = self.lobby_transport_factory.create(lobby.id)
+                    await transport.send(user.id, data)
 
     async def _notify_user_online_status(self, user: User):
         user = await self.user_repo.get_user(user.id)
         user_lobby = await self.lobby_repo.get_user_lobby(user.id)
         if user_lobby:
             data = UserOnlineUpdated(lobby_id=user_lobby.id, user=user)
-            await self.broadcast(user_lobby, data)
+            transport = self.lobby_transport_factory.create(user_lobby.id)
+            await transport.broadcast(data)
 
             if user.is_online:
                 kick_at = None

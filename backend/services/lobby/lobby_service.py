@@ -66,11 +66,6 @@ class LobbyService:
         self.session_lock = session_lock
         self.session_renewer = session_renewer
 
-    async def broadcast(self, lobby: Lobby, data):
-        transport = self.lobby_transport_factory.create(lobby.id)
-        for user in lobby.users:
-            await transport.send(user.id, data)
-
     async def notify(self, lobby_id: uuid.UUID, user_id: uuid.UUID, data):
         transport = self.lobby_transport_factory.create(lobby_id)
         await transport.send(user_id, data)
@@ -123,7 +118,8 @@ class LobbyService:
         response = InvitationAnswer(invitation=invitation, answer="accepted")
         await self.notify(invitation.lobby.id, invitation.inviter.id, response)
 
-        await self.broadcast(lobby, data)
+        transport = self.lobby_transport_factory.create(lobby.id)
+        await transport.broadcast(data)
 
         logger.info(f"User {user.id} joined lobby {lobby.id}")
         return lobby
@@ -142,7 +138,8 @@ class LobbyService:
 
             await self.session_renewer.renew_session(lobby_id)
 
-            await self.broadcast(lobby, event)
+            transport = self.lobby_transport_factory.create(lobby.id)
+            await transport.broadcast(event)
 
             logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
         except LobbyNotFound:
@@ -197,7 +194,8 @@ class LobbyService:
         else:
             await self.lobby_repo.save_lobby(lobby)
             await self._sync_session_players(lobby)
-            await self.broadcast(lobby, data)
+            transport = self.lobby_transport_factory.create(lobby.id)
+            await transport.broadcast(data)
 
     async def _sync_session_players(self, lobby: Lobby) -> None:
         session = await self.multi_repo.get_for_lobby(lobby.id)

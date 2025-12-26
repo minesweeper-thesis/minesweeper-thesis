@@ -35,5 +35,10 @@ class LobbyWebsocketsRegistry:
     def is_connected(self, lobby_id: uuid.UUID, user_id: uuid.UUID) -> bool:
         return lobby_id in self._websockets and user_id in self._websockets[lobby_id]
 
+    def get_connected_users(self, lobby_id: uuid.UUID) -> list[uuid.UUID]:
+        if lobby_id in self._websockets:
+            return list(self._websockets[lobby_id].keys())
+        return []
+
 
 lobby_websockets = LobbyWebsocketsRegistry()
