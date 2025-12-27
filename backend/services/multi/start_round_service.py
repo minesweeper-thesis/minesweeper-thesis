@@ -137,9 +137,7 @@ class StartRoundService:
             logger.info(
                 f"No next round available in session {session.id}, waiting for boards"
             )
-            self.background_tasks.add_task(
-                self.boards_preparer.wait_and_schedule_next_round, session.id
-            )
+            await self.boards_preparer.wait_and_schedule_next_round(session.id)
 
 
 __all__ = ["StartRoundService"]

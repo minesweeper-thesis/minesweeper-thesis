@@ -10,7 +10,7 @@ from httpx_ws.transport import ASGIWebSocketTransport
 from sqlalchemy.exc import IntegrityError
 
 from backend.core.board import Board, DifficultyLevel, GenerationSettings
-from backend.lib.board_generator import LocalBoardGenerator
+from backend.lib.board_generator import AsyncBoardGenerator, BackgroundBoardGenerator
 from backend.protocols.board_repo_protocol import BoardNotFound
 
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
@@ -229,11 +229,10 @@ async def authenticated_clients(request, test_app):
 
 class ImmediateBoardGenerator:
     def __init__(self):
-        self._statuses = {}
+        pass
 
     async def generate_board(self, settings, on_completed):
         generation_id = uuid.uuid4()
-        self._statuses[generation_id] = "completed"
 
         minefields, start_field = generate_board_data(settings.difficulty_level)
 
@@ -247,8 +246,6 @@ class ImmediateBoardGenerator:
         await on_completed(generation_id, board)
         return generation_id
 
-    async def get_generation_status(self, generation_id):
-        return self._statuses.get(generation_id, "completed")
 
-
-api.dependency_overrides[LocalBoardGenerator] = ImmediateBoardGenerator
+api.dependency_overrides[BackgroundBoardGenerator] = ImmediateBoardGenerator
+api.dependency_overrides[AsyncBoardGenerator] = ImmediateBoardGenerator

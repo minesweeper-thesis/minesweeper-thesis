@@ -11,7 +11,6 @@ from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.lib.auth import OptionalCurrentUser
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.services.dto import *
 from backend.services.exceptions import *
@@ -22,7 +21,7 @@ class CreateSingleGameplayService:
         self,
         board_repo: BoardRepositoryDep,
         game_repo: SingleplayerRepositoryDep,
-        board_generator: BoardGeneratorDep,
+        board_generator: SingleBoardGeneratorDep,
         pending_store: PendingBoardsStoreDep,
         board_persister: BoardPersisterDep,
     ):
@@ -34,7 +33,7 @@ class CreateSingleGameplayService:
 
     async def create_singleplayer_gameplay(
         self,
-        user: OptionalCurrentUser,
+        user: Optional[User],
         game_settings: NewGameSettings,
     ) -> uuid.UUID:
         logger.info(
@@ -56,7 +55,7 @@ class CreateSingleGameplayService:
         self,
         gameplay_id: uuid.UUID,
         game_settings: NewGameSettings,
-        user: OptionalCurrentUser,
+        user: Optional[User],
     ):
         board: Optional[Board] = None
 
@@ -78,7 +77,7 @@ class CreateSingleGameplayService:
                     await self._generate_board(
                         gameplay_id=gameplay_id,
                         game_settings=game_settings,
-                        user=None,
+                        user=user,
                     )
                     board = None
 
@@ -119,7 +118,7 @@ class CreateSingleGameplayService:
         self,
         gameplay_id: uuid.UUID,
         game_settings: NewGameSettings,
-        user: OptionalCurrentUser,
+        user: Optional[User],
     ) -> Optional[Board]:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
@@ -148,7 +147,7 @@ class CreateSingleGameplayService:
         self,
         gameplay_id: uuid.UUID,
         game_settings: NewGameSettings,
-        user: OptionalCurrentUser,
+        user: Optional[User],
     ):
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None

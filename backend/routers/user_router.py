@@ -32,7 +32,7 @@ async def upload_avatar(file: UploadFile, user: CurrentUser, service: UserServic
     ):
         raise HTTPException(status_code=400, detail="Invalid file type.")
 
-    url = await service.set_avatar(content)
+    url = await service.set_avatar(user, content)
     return {"avatar_url": url}
 
 
@@ -42,7 +42,7 @@ async def delete_avatar(
     service: UserService,
 ):
     """Deletes the current user's avatar"""
-    await service.delete_avatar()
+    await service.delete_avatar(user)
 
 
 @user_router.get(
@@ -50,6 +50,7 @@ async def delete_avatar(
     responses={200: {"model": Page[UserResponse]}},
 )
 async def search_users(
+    user: CurrentUser,
     query: str,
     pagination_params: PaginationParams,
     service: UserService,
@@ -61,10 +62,11 @@ async def search_users(
 
 @user_router.get("/gameplays", responses={200: {"model": Page[UserGameplayResponse]}})
 async def get_gameplays(
+    user: CurrentUser,
     pagination_params: PaginationParams,
     service: UserService,
 ):
-    page = await service.get_gameplays(pagination_params)
+    page = await service.get_gameplays(user, pagination_params)
     page.items = [UserGameplayResponse.build(gp) for gp in page.items]
     return page
 

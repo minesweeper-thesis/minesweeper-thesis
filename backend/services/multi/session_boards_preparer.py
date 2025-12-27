@@ -20,7 +20,7 @@ class SessionBoardsPreparer:
         self,
         board_repo: BoardRepositoryDep,
         multi_repo: MultiplayerRepositoryDep,
-        board_generator: BoardGeneratorDep,
+        board_generator: MultiBoardGeneratorDep,
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
         background_handler: BackgroundRoundHandlerDep,

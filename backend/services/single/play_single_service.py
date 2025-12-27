@@ -5,6 +5,7 @@ from typing import Optional
 
 from fastapi_pagination import Params
 
+from backend.core.user import User
 from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
 
 logger = logging.getLogger(__name__)
@@ -13,7 +14,6 @@ from backend.core.game import *
 from backend.core.game.game_actions import GameAction, GameActionResult
 from backend.core.single import SingleplayerGameplay
 from backend.di.dependencies import *
-from backend.lib.auth import CurrentUser
 from backend.services.dto import *
 from backend.services.exceptions import *
 
@@ -74,7 +74,7 @@ class PlaySingleService:
         gameplay = await self.game_repo.get_gameplay_by_id(gameplay_id)
         self.gameplay = gameplay
 
-    async def get_gameplays(self, user: CurrentUser, pagination_params: Params):
+    async def get_gameplays(self, user: User, pagination_params: Params):
         logger.debug(f"get_gameplays(user_id={user.id}, page={pagination_params.page})")
         return await self.game_repo.get_gameplays(user.id, pagination_params)
 

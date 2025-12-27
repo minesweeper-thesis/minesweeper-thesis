@@ -1,10 +1,9 @@
 import uuid
-from typing import Any, Callable, Coroutine, Literal, Protocol
+from typing import Any, Callable, Coroutine, Protocol
 
 from backend.core.board import Board, GenerationSettings
 
 type GenerationID = uuid.UUID
-type GenerationStatus = Literal["pending", "in_progress", "completed", "failed"]
 
 type OnBoardGeneratedCallback = Callable[
     [GenerationID, Board], Coroutine[Any, Any, None]
@@ -22,15 +21,20 @@ class BoardGenerator(Protocol):
         on_completed: OnBoardGeneratedCallback,
     ) -> GenerationID: ...
 
-    async def get_generation_status(
-        self, generation_id: GenerationID
-    ) -> GenerationStatus: ...
+
+class SingleBoardGenerator(BoardGenerator, Protocol):
+    pass
+
+
+class MultiBoardGenerator(BoardGenerator, Protocol):
+    pass
 
 
 __all__ = [
     "GenerationID",
-    "BoardGenerator",
     "GenerationNotFound",
-    "GenerationStatus",
     "OnBoardGeneratedCallback",
+    "BoardGenerator",
+    "SingleBoardGenerator",
+    "MultiBoardGenerator",
 ]

@@ -24,19 +24,6 @@ game_exceptions = {
     exceptions.SolvedAllBoards: HTTPException(
         400, "User solved all boards for this difficulty type"
     ),
-    exceptions.GameplayAlreadyFinished: HTTPException(
-        400, "Gameplay is already finished"
-    ),
-    exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
-    exceptions.UserNotInSession: HTTPException(403, "User not in multiplayer session"),
-    exceptions.SessionNotExists: HTTPException(404, "Multiplayer session not found"),
-    exceptions.SessionAlreadyOver: HTTPException(
-        400, "Multiplayer session is already over"
-    ),
-    ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
-    exceptions.InvitationNotExists: HTTPException(
-        status_code=404, detail="Invitation not found."
-    ),
 }
 
 
@@ -86,8 +73,8 @@ async def play_single(
     service: PlaySingleService,
 ):
     try:
-        game_state = await service.load_gameplay(gameplay_id)
         await websocket.accept()
+        game_state = await service.load_gameplay(gameplay_id)
         await websocket.send_text(create_game_notification(game_state))
 
         while True:
@@ -111,6 +98,12 @@ async def play_single(
     except exceptions.GenerationError:
         await websocket.close(code=1001, reason="Board generation error")
 
+    except exceptions.GameplayNotExists:
+        await websocket.close(code=1008, reason="Gameplay not found")
+
+    except exceptions.GameplayAlreadyFinished:
+        await websocket.close(code=1009, reason="Gameplay already finished")
+
 
 async def handle_multi(
     user,
@@ -124,13 +117,13 @@ async def handle_multi(
             await play.get_game_state()
 
         case "ready":
-            await start_round.set_user_ready(user, lobby_id=lobby_id)
+            await start_round.set_user_ready(user, lobby_id)
 
         case "not_ready":
-            await start_round.cancel_user_ready(user, lobby_id=lobby_id)
+            await start_round.cancel_user_ready(user, lobby_id)
 
         case "toggle_ready":
-            await start_round.toggle_user_ready(user, lobby_id=lobby_id)
+            await start_round.toggle_user_ready(user, lobby_id)
 
         case _:
             action = _create_action_from_data_multi(data)
@@ -174,5 +167,25 @@ async def play_multi(
             await play.reload(user)
             await handle_multi(user, lobby_id, data, play, start)
 
+    except exceptions.UserNotInSession:
+        await websocket.close(code=1010, reason="User not in multiplayer session")
+
+    except exceptions.SessionNotExists:
+        await websocket.close(code=1011, reason="Multiplayer session not found")
+
+    except exceptions.SessionAlreadyOver:
+        await websocket.close(code=1012, reason="Multiplayer session is already over")
+
+    except ReadyChangeLocked:
+        await websocket.close(
+            code=1013, reason="Cannot change ready status at this time"
+        )
+
+    except exceptions.InvitationNotExists:
+        await websocket.close(code=1014, reason="Invitation not found")
+
     except WebSocketDisconnect:
+        pass
+
+    finally:
         lobby_websockets.remove(lobby_id, user.id)

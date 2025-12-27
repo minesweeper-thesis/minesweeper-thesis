@@ -6,7 +6,6 @@ from fastapi_pagination import Page, Params
 
 from backend import services
 from backend.core.lobby.lobby import UserNotInLobby
-from backend.core.multi.session import ReadyChangeLocked
 from backend.lib.auth import CurrentUser
 from backend.schemas.lobby import *
 from backend.services.exceptions import *
@@ -31,7 +30,6 @@ lobby_exceptions: dict[type[Exception], HTTPException] = {
     ),
     LobbyNotExists: HTTPException(status_code=404, detail="Lobby not found."),
     InvitationNotExists: HTTPException(status_code=404, detail="Invitation not found."),
-    ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
 }
 
 

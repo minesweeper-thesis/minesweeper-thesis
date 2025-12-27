@@ -5,7 +5,7 @@ from fastapi import Depends
 from backend import protocols as p
 from backend.db.db import get_async_session
 from backend.lib.background_handler import BackgroundRoundHandler
-from backend.lib.board_generator import LocalBoardGenerator
+from backend.lib.board_generator import AsyncBoardGenerator, BackgroundBoardGenerator
 from backend.lib.board_persister import BackgroundBoardPersister
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis_client
@@ -47,7 +47,8 @@ registry: dict[type, Callable] = {
     p.FriendsRepository: FriendsRepository,
     p.StatsRepository: StatsRepository,
     p.LobbyRepository: _get_lobby_repository,
-    p.BoardGenerator: LocalBoardGenerator,
+    p.SingleBoardGenerator: BackgroundBoardGenerator,
+    p.MultiBoardGenerator: AsyncBoardGenerator,
     p.PendingBoardsStore: _get_pending_boards_store,
     p.NotificationSystem: _get_notification_system,
     p.LobbyTransportFactory: _get_lobby_transport_factory,

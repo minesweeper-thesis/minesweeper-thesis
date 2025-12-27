@@ -17,7 +17,12 @@ FriendsRepositoryDep = Annotated[p.FriendsRepository, registry[p.FriendsReposito
 StatsRepositoryDep = Annotated[p.StatsRepository, registry[p.StatsRepository]]
 LobbyRepositoryDep = Annotated[p.LobbyRepository, registry[p.LobbyRepository]]
 
-BoardGeneratorDep = Annotated[p.BoardGenerator, registry[p.BoardGenerator]]
+SingleBoardGeneratorDep = Annotated[
+    p.SingleBoardGenerator, registry[p.SingleBoardGenerator]
+]
+MultiBoardGeneratorDep = Annotated[
+    p.MultiBoardGenerator, registry[p.MultiBoardGenerator]
+]
 PendingBoardsStoreDep = Annotated[p.PendingBoardsStore, registry[p.PendingBoardsStore]]
 NotificationSystemDep = Annotated[p.NotificationSystem, registry[p.NotificationSystem]]
 LobbyTransportFactoryDep = Annotated[
@@ -42,7 +47,8 @@ __all__ = [
     "FriendsRepositoryDep",
     "StatsRepositoryDep",
     "LobbyRepositoryDep",
-    "BoardGeneratorDep",
+    "SingleBoardGeneratorDep",
+    "MultiBoardGeneratorDep",
     "PendingBoardsStoreDep",
     "NotificationSystemDep",
     "LobbyTransportFactoryDep",
