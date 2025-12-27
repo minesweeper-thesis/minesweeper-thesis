@@ -1,5 +1,3 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from backend.core.board import DifficultyLevel, GenerationSettings
 from backend.tests.conftest import create_or_get_board, generate_board_data
 
@@ -22,7 +20,7 @@ async def create_board(rows=5, columns=5, mine_count=2) -> tuple[str, tuple[int,
 
 
 async def create_board_from_full_board(
-    session: AsyncSession, full_board: list[list[int]], start_field: tuple[int, int]
+    full_board: list[list[int]], start_field: tuple[int, int]
 ) -> str:
     rows = len(full_board)
     columns = len(full_board[0])

@@ -38,7 +38,7 @@ async def test_replay_game(authenticated_clients, json_file, session):
 
     start_field = tuple(first_message_data["start_field"])
 
-    board_id = await create_board_from_full_board(session, full_board, start_field)
+    board_id = await create_board_from_full_board(full_board, start_field)
 
     gameplay_id = await create_game(bundle.http, board_id=board_id)
 

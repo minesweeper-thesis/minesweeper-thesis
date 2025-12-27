@@ -157,14 +157,14 @@ async def play_multi(
 ):
     try:
         await lobby_service.join_lobby(user, invitation_id) if invitation_id else None
-        await play.validate_session(lobby_id, user)
+        await play.load_session(user, lobby_id)
         await websocket.accept()
         lobby_websockets.add(lobby_id, user.id, websocket)
         await user_connection_service.notify_ready_users(user)
 
         while True:
             data = await websocket.receive_json()
-            await play.reload(user)
+            await play.load_session(user, lobby_id)
             await handle_multi(user, lobby_id, data, play, start)
 
     except exceptions.UserNotInSession:

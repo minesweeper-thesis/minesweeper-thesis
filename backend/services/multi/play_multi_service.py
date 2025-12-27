@@ -38,66 +38,44 @@ class PlayMultiService:
 
         self.transport: GameTransport = None  # type: ignore
 
-    async def validate_session(
-        self,
-        lobby_id: uuid.UUID,
-        user: User,
-    ):
-        logger.debug(f"validate_session(lobby_id={lobby_id}, user_id={user.id})")
-
+    async def load_session(self, user: User, lobby_id: uuid.UUID):
+        logger.debug(f"load_session(lobby_id={lobby_id}, user_id={user.id})")
         session = await self.multi_repo.get_for_lobby(lobby_id)
 
         if session is None:
             logger.warning(f"No active session for lobby {lobby_id}")
             raise SessionNotExists()
 
-        self.session_id = session.id
-        self.user = user
-
-        await self.reload(user)
-
-        if self.user.id not in self.session.player_ids:
-            logger.warning(f"User {user.id} is not part of session {self.session_id}")
+        if user.id not in session.player_ids:
+            logger.warning(f"User {user.id} is not part of session {session.id}")
             raise UserNotInSession()
 
-        if self.session.is_over():
-            logger.warning(
-                f"Attempted to join already finished session {self.session_id}"
-            )
+        if session.is_over():
+            logger.warning(f"Attempted to join already finished session {session.id}")
             raise SessionAlreadyOver()
 
-        self.transport = self.lobby_transport_factory.create(session.lobby_id)
-        logger.info(f"User {user.id} set for multiplayer session {self.session_id}")
-
-    async def reload(self, user: User):
-        logger.debug(
-            f"load_session(session_id={self.session_id}, user_id={self.user.id})"
-        )
-        self.session = await self.multi_repo.get_session(self.session_id)
+        self.session = session
         self.user = user
+        self.transport = self.lobby_transport_factory.create(session.lobby_id)
+        logger.info(f"User {user.id} set for multiplayer session {session.id}")
 
     def is_session_over(self) -> bool:
-        logger.debug(f"is_session_over(session_id={self.session_id})")
+        logger.debug(f"is_session_over()")
         return self.session.is_over()
 
     async def get_game_state(self):
-        logger.debug(
-            f"get_game_state(session_id={self.session_id}, user_id={self.user.id})"
-        )
+        logger.debug(f"get_game_state(user_id={self.user.id})")
         game_state = self.session.get_user_game_state(self.user.id)
         await self.transport.send(self.user.id, game_state)
 
     async def execute_action(self, action: GameAction):
         logger.debug(
-            f"execute_action(session_id={self.session_id}, user_id={self.user.id}, action={type(action).__name__})"
+            f"execute_action(user_id={self.user.id}, action={type(action).__name__})"
         )
-        logger.debug(
-            f"User {self.user.id} executing action in session {self.session_id}: {type(action).__name__}"
-        )
+        logger.debug(f"User {self.user.id} executing action: {type(action).__name__}")
 
-        async with self.session_lock.acquire(self.session_id):
-            self.session = await self.multi_repo.get_session(self.session_id)
-
+        async with self.session_lock.acquire(self.session.id):
+            self.session = await self.multi_repo.get_session(self.session.id)
             with suppress(InvalidAction, GameplayNotInProgress):
                 self.session.execute_action_for_user(self.user.id, action)
 
