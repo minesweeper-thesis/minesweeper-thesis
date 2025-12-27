@@ -55,6 +55,7 @@ async def test_multiplayer_single_player_flow(
             host_bundle.ws(f"/game/multi/{lobby_id}")
         )
 
+        await receive_type(lobby_ws, "session_state")
         await receive_type(lobby_ws, "user_ready")
 
         await lobby_ws.send_json({"type": "ready"})

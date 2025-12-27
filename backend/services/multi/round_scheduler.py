@@ -25,6 +25,7 @@ class RoundScheduler:
         lobby_transport_factory: LobbyTransportFactoryDep,
         board_repo: BoardRepositoryDep,
         pending_store: PendingBoardsStoreDep,
+        session_runtime_store: SessionRuntimeStoreDep,
         session_lock: SessionLockDep,
         session_renewer: Annotated[SessionRenewer, Depends()],
     ):
@@ -34,6 +35,7 @@ class RoundScheduler:
 
         self.board_repo = board_repo
         self.pending_store = pending_store
+        self.session_runtime_store = session_runtime_store
         self.session_lock = session_lock
         self.session_renewer = session_renewer
 
@@ -80,6 +82,8 @@ class RoundScheduler:
 
     async def start_round(self, session_id: uuid.UUID, start_at: datetime):
         logger.debug(f"Starting round in session {session_id}")
+        await self.session_runtime_store.clear_countdown(session_id)
+
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
             if not session.all_players_ready():
@@ -134,6 +138,10 @@ class RoundScheduler:
     async def schedule_start(self, session: MultiplayerSession):
         logger.debug(f"Scheduling start of round in session {session.id}")
         countdown_to, start_at = calc_round_start_times()
+
+        await self.session_runtime_store.set_countdown(
+            session.id, countdown_to, start_at
+        )
 
         await self._send_countdown(session, start_at, countdown_to)
 

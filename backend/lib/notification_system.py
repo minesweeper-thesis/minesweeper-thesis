@@ -20,7 +20,7 @@ from backend.schemas.lobby import *
 from backend.schemas.lobby import UserOnlineUpdatedResponse
 from backend.schemas.user import FriendRequestResponse, UserChatMessageResponse
 from backend.services.dto import *
-from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
+from backend.services.dto.lobby import SessionState, UserCurrentLobby, UserOnlineUpdated
 
 
 class WSNotificationSystem(NotificationSystem):
@@ -100,6 +100,7 @@ def create_game_notification(data: Notifiable) -> str:
         UserOnlineUpdated: UserOnlineUpdatedResponse,
         UserConnectionUpdated: UserConnectionStatusResponse,
         GameConfigUpdated: GameConfigUpdatedResponse,
+        SessionState: SessionStateResponse,
     }
 
     if type(data) not in mapping:

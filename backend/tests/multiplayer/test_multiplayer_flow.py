@@ -72,6 +72,7 @@ async def test_multiplayer_full_flow_many_players(
         host_lobby = await stack.enter_async_context(
             host_bundle.ws(f"/game/multi/{lobby_id}")
         )
+        await receive_type(host_lobby, "session_state")
         await receive_type(host_lobby, "user_ready")
 
         inv_resp = await host_bundle.http.post(
@@ -92,6 +93,7 @@ async def test_multiplayer_full_flow_many_players(
         g1_lobby = await stack.enter_async_context(
             g1_bundle.ws(f"/game/multi/{lobby_id}?invitation_id={inv1['id']}")
         )
+        await receive_type(g1_lobby, "session_state")
         await receive_type(host_lobby, "invitation_response")
         await receive_type(host_lobby, "user_connection_status")
 
@@ -101,6 +103,7 @@ async def test_multiplayer_full_flow_many_players(
         g2_lobby = await stack.enter_async_context(
             g2_bundle.ws(f"/game/multi/{lobby_id}?invitation_id={inv2['id']}")
         )
+        await receive_type(g2_lobby, "session_state")
 
         await receive_type(host_lobby, "invitation_response")
         await receive_type(host_lobby, "user_connection_status")

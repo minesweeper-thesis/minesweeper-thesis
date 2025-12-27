@@ -14,7 +14,6 @@ logger = logging.getLogger(__name__)
 from backend.core.game import *
 from backend.di.dependencies import *
 from backend.di.session_lock import SessionLockDep
-from backend.protocols.game_transport_protocol import GameTransport
 from backend.services.exceptions import *
 from backend.services.multi.session_renewer import SessionRenewer
 
@@ -36,8 +35,6 @@ class PlayMultiService:
         self.session_lock = session_lock
         self.session_renewer = session_renewer
 
-        self.transport: GameTransport = None  # type: ignore
-
     async def load_session(self, user: User, lobby_id: uuid.UUID):
         logger.debug(f"load_session(lobby_id={lobby_id}, user_id={user.id})")
         session = await self.multi_repo.get_for_lobby(lobby_id)
@@ -56,7 +53,6 @@ class PlayMultiService:
 
         self.session = session
         self.user = user
-        self.transport = self.lobby_transport_factory.create(session.lobby_id)
         logger.info(f"User {user.id} set for multiplayer session {session.id}")
 
     def is_session_over(self) -> bool:
@@ -66,7 +62,8 @@ class PlayMultiService:
     async def get_game_state(self):
         logger.debug(f"get_game_state(user_id={self.user.id})")
         game_state = self.session.get_user_game_state(self.user.id)
-        await self.transport.send(self.user.id, game_state)
+        transport = self.lobby_transport_factory.create(self.session.lobby_id)
+        await transport.send(self.user.id, game_state)
 
     async def execute_action(self, action: GameAction):
         logger.debug(
@@ -83,9 +80,10 @@ class PlayMultiService:
 
             await self.multi_repo.save_session(self.session)
 
+            transport = self.lobby_transport_factory.create(self.session.lobby_id)
             for user_id, events in events_by_user.items():
                 for event in events:
-                    await self.transport.send(user_id, event)
+                    await transport.send(user_id, event)
 
             if self.session.is_over():
                 await self.session_renewer.renew_session(self.session.lobby_id)

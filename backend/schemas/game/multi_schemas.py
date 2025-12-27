@@ -2,6 +2,8 @@ import uuid
 from dataclasses import asdict
 from typing import Literal, Optional, Self
 
+from pydantic import BaseModel
+
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
 from backend.core.multi import (
@@ -129,6 +131,51 @@ class ScoreUpdateResponse(Response):
         return cls(**asdict(message.score))
 
 
+class RoundData(BaseModel):
+    round_number: int
+    start_at: Optional[int]
+    end_at: Optional[int]
+    countdown_to: Optional[int]
+    state: Literal["not_ready", "generating", "countdown", "ready_lock", "playing"]
+
+
+class SessionStateResponse(Response):
+    ws_type: Literal["session_state"] = "session_state"
+    session_id: uuid.UUID
+    round: RoundData
+    scoreboard: list[SessionScoreItem]
+
+    @classmethod
+    def build(cls, message: SessionState) -> Self:
+        start_at = (
+            int(message.round.start_at.timestamp() * 1000)
+            if message.round.start_at
+            else None
+        )
+        end_at = (
+            int(message.round.end_at.timestamp() * 1000)
+            if message.round.end_at
+            else None
+        )
+        countdown_to = (
+            int(message.round.countdown_to.timestamp() * 1000)
+            if message.round.countdown_to
+            else None
+        )
+
+        return cls(
+            session_id=message.session_id,
+            round=RoundData(
+                round_number=message.round.round_number,
+                start_at=start_at,
+                end_at=end_at,
+                countdown_to=countdown_to,
+                state=message.round.state,
+            ),
+            scoreboard=message.scoreboard.items,
+        )
+
+
 __all__ = [
     "RoundStartResponse",
     "RoundEndResponse",
@@ -138,4 +185,5 @@ __all__ = [
     "UserReadyResponse",
     "UserNotReadyResponse",
     "ScoreUpdateResponse",
+    "SessionStateResponse",
 ]

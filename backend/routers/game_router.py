@@ -116,6 +116,9 @@ async def handle_multi(
         case "get_state":
             await play.get_game_state()
 
+        case "get_session_state":
+            await start_round.get_session_state(user, lobby_id)
+
         case "ready":
             await start_round.set_user_ready(user, lobby_id)
 
@@ -160,6 +163,7 @@ async def play_multi(
         await play.load_session(user, lobby_id)
         await websocket.accept()
         lobby_websockets.add(lobby_id, user.id, websocket)
+        await start.get_session_state(user, lobby_id)
         await user_connection_service.notify_ready_users(user)
 
         while True:

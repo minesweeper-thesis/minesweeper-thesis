@@ -60,6 +60,7 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         host_lobby = await stack.enter_async_context(
             host_bundle.ws(f"/game/multi/{lobby_id}")
         )
+        await receive_type(host_lobby, "session_state")
         await receive_type(host_lobby, "user_ready")
 
         inv_resp = await host_bundle.http.post(
@@ -73,6 +74,7 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         guest_lobby = await stack.enter_async_context(
             guest_bundle.ws(f"/game/multi/{lobby_id}?invitation_id={invitation['id']}")
         )
+        await receive_type(guest_lobby, "session_state")
         await receive_type(host_lobby, "invitation_response")
         await receive_type(guest_lobby, "user_ready")
         await receive_type(guest_lobby, "user_ready")

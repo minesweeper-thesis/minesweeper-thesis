@@ -1,8 +1,10 @@
 import uuid
 from dataclasses import dataclass
-from typing import Optional
+from datetime import datetime
+from typing import Literal, Optional
 
 from backend.core.lobby import Lobby
+from backend.core.multi import SessionScoreboard
 from backend.core.user import User
 
 
@@ -22,4 +24,26 @@ class UserOnlineUpdated:
     user: User
 
 
-__all__ = ["KickedFromLobby", "UserCurrentLobby", "UserOnlineUpdated"]
+@dataclass
+class SessionStateRoundData:
+    round_number: int
+    start_at: Optional[datetime]
+    end_at: Optional[datetime]
+    countdown_to: Optional[datetime]
+    state: Literal["not_ready", "generating", "countdown", "ready_lock", "playing"]
+
+
+@dataclass
+class SessionState:
+    session_id: uuid.UUID
+    round: SessionStateRoundData
+    scoreboard: SessionScoreboard
+
+
+__all__ = [
+    "KickedFromLobby",
+    "UserCurrentLobby",
+    "UserOnlineUpdated",
+    "SessionState",
+    "SessionStateRoundData",
+]

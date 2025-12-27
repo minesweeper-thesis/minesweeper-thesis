@@ -10,6 +10,7 @@ from backend.lib.board_persister import BackgroundBoardPersister
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis_client
 from backend.lib.scheduler import get_scheduler
+from backend.lib.session_runtime_store import RedisSessionRuntimeStore
 from backend.repositories import *
 
 
@@ -39,6 +40,10 @@ def _get_pending_boards_store(redis=Depends(get_redis_client)):
     return RedisPendingStore(redis)
 
 
+def _get_session_runtime_store(redis=Depends(get_redis_client)):
+    return RedisSessionRuntimeStore(redis)
+
+
 registry: dict[type, Callable] = {
     p.BoardRepository: BoardRepository,
     p.SingleplayerRepository: SingleplayerRepository,
@@ -50,6 +55,7 @@ registry: dict[type, Callable] = {
     p.SingleBoardGenerator: BackgroundBoardGenerator,
     p.MultiBoardGenerator: AsyncBoardGenerator,
     p.PendingBoardsStore: _get_pending_boards_store,
+    p.SessionRuntimeStore: _get_session_runtime_store,
     p.NotificationSystem: _get_notification_system,
     p.LobbyTransportFactory: _get_lobby_transport_factory,
     p.Scheduler: get_scheduler,

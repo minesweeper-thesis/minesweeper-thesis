@@ -24,6 +24,9 @@ MultiBoardGeneratorDep = Annotated[
     p.MultiBoardGenerator, registry[p.MultiBoardGenerator]
 ]
 PendingBoardsStoreDep = Annotated[p.PendingBoardsStore, registry[p.PendingBoardsStore]]
+SessionRuntimeStoreDep = Annotated[
+    p.SessionRuntimeStore, registry[p.SessionRuntimeStore]
+]
 NotificationSystemDep = Annotated[p.NotificationSystem, registry[p.NotificationSystem]]
 LobbyTransportFactoryDep = Annotated[
     p.LobbyTransportFactory, registry[p.LobbyTransportFactory]
@@ -55,4 +58,5 @@ __all__ = [
     "SchedulerDep",
     "BoardPersisterDep",
     "BackgroundRoundHandlerDep",
+    "SessionRuntimeStoreDep",
 ]

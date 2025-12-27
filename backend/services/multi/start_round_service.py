@@ -26,6 +26,7 @@ class StartRoundService:
         round_scheduler: Annotated[RoundScheduler, Depends()],
         boards_preparer: Annotated[SessionBoardsPreparer, Depends()],
         pending_store: PendingBoardsStoreDep,
+        session_runtime_store: SessionRuntimeStoreDep,
         session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
@@ -36,6 +37,7 @@ class StartRoundService:
         self.lobby_transport_factory = lobby_transport_factory
         self.session_lock = session_lock
         self.pending_store = pending_store
+        self.session_runtime_store = session_runtime_store
 
     def _get_transport(self, lobby_id: uuid.UUID):
         return self.lobby_transport_factory.create(lobby_id)
@@ -138,6 +140,63 @@ class StartRoundService:
                 f"No next round available in session {session.id}, waiting for boards"
             )
             await self.boards_preparer.wait_and_schedule_next_round(session.id)
+
+    async def get_session_state(self, user: User, lobby_id: uuid.UUID):
+        logger.debug(f"get_session_state(lobby_id={lobby_id})")
+
+        session = await self.multi_repo.get_for_lobby(lobby_id)
+        assert session is not None, "Session not found"
+
+        current_idx = session.current_round_index
+        if current_idx == -1:
+            round_index = 0
+        elif session.rounds[current_idx].state == "playing":
+            round_index = current_idx
+        else:
+            round_index = current_idx + 1
+
+        board_ready = round_index < len(session.rounds)
+        pending = await self.pending_store.get_pending_round(session.id, round_index)
+        is_generating = pending is not None and not board_ready
+
+        start_at = None
+        end_at = None
+        countdown_to = None
+        round_state: Literal[
+            "not_ready", "generating", "countdown", "ready_lock", "playing"
+        ]
+
+        if board_ready and session.rounds[round_index].state == "playing":
+            round_state = "playing"
+            start_at = session.rounds[round_index].start_at
+            end_at = session.rounds[round_index].end_at
+        elif session.ready_locked:
+            round_state = "ready_lock"
+            countdown_to, start_at = await self.session_runtime_store.get_countdown(
+                session.id
+            )
+        elif is_generating:
+            round_state = "generating"
+        elif session.all_players_ready() and board_ready:
+            round_state = "countdown"
+            countdown_to, start_at = await self.session_runtime_store.get_countdown(
+                session.id
+            )
+        else:
+            round_state = "not_ready"
+
+        round_data = SessionStateRoundData(
+            round_number=round_index + 1,
+            start_at=start_at,
+            end_at=end_at,
+            countdown_to=countdown_to,
+            state=round_state,
+        )
+
+        session_state = SessionState(session.id, round_data, session.scoreboard)
+
+        transport = self.lobby_transport_factory.create(session.lobby_id)
+        await transport.send(user.id, session_state)
 
 
 __all__ = ["StartRoundService"]

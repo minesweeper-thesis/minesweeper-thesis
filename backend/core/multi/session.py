@@ -53,7 +53,7 @@ class MultiplayerSession:
 
         self.ready_locked = False
 
-        self.scoreboard: SessionScoreboard = SessionScoreboard(
+        self._scoreboard: SessionScoreboard = SessionScoreboard(
             items=[
                 SessionScoreItem(user_id=player_id, score=0) for player_id in player_ids
             ]
@@ -72,16 +72,16 @@ class MultiplayerSession:
         self.player_ids = player_ids
         self.ready_players.intersection_update(set(player_ids))
 
-        existing = {item.user_id for item in self.scoreboard.items}
+        existing = {item.user_id for item in self._scoreboard.items}
         removed = existing - set(player_ids)
         if removed:
-            self.scoreboard.items = [
-                item for item in self.scoreboard.items if item.user_id not in removed
+            self._scoreboard.items = [
+                item for item in self._scoreboard.items if item.user_id not in removed
             ]
 
         added = set(player_ids) - existing
         for user_id in added:
-            self.scoreboard.items.append(SessionScoreItem(user_id=user_id, score=0))
+            self._scoreboard.items.append(SessionScoreItem(user_id=user_id, score=0))
 
     @property
     def _current_round(self) -> MultiplayerRound:
@@ -133,15 +133,15 @@ class MultiplayerSession:
             self._update_scoreboard(round)
 
         if self.is_over():
-            self.scoreboard.sort()
+            self._scoreboard.sort()
             for user_id in self.player_ids:
                 self.events[user_id].append(
-                    SessionOver(session_id=self.id, scoreboard=self.scoreboard)
+                    SessionOver(session_id=self.id, scoreboard=self._scoreboard)
                 )
 
     def _update_scoreboard(self, round: MultiplayerRound) -> None:
         for round_item in round.scoreboard.items:
-            for session_item in self.scoreboard.items:
+            for session_item in self._scoreboard.items:
                 if session_item.user_id == round_item.user_id:
                     session_item.score = round_item.score
                     break
@@ -152,7 +152,7 @@ class MultiplayerSession:
                 raise RoundNotAvailable()
 
         self.current_round_index += 1
-        session_scores = {item.user_id: item.score for item in self.scoreboard.items}
+        session_scores = {item.user_id: item.score for item in self._scoreboard.items}
         self._current_round.start(start_at, session_scores)
         self._consume_round_events()
         self.clear_ready_players()
@@ -183,6 +183,21 @@ class MultiplayerSession:
         events = self.events
         self.events = defaultdict(list)
         return events
+
+    @property
+    def scoreboard(self) -> SessionScoreboard:
+        if self.current_round_index == -1:
+            return self._scoreboard
+
+        return SessionScoreboard(
+            items=[
+                SessionScoreItem(
+                    user_id=item.user_id,
+                    score=item.score,
+                )
+                for item in self._current_round.scoreboard.items
+            ]
+        )
 
 
 __all__ = ["MultiplayerSession", "SessionOver"]

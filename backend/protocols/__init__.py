@@ -8,6 +8,7 @@ from .multiplayer_repo_protocol import *
 from .notification_system_protocol import *
 from .pending_boards_store_protocol import *
 from .scheduler_protocol import *
+from .session_runtime_store_protocol import *
 from .singleplayer_repo_protocol import *
 from .stats_repo_protocol import *
 from .user_repo_protocol import *
