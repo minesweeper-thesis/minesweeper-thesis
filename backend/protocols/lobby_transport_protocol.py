@@ -9,7 +9,7 @@ class LobbyTransport(Protocol):
 
 
 class LobbyTransportFactory(Protocol):
-    def create(self, lobby_id: uuid.UUID) -> LobbyTransport: ...
+    def get(self, lobby_id: uuid.UUID) -> LobbyTransport: ...
 
 
 __all__ = ["LobbyTransport", "LobbyTransportFactory"]

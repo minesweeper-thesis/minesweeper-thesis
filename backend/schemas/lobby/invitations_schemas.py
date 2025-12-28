@@ -4,20 +4,13 @@ from typing import Literal, Self
 from pydantic import BaseModel
 
 from backend.core.lobby import *
-from backend.schemas import Response, WSRequest
+from backend.schemas import Response
 from backend.schemas.lobby.lobby_schemas import GameConfigResponse
 from backend.schemas.user import UserResponse
 
 
 class InviteUserToLobbyRequest(BaseModel):
     user_id: uuid.UUID
-
-
-class PendingInvitationsRequest(WSRequest):
-    ws_type: Literal["pending_invitations"] = "pending_invitations"
-
-    def parse(self) -> "InvitationsQuery":
-        return InvitationsQuery()
 
 
 class InvitationLobbyResponse(BaseModel):

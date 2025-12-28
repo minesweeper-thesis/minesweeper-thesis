@@ -43,7 +43,7 @@ class LobbyChatService:
 
             await self.lobby_repo.add_message(message)
 
-            transport = self.lobby_transport_factory.create(lobby.id)
+            transport = self.lobby_transport_factory.get(lobby.id)
             await transport.broadcast(message)
 
             logger.debug(f"Chat message sent in lobby {lobby_id} by user {user.id}")

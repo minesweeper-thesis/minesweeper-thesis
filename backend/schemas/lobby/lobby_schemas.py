@@ -146,7 +146,6 @@ __all__ = [
     "GameConfigUpdatedResponse",
     "UserConnectionStatusResponse",
     "CurrentLobbyResponse",
-    "GameConfigUpdatedResponse",
     "KickUserRequest",
     "KickedResponse",
     "UserOnlineUpdatedResponse",

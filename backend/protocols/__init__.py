@@ -1,7 +1,6 @@
 from .board_generator_protocol import *
 from .board_repo_protocol import *
 from .friends_repo_protocol import *
-from .game_transport_protocol import *
 from .lobby_repo_protocol import *
 from .lobby_transport_protocol import *
 from .multiplayer_repo_protocol import *

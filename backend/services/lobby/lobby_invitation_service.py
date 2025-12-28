@@ -29,7 +29,7 @@ class LobbyInvitationService:
         self.lobby_transport_factory = lobby_transport_factory
 
     async def lobby_notify(self, lobby: Lobby, receiver_id: uuid.UUID, data):
-        transport = self.lobby_transport_factory.create(lobby.id)
+        transport = self.lobby_transport_factory.get(lobby.id)
         await transport.send(receiver_id, data)
 
     async def invite_to_lobby(

@@ -74,7 +74,7 @@ class RoundScheduler:
         await self._publish_events(session.lobby_id, events_by_user)
 
         if session_over:
-            transport = self.lobby_transport_factory.create(session.lobby_id)
+            transport = self.lobby_transport_factory.get(session.lobby_id)
             for user_id in session.player_ids:
                 await transport.close(user_id)
 
@@ -112,7 +112,7 @@ class RoundScheduler:
         round_start_time: datetime,
         countdown_to: datetime,
     ):
-        transport = self.lobby_transport_factory.create(session.lobby_id)
+        transport = self.lobby_transport_factory.get(session.lobby_id)
         sender = transport.send
 
         for user_id in session.player_ids:
@@ -130,7 +130,7 @@ class RoundScheduler:
     async def _publish_events(
         self, lobby_id: uuid.UUID, events_by_user: dict[uuid.UUID, list[Any]]
     ):
-        transport = self.lobby_transport_factory.create(lobby_id)
+        transport = self.lobby_transport_factory.get(lobby_id)
         for user_id, events in events_by_user.items():
             for event in events:
                 await transport.send(user_id, event)

@@ -66,10 +66,6 @@ class LobbyService:
         self.session_lock = session_lock
         self.session_renewer = session_renewer
 
-    async def notify(self, lobby_id: uuid.UUID, user_id: uuid.UUID, data):
-        transport = self.lobby_transport_factory.create(lobby_id)
-        await transport.send(user_id, data)
-
     async def create_lobby(self, user: User) -> Lobby:
         logger.debug(f"create_lobby(user_id={user.id})")
         lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
@@ -116,9 +112,9 @@ class LobbyService:
         await self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
-        await self.notify(invitation.lobby.id, invitation.inviter.id, response)
 
-        transport = self.lobby_transport_factory.create(lobby.id)
+        transport = self.lobby_transport_factory.get(lobby.id)
+        await transport.send(invitation.inviter.id, response)
         await transport.broadcast(data)
 
         logger.info(f"User {user.id} joined lobby {lobby.id}")
@@ -134,7 +130,7 @@ class LobbyService:
             ensure_user_is_host(lobby, user)
 
             session = await self.multi_repo.get_for_lobby(lobby.id)
-            if session and session.is_started():
+            if session and session.is_started() and not session.ready_locked:
                 raise SessionActive()
 
             event = lobby.update_game_config(game_config)
@@ -142,7 +138,7 @@ class LobbyService:
 
             await self.session_renewer.renew_session(lobby_id)
 
-            transport = self.lobby_transport_factory.create(lobby.id)
+            transport = self.lobby_transport_factory.get(lobby.id)
             await transport.broadcast(event)
 
             logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
@@ -198,7 +194,7 @@ class LobbyService:
         else:
             await self.lobby_repo.save_lobby(lobby)
             await self._sync_session_players(lobby)
-            transport = self.lobby_transport_factory.create(lobby.id)
+            transport = self.lobby_transport_factory.get(lobby.id)
             await transport.broadcast(data)
 
     async def _sync_session_players(self, lobby: Lobby) -> None:

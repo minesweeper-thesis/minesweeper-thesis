@@ -39,9 +39,6 @@ class StartRoundService:
         self.pending_store = pending_store
         self.session_runtime_store = session_runtime_store
 
-    def _get_transport(self, lobby_id: uuid.UUID):
-        return self.lobby_transport_factory.create(lobby_id)
-
     def _ensure_user_in_session(self, session: MultiplayerSession, user: User):
         if user.id not in session.player_ids:
             raise UserNotInSession()
@@ -83,7 +80,7 @@ class StartRoundService:
                 should_notify = True
 
         if should_notify:
-            transport = self._get_transport(lobby_id)
+            transport = self.lobby_transport_factory.get(lobby_id)
             next_round_index = session.current_round_index + 1
             await transport.broadcast(UserNotReady(user.id, next_round_index))
 
@@ -108,7 +105,7 @@ class StartRoundService:
                 all_ready = session.all_players_ready()
 
         if should_notify:
-            transport = self._get_transport(lobby_id)
+            transport = self.lobby_transport_factory.get(lobby_id)
             next_round_index = session.current_round_index + 1
             await transport.broadcast(UserReady(user.id, next_round_index))
 
@@ -122,7 +119,7 @@ class StartRoundService:
         difficulty_level = session.game_config.difficulty_level
         message = RoundReady(session.id, next_round_index, difficulty_level)
 
-        transport = self._get_transport(session.lobby_id)
+        transport = self.lobby_transport_factory.get(session.lobby_id)
         await transport.broadcast(message)
 
         is_generating = await self.session_runtime_store.is_generating(session.id)
@@ -194,7 +191,7 @@ class StartRoundService:
 
         session_state = SessionState(session.id, round_data, session.scoreboard)
 
-        transport = self.lobby_transport_factory.create(session.lobby_id)
+        transport = self.lobby_transport_factory.get(session.lobby_id)
         await transport.send(user.id, session_state)
 
 

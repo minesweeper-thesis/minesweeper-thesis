@@ -62,7 +62,7 @@ class PlayMultiService:
     async def get_game_state(self):
         logger.debug(f"get_game_state(user_id={self.user.id})")
         game_state = self.session.get_user_game_state(self.user.id)
-        transport = self.lobby_transport_factory.create(self.session.lobby_id)
+        transport = self.lobby_transport_factory.get(self.session.lobby_id)
         await transport.send(self.user.id, game_state)
 
     async def execute_action(self, action: GameAction):
@@ -80,7 +80,7 @@ class PlayMultiService:
 
             await self.multi_repo.save_session(self.session)
 
-            transport = self.lobby_transport_factory.create(self.session.lobby_id)
+            transport = self.lobby_transport_factory.get(self.session.lobby_id)
             for user_id, events in events_by_user.items():
                 for event in events:
                     await transport.send(user_id, event)

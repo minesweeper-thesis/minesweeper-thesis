@@ -36,7 +36,7 @@ async def test_session_state_flow(
 
         state = await receive_type(lobby_ws, "session_state")
         assert state["round"]["state"] == "not_ready"
-        assert state["round"]["round_number"] == 1
+        assert state["round"]["number"] == 1
 
         await receive_type(lobby_ws, "user_ready")
 
@@ -93,4 +93,4 @@ async def test_session_state_flow(
         state = await receive_type(lobby_ws, "session_state")
 
         assert state["round"]["state"] == "not_ready"
-        assert state["round"]["round_number"] == 2
+        assert state["round"]["number"] == 2

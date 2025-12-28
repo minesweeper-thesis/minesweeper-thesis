@@ -43,8 +43,8 @@ class LobbyWebsocketsTransport(LobbyTransport):
 
 
 class LobbyTransportFactory:
-    def create(self, lobby_id: uuid.UUID) -> LobbyTransport:
-        logger.debug(f"LobbyTransportFactory.create(lobby_id={lobby_id})")
+    def get(self, lobby_id: uuid.UUID) -> LobbyTransport:
+        logger.debug(f"LobbyTransportFactory.get(lobby_id={lobby_id})")
         return LobbyWebsocketsTransport(lobby_id)
 
 

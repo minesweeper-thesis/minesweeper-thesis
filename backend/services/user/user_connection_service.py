@@ -56,7 +56,7 @@ class UserConnectionService:
                     data = UserReady(user_id, 0)
                 else:
                     data = UserNotReady(user_id, 0)
-                    transport = self.lobby_transport_factory.create(lobby.id)
+                    transport = self.lobby_transport_factory.get(lobby.id)
                     await transport.send(user.id, data)
 
     async def _notify_user_online_status(self, user: User):
@@ -64,7 +64,7 @@ class UserConnectionService:
         user_lobby = await self.lobby_repo.get_user_lobby(user.id)
         if user_lobby:
             data = UserOnlineUpdated(lobby_id=user_lobby.id, user=user)
-            transport = self.lobby_transport_factory.create(user_lobby.id)
+            transport = self.lobby_transport_factory.get(user_lobby.id)
             await transport.broadcast(data)
 
             if user.is_online:
