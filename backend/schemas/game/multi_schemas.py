@@ -132,7 +132,7 @@ class ScoreUpdateResponse(Response):
 
 
 class RoundData(BaseModel):
-    round_number: int
+    number: int
     start_at: Optional[int]
     end_at: Optional[int]
     countdown_to: Optional[int]
@@ -166,7 +166,7 @@ class SessionStateResponse(Response):
         return cls(
             session_id=message.session_id,
             round=RoundData(
-                round_number=message.round.round_number,
+                number=message.round.round_number,
                 start_at=start_at,
                 end_at=end_at,
                 countdown_to=countdown_to,

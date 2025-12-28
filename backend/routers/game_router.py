@@ -1,5 +1,10 @@
+import logging
 import uuid
+from contextlib import suppress
 from typing import Annotated, Optional
+
+logger = logging.getLogger(__name__)
+
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
@@ -46,8 +51,9 @@ async def handle(data, service: PlaySingleService):
     if data["type"] == "get_state":
         return service.get_game_state()
 
-    action = _create_action_from_data(data)
-    return await service.execute_action(action)
+    with suppress(ValueError):
+        action = _create_action_from_data(data)
+        return await service.execute_action(action)
 
 
 def _create_action_from_data(data) -> GameAction:
@@ -63,6 +69,7 @@ def _create_action_from_data(data) -> GameAction:
         case "hint":
             return UseHintAction()
         case _:
+            logger.warning(f"Unknown action type received: {data['type']}")
             raise ValueError(f"Unknown action type: {data['type']}")
 
 
@@ -129,8 +136,9 @@ async def handle_multi(
             await start_round.toggle_user_ready(user, lobby_id)
 
         case _:
-            action = _create_action_from_data_multi(data)
-            await play.execute_action(action)
+            with suppress(ValueError):
+                action = _create_action_from_data_multi(data)
+                await play.execute_action(action)
 
 
 def _create_action_from_data_multi(data) -> GameAction:
@@ -144,6 +152,7 @@ def _create_action_from_data_multi(data) -> GameAction:
         case "remove_flag":
             return RemoveFlagAction(cell=(data["cell"][0], data["cell"][1]))
         case _:
+            logger.warning(f"Unknown action type received: {data['type']}")
             raise ValueError(f"Unknown action type: {data['type']}")
 
 

@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends
 
 from backend.repositories.lobby_repo import InvitationNotFound, LobbyNotFound
-from backend.services.exceptions import UserNotExists
+from backend.services.exceptions import SessionActive, UserNotExists
 from backend.services.multi.session_renewer import SessionRenewer
 
 logger = logging.getLogger(__name__)
@@ -132,6 +132,10 @@ class LobbyService:
             lobby = await self.lobby_repo.get_lobby(lobby_id)
 
             ensure_user_is_host(lobby, user)
+
+            session = await self.multi_repo.get_for_lobby(lobby.id)
+            if session and session.is_started():
+                raise SessionActive()
 
             event = lobby.update_game_config(game_config)
             await self.lobby_repo.save_lobby(lobby)

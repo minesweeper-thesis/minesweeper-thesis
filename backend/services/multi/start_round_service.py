@@ -125,9 +125,9 @@ class StartRoundService:
         transport = self._get_transport(session.lobby_id)
         await transport.broadcast(message)
 
-        is_pending = await self.pending_store.get_pending_round(session.id, 0)
+        is_generating = await self.session_runtime_store.is_generating(session.id)
 
-        if len(session.rounds) == 0 and not is_pending:
+        if len(session.rounds) == 0 and not is_generating:
             logger.info(f"Preparing boards for first round in session {session.id}")
             await self.boards_preparer.prepare(session)
             session = await self.multi_repo.get_session(session.id)
@@ -156,8 +156,7 @@ class StartRoundService:
             round_index = current_idx + 1
 
         board_ready = round_index < len(session.rounds)
-        pending = await self.pending_store.get_pending_round(session.id, round_index)
-        is_generating = pending is not None and not board_ready
+        is_generating = await self.session_runtime_store.is_generating(session.id)
 
         start_at = None
         end_at = None
@@ -172,15 +171,15 @@ class StartRoundService:
             end_at = session.rounds[round_index].end_at
         elif session.ready_locked:
             round_state = "ready_lock"
-            countdown_to, start_at = await self.session_runtime_store.get_countdown(
-                session.id
+            countdown_to, start_at, end_at = (
+                await self.session_runtime_store.get_round_schedule(session.id)
             )
-        elif is_generating:
+        elif not board_ready and is_generating:
             round_state = "generating"
         elif session.all_players_ready() and board_ready:
             round_state = "countdown"
-            countdown_to, start_at = await self.session_runtime_store.get_countdown(
-                session.id
+            countdown_to, start_at, end_at = (
+                await self.session_runtime_store.get_round_schedule(session.id)
             )
         else:
             round_state = "not_ready"

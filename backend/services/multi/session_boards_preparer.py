@@ -11,7 +11,6 @@ from backend.core.board import Board
 from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import *
 from backend.protocols.board_repo_protocol import UnsolvedBoardNotFound
-from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.services.multi.round_scheduler import RoundScheduler
 
 
@@ -24,6 +23,7 @@ class SessionBoardsPreparer:
         pending_store: PendingBoardsStoreDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
         background_handler: BackgroundRoundHandlerDep,
+        session_runtime_store: SessionRuntimeStoreDep,
     ):
         self.board_repo = board_repo
         self.multi_repo = multi_repo
@@ -31,6 +31,7 @@ class SessionBoardsPreparer:
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
         self.background_handler = background_handler
+        self.session_runtime_store = session_runtime_store
 
     async def prepare(self, session: MultiplayerSession):
         to_generate = session.rounds_number - len(session.rounds)
@@ -74,32 +75,19 @@ class SessionBoardsPreparer:
             game_config.generation_settings, on_completed=on_completed
         )
 
-        await self.pending_store.create_pending(
-            generation_id,
-            PendingBoardMetadata(
-                generation_settings=game_config.generation_settings,
-                difficulty_level=game_config.difficulty_level,
-                mode=game_config.game_mode,
-                session_id=session.id,
-                round_index=round_index,
-            ),
+        await self.session_runtime_store.add_pending_generation(
+            session.id, generation_id
         )
 
     async def wait_and_schedule_next_round(self, session_id: uuid.UUID):
         logger.debug(f"Waiting for pending boards to be ready in session {session_id}")
+
         session = await self.multi_repo.get_session(session_id)
-        next_round_index = session.current_round_index + 1
+        if not session.is_next_round_available:
+            await self.session_runtime_store.wait_for_next_round(session_id)
+            session = await self.multi_repo.get_session(session_id)
 
-        pending = await self.pending_store.get_pending_round(
-            session.id, next_round_index
-        )
-        if pending is None:
-            raise RuntimeError("Pending board not found")
-
-        await self.pending_store.wait_for_ready(pending.generation_id)
-
-        fresh_session = await self.multi_repo.get_session(session_id)
-        await self.round_scheduler.schedule_start(fresh_session)
+        await self.round_scheduler.schedule_start(session)
 
 
 __all__ = ["SessionBoardsPreparer"]

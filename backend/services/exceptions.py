@@ -81,6 +81,10 @@ class GenerationError(Exception):
     pass
 
 
+class SessionActive(Exception):
+    pass
+
+
 __all__ = [
     "UsersNotFriends",
     "FriendRequestNotExists",

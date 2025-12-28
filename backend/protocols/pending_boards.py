@@ -13,8 +13,6 @@ class PendingBoardMetadata:
     mode: GameMode
     gameplay_id: Optional[uuid.UUID] = None
     user_id: Optional[uuid.UUID] = None
-    session_id: Optional[uuid.UUID] = None
-    round_index: Optional[int] = None
 
 
 @dataclass

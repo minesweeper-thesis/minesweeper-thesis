@@ -9,10 +9,6 @@ class PendingBoardsStore(Protocol):
         self, gameplay_id: uuid.UUID
     ) -> Optional[PendingBoard]: ...
 
-    async def get_pending_round(
-        self, session_id: uuid.UUID, round_index: int
-    ) -> Optional[PendingBoard]: ...
-
     async def mark_ready(
         self, generation_id: uuid.UUID, board_id: uuid.UUID
     ) -> None: ...

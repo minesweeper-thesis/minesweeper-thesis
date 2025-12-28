@@ -9,6 +9,7 @@ from backend.db import async_session_maker
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis_client
 from backend.lib.session_lock import SessionLock
+from backend.lib.session_runtime_store import RedisSessionRuntimeStore
 from backend.protocols import SessionNotFound
 from backend.protocols.board_repo_protocol import BoardNotFound
 
@@ -32,6 +33,7 @@ class BackgroundRoundHandler:
             board_repo = BoardRepository(db_session)
             multi_repo = RedisMultiplayerRepository(db_session, redis_client)
             pending_store = RedisPendingStore(redis_client)
+            session_runtime_store = RedisSessionRuntimeStore(redis_client)
 
             try:
                 existing_board = await board_repo.get_board(
@@ -62,9 +64,12 @@ class BackgroundRoundHandler:
 
                 session.add_round(round)
                 await multi_repo.save_session(session)
+                await session_runtime_store.notify_round_ready(session_id)
 
                 if generation_id:
-                    await pending_store.mark_ready(generation_id, board.id)
+                    await session_runtime_store.remove_pending_generation(
+                        session_id, generation_id
+                    )
 
                 logger.info(
                     f"Added round {round.round_index} to session {session_id} in background"

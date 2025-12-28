@@ -36,12 +36,6 @@ class RedisPendingStore(protocols.PendingBoardsStore):
                     encode(generation_id),
                 )
 
-            if metadata.session_id and metadata.round_index is not None:
-                pipe.set(
-                    f"{self.prefix}lookup:round:{metadata.session_id}:{metadata.round_index}",
-                    encode(generation_id),
-                )
-
             await pipe.execute()
 
         logger.debug(f"Created pending board {generation_id}")
@@ -93,22 +87,6 @@ class RedisPendingStore(protocols.PendingBoardsStore):
     async def get_pending_gameplay(self, id: uuid.UUID) -> Optional[PendingBoard]:
         logger.debug(f"get_pending_gameplay(id={id})")
         gen_id_bytes = await self.redis.get(f"{self.prefix}lookup:gameplay:{id}")
-        if gen_id_bytes:
-            gen_id_str = decode(gen_id_bytes)
-            data = await self.redis.get(f"{self.prefix}{gen_id_str}")
-            if data:
-                return decode(data)
-        return None
-
-    async def get_pending_round(
-        self, session_id: uuid.UUID, round_index: int
-    ) -> Optional[PendingBoard]:
-        logger.debug(
-            f"get_pending_round(session_id={session_id}, round_index={round_index})"
-        )
-        gen_id_bytes = await self.redis.get(
-            f"{self.prefix}lookup:round:{session_id}:{round_index}"
-        )
         if gen_id_bytes:
             gen_id_str = decode(gen_id_bytes)
             data = await self.redis.get(f"{self.prefix}{gen_id_str}")

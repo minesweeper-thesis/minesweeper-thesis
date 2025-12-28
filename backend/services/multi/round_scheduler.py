@@ -82,7 +82,7 @@ class RoundScheduler:
 
     async def start_round(self, session_id: uuid.UUID, start_at: datetime):
         logger.debug(f"Starting round in session {session_id}")
-        await self.session_runtime_store.clear_countdown(session_id)
+        await self.session_runtime_store.delete_round_schedule(session_id)
 
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
@@ -138,9 +138,10 @@ class RoundScheduler:
     async def schedule_start(self, session: MultiplayerSession):
         logger.debug(f"Scheduling start of round in session {session.id}")
         countdown_to, start_at = calc_round_start_times()
+        end_at = start_at + timedelta(seconds=session.game_config.max_round_time)
 
-        await self.session_runtime_store.set_countdown(
-            session.id, countdown_to, start_at
+        await self.session_runtime_store.set_round_schedule(
+            session.id, countdown_to, start_at, end_at
         )
 
         await self._send_countdown(session, start_at, countdown_to)

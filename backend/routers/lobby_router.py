@@ -9,6 +9,7 @@ from backend.core.lobby.lobby import UserNotInLobby
 from backend.lib.auth import CurrentUser
 from backend.schemas.lobby import *
 from backend.services.exceptions import *
+from backend.services.exceptions import SessionActive
 
 PaginationParams = Annotated[Params, Depends()]
 
@@ -30,6 +31,9 @@ lobby_exceptions: dict[type[Exception], HTTPException] = {
     ),
     LobbyNotExists: HTTPException(status_code=404, detail="Lobby not found."),
     InvitationNotExists: HTTPException(status_code=404, detail="Invitation not found."),
+    SessionActive: HTTPException(
+        status_code=400, detail="Cannot modify lobby with active session."
+    ),
 }
 
 

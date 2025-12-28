@@ -152,12 +152,14 @@ class CreateSingleGameplayService:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
 
+        generation_settings = GenerationSettings(
+            type=game_settings.generator.generator_type,
+            difficulty_level=game_settings.difficulty_level,
+            settings=game_settings.generator.settings,
+        )
+
         generation_id = await self.board_generator.generate_board(
-            GenerationSettings(
-                type=game_settings.generator.generator_type,
-                difficulty_level=game_settings.difficulty_level,
-                settings=game_settings.generator.settings,
-            ),
+            generation_settings,
             on_completed=self.board_persister.on_board_generated,
         )
 
@@ -165,11 +167,7 @@ class CreateSingleGameplayService:
             generation_id=generation_id,
             metadata=PendingBoardMetadata(
                 gameplay_id=gameplay_id,
-                generation_settings=GenerationSettings(
-                    type=game_settings.generator.generator_type,
-                    difficulty_level=game_settings.difficulty_level,
-                    settings=game_settings.generator.settings,
-                ),
+                generation_settings=generation_settings,
                 difficulty_level=game_settings.difficulty_level,
                 mode=game_settings.mode,
                 user_id=user.id if user else None,

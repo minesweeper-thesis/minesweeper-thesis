@@ -70,7 +70,7 @@ class AsyncBoardGenerator(BoardGenerator):
                 settings.settings,
             )
             logger.debug(f"Board generation {generation_id} in progress")
-            board = generator.generate_board()
+            board = await asyncio.to_thread(generator.generate_board)
             logger.info(f"Board generation {generation_id} completed")
             await on_completed(generation_id, board)
 
