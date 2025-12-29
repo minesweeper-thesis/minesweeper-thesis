@@ -3,6 +3,7 @@ from typing import Optional, Protocol
 
 from fastapi_pagination import Page, Params
 
+from backend.core.game.types import GameMode, GameResult, GameStatus
 from backend.core.single.gameplay import SingleplayerGameplay
 
 
@@ -19,7 +20,15 @@ class SingleplayerRepository(Protocol):
     ) -> None: ...
 
     async def get_gameplays(
-        self, user_id: uuid.UUID, pagination_params: Params
+        self,
+        user_id: uuid.UUID,
+        pagination_params: Params,
+        status: Optional[GameStatus] = None,
+        result: Optional[GameResult] = None,
+        used_hints: Optional[bool] = None,
+        min_time: Optional[float] = None,
+        max_time: Optional[float] = None,
+        mode: Optional[GameMode] = None,
     ) -> Page[SingleplayerGameplay]: ...
 
     async def get_gameplay_by_id(

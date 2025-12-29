@@ -8,6 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+from backend.core.game.types import GameMode, GameResult, GameStatus
 from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
 
 logger = logging.getLogger(__name__)
@@ -39,7 +40,17 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
             f"Singleplayer gameplay {gameplay.id} added for user {user_id} with board {board_id}"
         )
 
-    async def get_gameplays(self, user_id: uuid.UUID, pagination_params: Params):
+    async def get_gameplays(
+        self,
+        user_id: uuid.UUID,
+        pagination_params: Params,
+        status: Optional[GameStatus] = None,
+        result: Optional[GameResult] = None,
+        used_hints: Optional[bool] = None,
+        min_time: Optional[float] = None,
+        max_time: Optional[float] = None,
+        mode: Optional[GameMode] = None,
+    ):
         logger.debug(f"get_gameplays(user_id={user_id}, page={pagination_params.page})")
         stmt = (
             select(SingleplayerGameplayORM)
@@ -53,6 +64,20 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
                 SingleplayerGameplayORM.user_id == user_id,
             )
         )
+
+        if status:
+            stmt = stmt.where(SingleplayerGameplayORM.status == status)
+        if result:
+            stmt = stmt.where(SingleplayerGameplayORM.result == result)
+        if used_hints is not None:
+            stmt = stmt.where(SingleplayerGameplayORM.used_hints == used_hints)
+        if min_time is not None:
+            stmt = stmt.where(SingleplayerGameplayORM.time >= min_time)
+        if max_time is not None:
+            stmt = stmt.where(SingleplayerGameplayORM.time <= max_time)
+        if mode:
+            stmt = stmt.where(SingleplayerGameplayORM.mode == mode)
+
         return await apaginate(
             self.session,
             stmt,

@@ -1,9 +1,11 @@
 import logging
+from typing import Optional
 
 from fastapi_pagination import Params
 
 logger = logging.getLogger(__name__)
 
+from backend.core.game.types import GameMode, GameResult, GameStatus
 from backend.core.user import User
 from backend.di.dependencies import *
 from backend.services.exceptions import *
@@ -35,9 +37,28 @@ class UserService:
         logger.debug(f"search_users(query='{query}', page={pagination_params.page})")
         return await self.user_repo.search_users(query, pagination_params)
 
-    async def get_gameplays(self, user: User, pagination_params: Params):
+    async def get_gameplays(
+        self,
+        user: User,
+        pagination_params: Params,
+        status: Optional[GameStatus] = None,
+        result: Optional[GameResult] = None,
+        used_hints: Optional[bool] = None,
+        min_time: Optional[float] = None,
+        max_time: Optional[float] = None,
+        mode: Optional[GameMode] = None,
+    ):
         logger.debug(f"get_gameplays(user_id={user.id}, page={pagination_params.page})")
-        return await self.singleplayer_repo.get_gameplays(user.id, pagination_params)
+        return await self.singleplayer_repo.get_gameplays(
+            user.id,
+            pagination_params,
+            status=status,
+            result=result,
+            used_hints=used_hints,
+            min_time=min_time,
+            max_time=max_time,
+            mode=mode,
+        )
 
 
 __all__ = ["UserService"]

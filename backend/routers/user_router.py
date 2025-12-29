@@ -1,11 +1,12 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Optional
 
 import filetype
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from fastapi_pagination import Page, Params
 
 from backend import services
+from backend.core.game import GameMode, GameResult, GameStatus
 from backend.lib.auth import CurrentUser
 from backend.schemas.user import *
 from backend.services.exceptions import UserNotExists
@@ -56,7 +57,7 @@ async def search_users(
     service: UserService,
 ):
     page = await service.search_users(query, pagination_params)
-    page.items = [UserResponse.build(user) for user in page.items]
+    page.items = [UserResponse.build(user) for user in page.items]  # type: ignore[misc]
     return page
 
 
@@ -65,9 +66,24 @@ async def get_gameplays(
     user: CurrentUser,
     pagination_params: PaginationParams,
     service: UserService,
+    status: Annotated[Optional[GameStatus], Query()] = None,
+    result: Annotated[Optional[GameResult], Query()] = None,
+    used_hints: Annotated[Optional[bool], Query()] = None,
+    min_time: Annotated[Optional[float], Query()] = None,
+    max_time: Annotated[Optional[float], Query()] = None,
+    mode: Annotated[Optional[GameMode], Query()] = None,
 ):
-    page = await service.get_gameplays(user, pagination_params)
-    page.items = [UserGameplayResponse.build(gp) for gp in page.items]
+    page = await service.get_gameplays(
+        user,
+        pagination_params,
+        status=status,
+        result=result,
+        used_hints=used_hints,
+        min_time=min_time,
+        max_time=max_time,
+        mode=mode,
+    )
+    page.items = [UserGameplayResponse.build(gp) for gp in page.items]  # type: ignore[misc]
     return page
 
 
