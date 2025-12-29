@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, Protocol
+from typing import Literal, Optional, Protocol
 
 from fastapi_pagination import Page, Params
 
@@ -29,6 +29,7 @@ class SingleplayerRepository(Protocol):
         min_time: Optional[float] = None,
         max_time: Optional[float] = None,
         mode: Optional[GameMode] = None,
+        order_by: Optional[Literal["time_asc", "time_desc"]] = None,
     ) -> Page[SingleplayerGameplay]: ...
 
     async def get_gameplay_by_id(

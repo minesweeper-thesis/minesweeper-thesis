@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -50,6 +50,7 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
         min_time: Optional[float] = None,
         max_time: Optional[float] = None,
         mode: Optional[GameMode] = None,
+        order_by: Optional[Literal["time_asc", "time_desc"]] = None,
     ):
         logger.debug(f"get_gameplays(user_id={user_id}, page={pagination_params.page})")
         stmt = (
@@ -77,6 +78,11 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
             stmt = stmt.where(SingleplayerGameplayORM.time <= max_time)
         if mode:
             stmt = stmt.where(SingleplayerGameplayORM.mode == mode)
+
+        if order_by == "time_asc":
+            stmt = stmt.order_by(SingleplayerGameplayORM.time.asc())
+        elif order_by == "time_desc":
+            stmt = stmt.order_by(SingleplayerGameplayORM.time.desc())
 
         return await apaginate(
             self.session,

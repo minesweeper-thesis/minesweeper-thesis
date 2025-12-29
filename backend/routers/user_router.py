@@ -1,5 +1,5 @@
 import uuid
-from typing import Annotated, Optional
+from typing import Annotated, Literal, Optional
 
 import filetype
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
@@ -72,6 +72,7 @@ async def get_gameplays(
     min_time: Annotated[Optional[float], Query()] = None,
     max_time: Annotated[Optional[float], Query()] = None,
     mode: Annotated[Optional[GameMode], Query()] = None,
+    order_by: Annotated[Optional[Literal["time_asc", "time_desc"]], Query()] = None,
 ):
     page = await service.get_gameplays(
         user,
@@ -82,6 +83,7 @@ async def get_gameplays(
         min_time=min_time,
         max_time=max_time,
         mode=mode,
+        order_by=order_by,
     )
     page.items = [UserGameplayResponse.build(gp) for gp in page.items]  # type: ignore[misc]
     return page

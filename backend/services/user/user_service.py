@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi_pagination import Params
 
@@ -47,6 +47,7 @@ class UserService:
         min_time: Optional[float] = None,
         max_time: Optional[float] = None,
         mode: Optional[GameMode] = None,
+        order_by: Optional[Literal["time_asc", "time_desc"]] = None,
     ):
         logger.debug(f"get_gameplays(user_id={user.id}, page={pagination_params.page})")
         return await self.singleplayer_repo.get_gameplays(
@@ -58,6 +59,7 @@ class UserService:
             min_time=min_time,
             max_time=max_time,
             mode=mode,
+            order_by=order_by,
         )
 
 

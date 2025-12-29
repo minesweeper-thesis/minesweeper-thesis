@@ -106,3 +106,43 @@ async def test_get_gameplays_filtering(authenticated_clients):
     items = resp.json()["items"]
     assert len(items) >= 1
     assert any(i["id"] == str(gp2.id) for i in items)
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_get_gameplays_sorting(authenticated_clients):
+    client = authenticated_clients[0]
+    user_id = uuid.UUID(client.user_id)
+
+    async with db.async_session_maker() as session:
+        board_repo = BoardRepository(session)
+        sp_repo = SingleplayerRepository(session)
+
+        difficulty = DifficultyLevel(rows=3, columns=3, mine_count=1)
+        board = Board(
+            id=uuid.uuid4(),
+            minefields=[(0, 0)],
+            start_field=(1, 1),
+            generation_settings=GenerationSettings(
+                type="random", settings=None, difficulty_level=difficulty
+            ),
+        )
+        await board_repo.add_board(board)
+
+        gp_fast = SingleplayerGameplay(id=uuid.uuid4(), board=board, elapsed_time=5.0)
+        gp_slow = SingleplayerGameplay(id=uuid.uuid4(), board=board, elapsed_time=50.0)
+        gp_mid = SingleplayerGameplay(id=uuid.uuid4(), board=board, elapsed_time=25.0)
+
+        for gp in [gp_fast, gp_slow, gp_mid]:
+            await sp_repo.add_gameplay(gp, board.id, user_id)
+
+    resp = await client.http.get("/gameplays", params={"order_by": "time_asc"})
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    times = [i["elapsed_time"] for i in items]
+    assert times == sorted(times)
+
+    resp = await client.http.get("/gameplays", params={"order_by": "time_desc"})
+    assert resp.status_code == 200
+    items = resp.json()["items"]
+    times = [i["elapsed_time"] for i in items]
+    assert times == sorted(times, reverse=True)
