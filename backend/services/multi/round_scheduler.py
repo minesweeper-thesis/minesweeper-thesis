@@ -49,12 +49,12 @@ class RoundScheduler:
                 session.lock_ready()
                 await self.multi_repo.save_session(session)
 
-        self.scheduler.schedule(
-            self.start_round,
-            start_at,
-            session_id=session_id,
-            start_at=start_at,
-        )
+                self.scheduler.schedule(
+                    self.start_round,
+                    start_at,
+                    session_id=session_id,
+                    start_at=start_at,
+                )
 
     async def _end_round(self, session_id: uuid.UUID, round_index: int):
         logger.debug(f"Ending round {round_index} in session {session_id}")

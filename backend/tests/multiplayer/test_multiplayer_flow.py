@@ -50,7 +50,7 @@ async def test_multiplayer_full_flow_many_players(
         json={
             "rounds": 3,
             "max_round_time": 2,
-            "difficulty_level": {"rows": 3, "columns": 3, "mine_count": 3},
+            "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 3},
             "game_mode": "normal",
             "generator": {"type": "random", "settings": None},
         },
@@ -164,11 +164,11 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "score_update")
 
-        cell = random_cell(rows=3, cols=3, exclude=start_field)
+        cell = random_cell(rows=5, cols=5, exclude=start_field)
         await host_lobby.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
         await receive_type(host_lobby, "flag")
 
-        cell = random_cell(rows=3, cols=3, exclude=start_field)
+        cell = random_cell(rows=5, cols=5, exclude=start_field)
         await g1_lobby.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
         await receive_type(g1_lobby, "flag")
 
