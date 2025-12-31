@@ -3,17 +3,16 @@ import uuid
 
 from fastapi_pagination import Params
 
-from backend.repositories.lobby_repo import LobbyNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
+from backend.protocols.lobby_repo_protocol import LobbyNotFound
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
+
+logger = logging.getLogger(__name__)
 
 
 class LobbyChatService:

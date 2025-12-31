@@ -2,18 +2,17 @@ import logging
 import uuid
 from typing import Optional
 
-from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend.core.board import Board, GenerationSettings
 from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
 from backend.di.dependencies import *
+from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
 from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.services.dto import *
 from backend.services.exceptions import *
+
+logger = logging.getLogger(__name__)
 
 
 class CreateSingleGameplayService:

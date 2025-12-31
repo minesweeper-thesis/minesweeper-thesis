@@ -3,7 +3,7 @@ from typing import Literal, Self
 
 from pydantic import BaseModel
 
-from backend.core.user.chat import UserChatMessage
+from backend.core.user import UserChatMessage
 from backend.schemas import Response
 from backend.schemas.user.user_schemas import UserResponse
 

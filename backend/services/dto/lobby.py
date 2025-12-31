@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Literal, Optional
 
 from backend.core.lobby import Lobby
-from backend.core.multi import SessionScoreboard
+from backend.core.multi import GameConfig, SessionScoreboard
 from backend.core.user import User
 
 
@@ -19,9 +19,22 @@ class UserCurrentLobby:
 
 
 @dataclass
+class UserConnectionUpdated:
+    lobby_id: uuid.UUID
+    user: User
+    status: Literal["connected", "disconnected"]
+
+
+@dataclass
 class UserOnlineUpdated:
     lobby_id: uuid.UUID
     user: User
+
+
+@dataclass
+class GameConfigUpdated:
+    lobby_id: uuid.UUID
+    game_config: GameConfig
 
 
 @dataclass
@@ -46,4 +59,6 @@ __all__ = [
     "UserOnlineUpdated",
     "SessionState",
     "SessionStateRoundData",
+    "UserConnectionUpdated",
+    "GameConfigUpdated",
 ]

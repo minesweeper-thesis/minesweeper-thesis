@@ -3,9 +3,6 @@ import uuid
 from contextlib import suppress
 from typing import Annotated, Optional
 
-logger = logging.getLogger(__name__)
-
-
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 
 from backend import services
@@ -16,6 +13,8 @@ from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.lobby_websockets import lobby_websockets
 from backend.schemas.game import NewGameRequest, NewGameResponse
 from backend.services import exceptions
+
+logger = logging.getLogger(__name__)
 
 CreateSingleGameplayService = Annotated[services.CreateSingleGameplayService, Depends()]
 UserConnectionService = Annotated[services.UserConnectionService, Depends()]

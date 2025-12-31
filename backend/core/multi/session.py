@@ -6,7 +6,7 @@ from backend.core.board import DifficultyLevel
 from backend.core.game import *
 from backend.core.game.game_actions import GameAction
 from backend.core.multi.config import GameConfig
-from backend.core.multi.gameplay import *
+from backend.core.multi.multi_gameplay import *
 from backend.core.multi.round import *
 from backend.core.user import *
 

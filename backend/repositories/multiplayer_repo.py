@@ -4,14 +4,14 @@ import uuid
 from redis.asyncio import Redis
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
-
 from backend import protocols
 from backend.core.multi.session import MultiplayerSession
 from backend.db.db import DBSession
 from backend.lib.redis_client import decode, encode
 
 from .orm import *
+
+logger = logging.getLogger(__name__)
 
 
 class RedisMultiplayerRepository(protocols.MultiplayerRepository):

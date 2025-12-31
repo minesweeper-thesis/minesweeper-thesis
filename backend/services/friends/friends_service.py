@@ -4,21 +4,20 @@ from contextlib import suppress
 
 from fastapi_pagination import Params
 
-from backend.protocols.friends_repo_protocol import (
-    FriendRequestNotFound,
-    FriendshipNotFound,
-)
-from backend.protocols.user_repo_protocol import UserNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship, User
 from backend.di.dependencies import (
     FriendsRepositoryDep,
     NotificationSystemDep,
     UserRepositoryDep,
 )
+from backend.protocols.friends_repo_protocol import (
+    FriendRequestNotFound,
+    FriendshipNotFound,
+)
+from backend.protocols.user_repo_protocol import UserNotFound
 from backend.services.exceptions import *
+
+logger = logging.getLogger(__name__)
 
 
 class FriendsService:

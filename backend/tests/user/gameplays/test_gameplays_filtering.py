@@ -3,7 +3,7 @@ import uuid
 import pytest
 
 from backend.core.board import Board, DifficultyLevel, GenerationSettings
-from backend.core.single.gameplay import SingleplayerGameplay
+from backend.core.single.single_gameplay import SingleplayerGameplay
 from backend.db import db
 from backend.repositories.board_repo import BoardRepository
 from backend.repositories.singleplayer_repo import SingleplayerRepository

@@ -7,7 +7,7 @@ from typing import Any, Literal, Optional
 
 from backend.core.board import Board
 from backend.core.game import *
-from backend.core.multi.gameplay import MultiplayerGameplay
+from backend.core.multi.multi_gameplay import MultiplayerGameplay
 from backend.core.multi.score import *
 
 

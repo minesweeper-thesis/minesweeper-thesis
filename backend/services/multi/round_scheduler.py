@@ -5,8 +5,6 @@ from typing import Annotated, Any
 
 from fastapi import Depends
 
-logger = logging.getLogger(__name__)
-
 from backend.core.game import *
 from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import *
@@ -14,6 +12,8 @@ from backend.services.dto import RoundCountdown
 from backend.services.exceptions import *
 from backend.services.multi.constants import COUNTDOWN_DELAY, START_DELAY
 from backend.services.multi.session_renewer import SessionRenewer
+
+logger = logging.getLogger(__name__)
 
 
 class RoundScheduler:

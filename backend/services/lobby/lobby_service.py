@@ -4,13 +4,6 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from backend.protocols.multiplayer_repo_protocol import SessionNotFound
-from backend.repositories.lobby_repo import InvitationNotFound, LobbyNotFound
-from backend.services.exceptions import SessionActive, UserNotExists
-from backend.services.multi.session_renewer import SessionRenewer
-
-logger = logging.getLogger(__name__)
-
 from backend.config import BACKEND_URL
 from backend.core.board import DifficultyLevel, GeneratorParams
 from backend.core.game import *
@@ -18,9 +11,19 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.services.dto import KickedFromLobby
+from backend.protocols.lobby_repo_protocol import InvitationNotFound, LobbyNotFound
+from backend.protocols.multiplayer_repo_protocol import SessionNotFound
+from backend.services.dto import (
+    GameConfigUpdated,
+    KickedFromLobby,
+    UserConnectionUpdated,
+)
 from backend.services.exceptions import *
+from backend.services.exceptions import SessionActive, UserNotExists
 from backend.services.lobby.helpers import *
+from backend.services.multi.session_renewer import SessionRenewer
+
+logger = logging.getLogger(__name__)
 
 DEV = "localhost" in BACKEND_URL
 
@@ -106,7 +109,7 @@ class LobbyService:
             )
             raise InvitationNotExists() from None
 
-        data = lobby.add_user(user)
+        lobby.add_user(user)
         await self.lobby_repo.save_lobby(lobby)
         await self._sync_session_players(lobby)
         await self.lobby_repo.delete_invitation(invitation.id)
@@ -115,7 +118,9 @@ class LobbyService:
 
         transport = self.lobby_transport_factory.get(lobby.id)
         await transport.send(invitation.inviter.id, response)
-        await transport.broadcast(data)
+        await transport.broadcast(
+            UserConnectionUpdated(lobby_id=lobby.id, user=user, status="connected")
+        )
 
         logger.info(f"User {user.id} joined lobby {lobby.id}")
         return lobby
@@ -133,13 +138,15 @@ class LobbyService:
             if session.is_started() and not session.ready_locked:
                 raise SessionActive()
 
-            event = lobby.update_game_config(game_config)
+            lobby.update_game_config(game_config)
             await self.lobby_repo.save_lobby(lobby)
 
             await self.session_renewer.renew_session(lobby_id)
 
             transport = self.lobby_transport_factory.get(lobby.id)
-            await transport.broadcast(event)
+            await transport.broadcast(
+                GameConfigUpdated(lobby_id=lobby.id, game_config=game_config)
+            )
 
             logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
         except LobbyNotFound:
@@ -148,7 +155,9 @@ class LobbyService:
         except SessionNotFound:
             await self.session_renewer.renew_session(lobby_id)
             transport = self.lobby_transport_factory.get(lobby.id)
-            await transport.broadcast(event)
+            await transport.broadcast(
+                GameConfigUpdated(lobby_id=lobby.id, game_config=game_config)
+            )
             logger.warning(
                 f"No active session found for lobby {lobby_id} during update by user {user.id}"
             )
@@ -195,7 +204,7 @@ class LobbyService:
 
     async def _remove_user(self, lobby: Lobby, user: User):
         logger.debug(f"_remove_user(lobby_id={lobby.id}, user_id={user.id})")
-        data = lobby.remove_user(user)
+        lobby.remove_user(user)
 
         if lobby.is_empty():
             await self.lobby_repo.delete_lobby(lobby.id)
@@ -203,7 +212,11 @@ class LobbyService:
             await self.lobby_repo.save_lobby(lobby)
             await self._sync_session_players(lobby)
             transport = self.lobby_transport_factory.get(lobby.id)
-            await transport.broadcast(data)
+            await transport.broadcast(
+                UserConnectionUpdated(
+                    lobby_id=lobby.id, user=user, status="disconnected"
+                )
+            )
 
     async def _sync_session_players(self, lobby: Lobby) -> None:
         session = await self.multi_repo.get_for_lobby(lobby.id)

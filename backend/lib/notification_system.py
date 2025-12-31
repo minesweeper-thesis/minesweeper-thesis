@@ -4,14 +4,11 @@ from typing import Any
 
 from fastapi import WebSocket
 
-logger = logging.getLogger(__name__)
-
 from backend.core.game import GameState
 from backend.core.game.game_actions import *
 from backend.core.lobby import *
 from backend.core.multi import *
-from backend.core.user import FriendRequest
-from backend.core.user.chat import UserChatMessage
+from backend.core.user import FriendRequest, UserChatMessage
 from backend.lib.websockets.websockets_registry import WebsocketsRegistry
 from backend.protocols import NotificationSystem
 from backend.schemas import Response
@@ -20,7 +17,8 @@ from backend.schemas.lobby import *
 from backend.schemas.lobby import UserOnlineUpdatedResponse
 from backend.schemas.user import FriendRequestResponse, UserChatMessageResponse
 from backend.services.dto import *
-from backend.services.dto.lobby import SessionState, UserCurrentLobby, UserOnlineUpdated
+
+logger = logging.getLogger(__name__)
 
 
 class WSNotificationSystem(NotificationSystem):

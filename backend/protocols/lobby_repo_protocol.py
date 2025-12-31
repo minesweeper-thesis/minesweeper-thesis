@@ -7,6 +7,14 @@ from fastapi_pagination import Page, Params
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
 
 
+class LobbyNotFound(Exception):
+    pass
+
+
+class InvitationNotFound(Exception):
+    pass
+
+
 class LobbyRepository(Protocol):
     async def save_lobby(self, lobby: Lobby) -> None: ...
 

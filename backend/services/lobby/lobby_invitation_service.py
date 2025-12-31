@@ -1,18 +1,17 @@
 import logging
 import uuid
 
-from backend.protocols.user_repo_protocol import UserNotFound
-from backend.repositories.lobby_repo import LobbyNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
+from backend.protocols.lobby_repo_protocol import LobbyNotFound
+from backend.protocols.user_repo_protocol import UserNotFound
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *
+
+logger = logging.getLogger(__name__)
 
 
 class LobbyInvitationService:

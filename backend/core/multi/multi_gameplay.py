@@ -1,16 +1,9 @@
 import uuid
-from dataclasses import dataclass
 from typing import Optional
 
 from backend.core.board import Board
 from backend.core.game import *
-from backend.core.single.gameplay import SingleplayerGameplay
-
-
-@dataclass
-class OpponentState:
-    revealed_cnt: int
-    result: Optional[GameResult]
+from backend.core.single.single_gameplay import SingleplayerGameplay
 
 
 class GameplayNotInProgress(Exception):

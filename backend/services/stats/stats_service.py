@@ -3,11 +3,11 @@ from typing import Literal
 
 from fastapi_pagination import Params
 
-logger = logging.getLogger(__name__)
-
 from backend.core.board import DifficultyLevel
 from backend.core.user import User
 from backend.di.dependencies import *
+
+logger = logging.getLogger(__name__)
 
 
 class StatsService:

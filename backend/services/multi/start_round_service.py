@@ -4,8 +4,6 @@ from typing import Annotated
 
 from fastapi import BackgroundTasks, Depends
 
-logger = logging.getLogger(__name__)
-
 from backend.core.game import *
 from backend.core.multi import *
 from backend.core.user import User
@@ -14,6 +12,8 @@ from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.multi.round_scheduler import RoundScheduler
 from backend.services.multi.session_boards_preparer import SessionBoardsPreparer
+
+logger = logging.getLogger(__name__)
 
 
 class StartRoundService:

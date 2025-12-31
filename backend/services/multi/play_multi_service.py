@@ -5,17 +5,16 @@ from typing import Annotated
 
 from fastapi import BackgroundTasks, Depends
 
-from backend.core.multi.gameplay import GameplayNotInProgress
+from backend.core.game import *
+from backend.core.multi.multi_gameplay import GameplayNotInProgress
 from backend.core.user import User
+from backend.di.dependencies import *
 from backend.protocols.multiplayer_repo_protocol import SessionNotFound
+from backend.services.exceptions import *
 from backend.services.exceptions import SessionNotExists, UserNotInSession
+from backend.services.multi.session_renewer import SessionRenewer
 
 logger = logging.getLogger(__name__)
-
-from backend.core.game import *
-from backend.di.dependencies import *
-from backend.services.exceptions import *
-from backend.services.multi.session_renewer import SessionRenewer
 
 
 class PlayMultiService:

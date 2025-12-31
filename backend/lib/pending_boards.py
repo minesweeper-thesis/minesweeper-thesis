@@ -4,12 +4,11 @@ from typing import Optional
 
 from redis.asyncio import Redis
 
+from backend import protocols
 from backend.lib.redis_client import decode, encode
+from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
 
 logger = logging.getLogger(__name__)
-
-from backend import protocols
-from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
 
 
 class RedisPendingStore(protocols.PendingBoardsStore):

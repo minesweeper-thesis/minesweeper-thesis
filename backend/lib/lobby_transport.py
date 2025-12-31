@@ -2,11 +2,11 @@ import logging
 import uuid
 from typing import Any
 
-logger = logging.getLogger(__name__)
-
 from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.lobby_websockets import lobby_websockets
 from backend.protocols.lobby_transport_protocol import LobbyTransport
+
+logger = logging.getLogger(__name__)
 
 
 class LobbyWebsocketsTransport(LobbyTransport):

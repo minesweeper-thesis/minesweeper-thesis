@@ -4,11 +4,11 @@ import uuid
 
 from fastapi import BackgroundTasks
 
-logger = logging.getLogger(__name__)
-
 from backend.core.board import BoardGenerator as CoreBoardGenerator
 from backend.core.board import GenerationSettings
 from backend.protocols.board_generator_protocol import *
+
+logger = logging.getLogger(__name__)
 
 
 class BackgroundBoardGenerator(BoardGenerator):

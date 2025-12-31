@@ -1,9 +1,8 @@
 import uuid
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Literal
 
-from backend.core.multi.config import GameConfig, GameConfigUpdated
+from backend.core.multi.config import GameConfig
 from backend.core.user import User
 
 
@@ -13,13 +12,6 @@ class LobbyChatMessage:
     sender: User
     content: str
     timestamp: datetime
-
-
-@dataclass
-class UserConnectionUpdated:
-    lobby_id: uuid.UUID
-    user: User
-    status: Literal["connected", "disconnected"]
 
 
 class UserNotInLobby(Exception):
@@ -39,11 +31,10 @@ class Lobby:
         self.game_config = game_config
         self._ready_users: set[uuid.UUID] = set()
 
-    def add_user(self, user: User) -> UserConnectionUpdated:
+    def add_user(self, user: User) -> None:
         self.users.append(user)
-        return UserConnectionUpdated(lobby_id=self.id, user=user, status="connected")
 
-    def remove_user(self, user: User) -> UserConnectionUpdated:
+    def remove_user(self, user: User) -> None:
         if user not in self.users:
             raise UserNotInLobby()
 
@@ -55,8 +46,6 @@ class Lobby:
             else:
                 self.host = None  # type: ignore
 
-        return UserConnectionUpdated(lobby_id=self.id, user=user, status="disconnected")
-
     def is_empty(self) -> bool:
         return not len(self.users)
 
@@ -65,13 +54,11 @@ class Lobby:
             return False
         return self.id == value.id
 
-    def update_game_config(self, new_config: GameConfig):
+    def update_game_config(self, new_config: GameConfig) -> None:
         self.game_config = new_config
-
-        return GameConfigUpdated(lobby_id=self.id, game_config=new_config)
 
     def reset_ready_for_new_session(self):
         self._ready_users.clear()
 
 
-__all__ = ["Lobby", "LobbyChatMessage", "UserConnectionUpdated"]
+__all__ = ["Lobby", "LobbyChatMessage"]

@@ -2,9 +2,6 @@ import logging
 import uuid
 from typing import Annotated
 
-logger = logging.getLogger(__name__)
-
-
 from fastapi import Depends
 
 from backend.core.board import Board
@@ -12,6 +9,8 @@ from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import *
 from backend.protocols.board_repo_protocol import UnsolvedBoardNotFound
 from backend.services.multi.round_scheduler import RoundScheduler
+
+logger = logging.getLogger(__name__)
 
 
 class SessionBoardsPreparer:

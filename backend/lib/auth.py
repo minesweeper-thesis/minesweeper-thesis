@@ -3,8 +3,6 @@ import uuid
 from typing import Annotated, AsyncGenerator, Optional
 
 from fastapi import Depends, WebSocket
-
-logger = logging.getLogger(__name__)
 from fastapi_users import BaseUserManager, FastAPIUsers, UUIDIDMixin
 from fastapi_users.authentication import (
     AuthenticationBackend,
@@ -18,6 +16,8 @@ from backend.core.user import User
 from backend.db import *
 from backend.lib.online_users import OnlineUsersStore, get_online_users_store
 from backend.repositories.orm.user_orm import UserORM
+
+logger = logging.getLogger(__name__)
 
 cookie_transport = CookieTransport(cookie_name="auth", cookie_max_age=3600)
 

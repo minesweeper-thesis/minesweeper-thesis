@@ -1,5 +1,6 @@
 import uuid
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional
 
 
@@ -29,3 +30,14 @@ class User:
         if not isinstance(value, User):
             return False
         return self.id == value.id
+
+
+@dataclass
+class UserChatMessage:
+    from_user: User
+    to: User
+    content: str
+    timestamp: datetime
+
+
+__all__ = ["User", "Avatar", "UserChatMessage"]

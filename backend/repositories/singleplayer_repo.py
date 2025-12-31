@@ -8,16 +8,15 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+from backend import protocols
 from backend.core.game.types import GameMode, GameResult, GameStatus
+from backend.core.single.single_gameplay import SingleplayerGameplay
+from backend.db.db import DBSession
 from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
 
-logger = logging.getLogger(__name__)
-
-from backend import protocols
-from backend.core.single.gameplay import SingleplayerGameplay
-from backend.db.db import DBSession
-
 from .orm import *
+
+logger = logging.getLogger(__name__)
 
 
 class SingleplayerRepository(protocols.SingleplayerRepository):

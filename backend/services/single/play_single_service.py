@@ -5,17 +5,16 @@ from typing import Optional
 
 from fastapi_pagination import Params
 
-from backend.core.user import User
-from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend.core.game import *
 from backend.core.game.game_actions import GameAction, GameActionResult
 from backend.core.single import SingleplayerGameplay
+from backend.core.user import User
 from backend.di.dependencies import *
+from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
 from backend.services.dto import *
 from backend.services.exceptions import *
+
+logger = logging.getLogger(__name__)
 
 
 class PlaySingleService:

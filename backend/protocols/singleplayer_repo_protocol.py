@@ -4,7 +4,7 @@ from typing import Literal, Optional, Protocol
 from fastapi_pagination import Page, Params
 
 from backend.core.game.types import GameMode, GameResult, GameStatus
-from backend.core.single.gameplay import SingleplayerGameplay
+from backend.core.single.single_gameplay import SingleplayerGameplay
 
 
 class GameplayNotFound(Exception):

@@ -1,4 +1,3 @@
-import time
 import uuid
 from contextlib import AsyncExitStack
 from datetime import timedelta
@@ -56,7 +55,6 @@ async def test_generation_reuse(authenticated_clients, fake_scheduler):
         await receive_type(p1_ws, "session_state")
         await receive_type(p1_ws, "user_ready")
 
-        start_time = time.time()
         await p1_ws.send_json({"type": "ready"})
 
         await receive_type(p1_ws, "user_ready")
@@ -64,8 +62,6 @@ async def test_generation_reuse(authenticated_clients, fake_scheduler):
         await receive_type(p1_ws, "round_countdown")
         await fake_scheduler.skip(timedelta(seconds=10))
         await receive_type(p1_ws, "round_start")
-
-        duration_p1 = time.time() - start_time
 
         await fake_scheduler.skip(timedelta=timedelta(seconds=60))
         msg = await receive_type(p1_ws, "game_over")
@@ -97,7 +93,6 @@ async def test_generation_reuse(authenticated_clients, fake_scheduler):
         await receive_type(p2_ws, "session_state")
         await receive_type(p2_ws, "user_ready")
 
-        start_time = time.time()
         await p2_ws.send_json({"type": "ready"})
 
         await receive_type(p2_ws, "user_ready")
@@ -105,8 +100,6 @@ async def test_generation_reuse(authenticated_clients, fake_scheduler):
         await receive_type(p2_ws, "round_countdown")
         await fake_scheduler.skip(timedelta(seconds=10))
         await receive_type(p2_ws, "round_start")
-
-        duration_p2 = time.time() - start_time
 
         await fake_scheduler.skip(timedelta=timedelta(seconds=60))
         msg = await receive_type(p2_ws, "game_over")

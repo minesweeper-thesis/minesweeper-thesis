@@ -3,12 +3,12 @@ from typing import Literal, Optional
 
 from fastapi_pagination import Params
 
-logger = logging.getLogger(__name__)
-
 from backend.core.game.types import GameMode, GameResult, GameStatus
 from backend.core.user import User
 from backend.di.dependencies import *
 from backend.services.exceptions import *
+
+logger = logging.getLogger(__name__)
 
 
 class UserService:

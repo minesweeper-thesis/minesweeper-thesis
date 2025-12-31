@@ -6,19 +6,17 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
 
-from backend.protocols.user_repo_protocol import UserNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend import protocols
-from backend.core.user import User
-from backend.core.user.chat import UserChatMessage
+from backend.core.user import User, UserChatMessage
 from backend.db.db import DBSession
 from backend.lib.avatar_storage import get_avatar_storage
 from backend.lib.online_users import get_online_users_store
+from backend.protocols.user_repo_protocol import UserNotFound
 from backend.repositories.helpers import get_users_transformer
 
 from .orm import *
+
+logger = logging.getLogger(__name__)
 
 
 class UserRepository(protocols.UserRepository):
