@@ -10,6 +10,7 @@ from backend.lib.board_persister import BackgroundBoardPersister
 from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis_client
 from backend.lib.scheduler import get_scheduler
+from backend.lib.session_lock import SessionLock
 from backend.lib.session_runtime_store import RedisSessionRuntimeStore
 from backend.repositories import *
 
@@ -44,6 +45,10 @@ def _get_session_runtime_store(redis=Depends(get_redis_client)):
     return RedisSessionRuntimeStore(redis)
 
 
+def get_session_lock(redis=Depends(get_redis_client)) -> SessionLock:
+    return SessionLock(redis)
+
+
 registry: dict[type, Callable] = {
     p.BoardRepository: BoardRepository,
     p.SingleplayerRepository: SingleplayerRepository,
@@ -61,6 +66,7 @@ registry: dict[type, Callable] = {
     p.Scheduler: get_scheduler,
     BackgroundBoardPersister: BackgroundBoardPersister,
     BackgroundRoundHandler: BackgroundRoundHandler,
+    SessionLock: get_session_lock,
 }
 
 for protocol, impl in registry.items():

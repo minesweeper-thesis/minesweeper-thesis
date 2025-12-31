@@ -17,7 +17,6 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.di.session_lock import SessionLockDep
 from backend.services.dto import KickedFromLobby
 from backend.services.exceptions import *
 from backend.services.lobby.helpers import *

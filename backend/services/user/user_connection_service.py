@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.di.session_lock import SessionLockDep
 from backend.services.dto import (
     UserCurrentLobby,
     UserNotReady,

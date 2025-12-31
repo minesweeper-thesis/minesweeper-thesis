@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 from backend.core.game import *
 from backend.di.dependencies import *
-from backend.di.session_lock import SessionLockDep
 from backend.services.exceptions import *
 from backend.services.multi.session_renewer import SessionRenewer
 

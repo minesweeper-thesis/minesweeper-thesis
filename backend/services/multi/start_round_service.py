@@ -10,7 +10,6 @@ from backend.core.game import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.di.session_lock import SessionLockDep
 from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.multi.round_scheduler import RoundScheduler
