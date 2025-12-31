@@ -54,7 +54,6 @@ class UserConnectionService:
         should_notify = False
 
         session = await self.multi_repo.get_for_lobby(lobby.id)
-        assert session is not None, "Session not found"
 
         logger.debug(f"_cancel_user_ready: acquiring lock for session {session.id}")
         async with self.session_lock.acquire(session.id):
@@ -89,8 +88,8 @@ class UserConnectionService:
     async def notify_ready_users(self, user: User):
         logger.debug(f"notify_ready_users(user_id={user.id}) called")
         lobby = await self.lobby_repo.get_user_lobby(user.id)
-        session = await self.multi_repo.get_for_lobby(lobby.id) if lobby else None
-        if lobby is not None and session is not None:
+        if lobby is not None:
+            session = await self.multi_repo.get_for_lobby(lobby.id)
             for user_id in session.player_ids:
                 data: UserReady | UserNotReady
                 if session.is_user_ready(user_id):

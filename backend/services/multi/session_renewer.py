@@ -1,8 +1,10 @@
 import logging
 import uuid
+from contextlib import suppress
 
 from backend.core.lobby.create_session import create_session
 from backend.di.dependencies import LobbyRepositoryDep, MultiplayerRepositoryDep
+from backend.protocols.multiplayer_repo_protocol import SessionNotFound
 
 logger = logging.getLogger(__name__)
 
@@ -20,16 +22,13 @@ class SessionRenewer:
         logger.debug(f"renew_session(lobby_id={lobby_id})")
         lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-        existing_session = await self.multi_repo.get_for_lobby(lobby_id)
-        if (
-            existing_session
-            and existing_session.is_started()
-            and not existing_session.is_over()
-        ):
-            logger.info(
-                f"Session for lobby {lobby_id} is still active: {existing_session.id}"
-            )
-            return
+        with suppress(SessionNotFound):
+            existing_session = await self.multi_repo.get_for_lobby(lobby_id)
+            if existing_session.is_started() and not existing_session.is_over():
+                logger.info(
+                    f"Session for lobby {lobby_id} is still active: {existing_session.id}"
+                )
+                return
 
         session = await create_session(lobby)
         await self.multi_repo.save_session(session)

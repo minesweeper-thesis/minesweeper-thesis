@@ -4,6 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
+from backend.protocols.multiplayer_repo_protocol import SessionNotFound
 from backend.repositories.lobby_repo import InvitationNotFound, LobbyNotFound
 from backend.services.exceptions import SessionActive, UserNotExists
 from backend.services.multi.session_renewer import SessionRenewer
@@ -129,7 +130,7 @@ class LobbyService:
             ensure_user_is_host(lobby, user)
 
             session = await self.multi_repo.get_for_lobby(lobby.id)
-            if session and session.is_started() and not session.ready_locked:
+            if session.is_started() and not session.ready_locked:
                 raise SessionActive()
 
             event = lobby.update_game_config(game_config)
@@ -143,6 +144,14 @@ class LobbyService:
             logger.info(f"Lobby {lobby_id} config updated by user {user.id}")
         except LobbyNotFound:
             raise LobbyNotExists() from None
+
+        except SessionNotFound:
+            await self.session_renewer.renew_session(lobby_id)
+            transport = self.lobby_transport_factory.get(lobby.id)
+            await transport.broadcast(event)
+            logger.warning(
+                f"No active session found for lobby {lobby_id} during update by user {user.id}"
+            )
 
     async def remove_user_from_lobby(self, lobby_id: uuid.UUID, user: User):
         try:
@@ -198,8 +207,6 @@ class LobbyService:
 
     async def _sync_session_players(self, lobby: Lobby) -> None:
         session = await self.multi_repo.get_for_lobby(lobby.id)
-        if not session:
-            raise RuntimeError("Session not found for lobby during sync")
         async with self.session_lock.acquire(session.id):
 
             if not session.is_started() and not session.is_over():

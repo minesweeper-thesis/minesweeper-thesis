@@ -52,7 +52,6 @@ class StartRoundService:
     ):
         logger.debug(f"User {user.id} toggling ready status in lobby {lobby_id}")
         session = await self.multi_repo.get_for_lobby(lobby_id)
-        assert session is not None, "Session not found"
 
         self._ensure_user_in_session(session, user)
         if session.is_user_ready(user.id):
@@ -65,7 +64,6 @@ class StartRoundService:
         should_notify = False
 
         session = await self.multi_repo.get_for_lobby(lobby_id)
-        assert session is not None, "Session not found"
 
         async with self.session_lock.acquire(session.id):
             session = await self.multi_repo.get_session(session.id)
@@ -89,7 +87,6 @@ class StartRoundService:
         all_ready = False
 
         session = await self.multi_repo.get_for_lobby(lobby_id)
-        assert session is not None, "Session not found"
 
         async with self.session_lock.acquire(session.id):
             session = await self.multi_repo.get_session(session.id)
@@ -141,7 +138,6 @@ class StartRoundService:
         logger.debug(f"get_session_state(lobby_id={lobby_id})")
 
         session = await self.multi_repo.get_for_lobby(lobby_id)
-        assert session is not None, "Session not found"
 
         current_idx = session.current_round_index
         if current_idx == -1:

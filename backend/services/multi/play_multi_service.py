@@ -7,6 +7,7 @@ from fastapi import BackgroundTasks, Depends
 
 from backend.core.multi.gameplay import GameplayNotInProgress
 from backend.core.user import User
+from backend.protocols.multiplayer_repo_protocol import SessionNotFound
 from backend.services.exceptions import SessionNotExists, UserNotInSession
 
 logger = logging.getLogger(__name__)
@@ -36,23 +37,25 @@ class PlayMultiService:
 
     async def load_session(self, user: User, lobby_id: uuid.UUID):
         logger.debug(f"load_session(lobby_id={lobby_id}, user_id={user.id})")
-        session = await self.multi_repo.get_for_lobby(lobby_id)
+        try:
+            session = await self.multi_repo.get_for_lobby(lobby_id)
 
-        if session is None:
+            if user.id not in session.player_ids:
+                logger.warning(f"User {user.id} is not part of session {session.id}")
+                raise UserNotInSession()
+
+            if session.is_over():
+                logger.warning(
+                    f"Attempted to join already finished session {session.id}"
+                )
+                raise SessionAlreadyOver()
+
+            self.session = session
+            self.user = user
+            logger.info(f"User {user.id} set for multiplayer session {session.id}")
+        except SessionNotFound:
             logger.warning(f"No active session for lobby {lobby_id}")
-            raise SessionNotExists()
-
-        if user.id not in session.player_ids:
-            logger.warning(f"User {user.id} is not part of session {session.id}")
-            raise UserNotInSession()
-
-        if session.is_over():
-            logger.warning(f"Attempted to join already finished session {session.id}")
-            raise SessionAlreadyOver()
-
-        self.session = session
-        self.user = user
-        logger.info(f"User {user.id} set for multiplayer session {session.id}")
+            raise SessionNotExists() from None
 
     def is_session_over(self) -> bool:
         logger.debug(f"is_session_over()")

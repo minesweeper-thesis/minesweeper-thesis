@@ -1,5 +1,5 @@
 import uuid
-from typing import Optional, Protocol
+from typing import Protocol
 
 from backend.core.multi.session import MultiplayerSession
 
@@ -13,11 +13,9 @@ class MultiplayerRepository(Protocol):
 
     async def save_session(self, multiplayer_session: MultiplayerSession): ...
 
-    async def get_for_lobby(
-        self, lobby_id: uuid.UUID
-    ) -> Optional[MultiplayerSession]: ...
+    async def get_for_lobby(self, lobby_id: uuid.UUID) -> MultiplayerSession: ...
 
-    async def delete_pending(self, session_id: uuid.UUID): ...
+    async def delete(self, session_id: uuid.UUID): ...
 
 
 __all__ = ["MultiplayerRepository", "SessionNotFound"]
