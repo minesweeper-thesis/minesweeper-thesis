@@ -3,7 +3,7 @@ from collections import defaultdict
 from copy import copy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Literal, Optional
+from typing import Any, Callable, Literal, Optional
 
 from backend.core.board import Board
 from backend.core.game import *
@@ -49,6 +49,7 @@ class MultiplayerRound:
         round_time: timedelta,
         board: Board,
         gameplays: list[MultiplayerGameplay],
+        timer: Callable[[], datetime] = datetime.now,
     ):
         self.session_id = session_id
         self.round_index = round_index
@@ -56,10 +57,9 @@ class MultiplayerRound:
         self.board = board
         self.gameplays = {gameplay.user_id: gameplay for gameplay in gameplays}
 
-        self.state: RoundState = "not_started"
-
         self.start_at: Optional[datetime] = None
         self.end_at: Optional[datetime] = None
+        self._timer = timer
 
         self._events: dict[uuid.UUID, list[Any]] = defaultdict(list)
 
@@ -75,25 +75,40 @@ class MultiplayerRound:
             ]
         )
 
+    @property
+    def state(self) -> RoundState:
+        now = self._timer()
+        if self.start_at is None or self.end_at is None:
+            return "not_started"
+        if now < self.start_at:
+            return "not_started"
+        if self.start_at <= now < self.end_at and not self.all_gameplays_finished():
+            return "playing"
+        return "ended"
+
     def all_gameplays_finished(self) -> bool:
         return all(gameplay.is_game_over() for gameplay in self.gameplays.values())
 
-    def start(self, start_at: datetime, session_scores: dict[uuid.UUID, float]) -> None:
-        if self.state != "not_started":
-            raise InvalidRoundState(current_state=self.state)
-
+    def prepare(
+        self, start_at: datetime | None, session_scores: dict[uuid.UUID, float]
+    ) -> None:
         self.start_at = start_at
-        self.end_at = self.start_at + self.round_time
-
-        self.state = "playing"
-
-        for gameplay in self.gameplays.values():
-            gameplay.start_game_if_not_started()
+        if self.start_at is not None:
+            self.end_at = self.start_at + self.round_time
+        else:
+            self.end_at = None
 
         for user_id, score in session_scores.items():
             score_item = self._get_user_score_item(user_id)
             score_item.score = score
             score_item.status = "in_progress"
+
+    def start(self) -> None:
+        assert self.start_at is not None
+        assert self.end_at is not None
+
+        for gameplay in self.gameplays.values():
+            gameplay.start_game_if_not_started(self.start_at)
 
         for user_id in self.gameplays.keys():
             self._events[user_id].append(
@@ -107,14 +122,13 @@ class MultiplayerRound:
             )
 
     def end(self) -> None:
-        if self.state != "playing":
-            raise InvalidRoundState(current_state=self.state)
-
-        self.state = "ended"
+        assert self.end_at is not None
 
         for gameplay in self.gameplays.values():
             if not gameplay.is_game_over():
-                gameplay.finish_game("loss", loss_cause=LossCause("time_out"))
+                gameplay.finish_game(
+                    "loss", LossCause("time_out"), now=self.end_at.timestamp()
+                )
                 self._events[gameplay.user_id].append(
                     GameOverResult(
                         result="loss",
@@ -161,6 +175,9 @@ class MultiplayerRound:
             score_item.score += self.round_time.total_seconds() - gameplay.elapsed_time
 
     def execute_action_for_user(self, user_id: uuid.UUID, action: GameAction) -> None:
+        if self.state != "playing":
+            raise InvalidRoundState(current_state=self.state)
+
         gameplay = self.gameplays[user_id]
         self._events[user_id].append(action.execute(gameplay))
 
@@ -213,3 +230,14 @@ async def create_multiplayer_round(
         board=board,
         gameplays=gameplays,
     )
+
+
+__all__ = [
+    "MultiplayerRound",
+    "create_multiplayer_round",
+    "RoundStart",
+    "RoundEnd",
+    "ScoreUpdate",
+    "RoundState",
+    "InvalidRoundState",
+]

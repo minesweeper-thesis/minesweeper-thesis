@@ -1,13 +1,14 @@
 import random
 import uuid
 from contextlib import AsyncExitStack
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
 from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 
 
+@pytest.mark.time_machine(datetime.now())
 @pytest.mark.parametrize(
     "authenticated_clients",
     [
@@ -122,8 +123,6 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
         for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_end")
 
-        fake_scheduler.reset()
-
         await host_lobby.send_json({"type": "ready"})
         for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "user_ready")
@@ -163,8 +162,6 @@ async def test_multiplayer_two_player_flow(authenticated_clients, fake_scheduler
 
         for ws in (host_lobby, guest_lobby):
             await receive_type(ws, "round_end")
-
-        fake_scheduler.reset()
 
         await host_lobby.send_json({"type": "ready"})
         for ws in (host_lobby, guest_lobby):

@@ -221,7 +221,6 @@ class LobbyService:
     async def _sync_session_players(self, lobby: Lobby) -> None:
         session = await self.multi_repo.get_for_lobby(lobby.id)
         async with self.session_lock.acquire(session.id):
-
             if not session.is_started() and not session.is_over():
                 session.set_player_ids([user.id for user in lobby.users])
                 await self.multi_repo.save_session(session)

@@ -1,7 +1,7 @@
 import random
 import uuid
 from contextlib import AsyncExitStack
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -9,6 +9,7 @@ from backend.tests.conftest import AuthenticatedClientBundle
 from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 
 
+@pytest.mark.time_machine(datetime.now())
 @pytest.mark.parametrize(
     "authenticated_clients",
     [
@@ -38,7 +39,7 @@ async def test_multiplayer_single_player_flow(
         f"/lobbies/{lobby_id}",
         json={
             "rounds": 3,
-            "max_round_time": 2,
+            "max_round_time": 60,
             "difficulty_level": {"rows": 3, "columns": 3, "mine_count": 3},
             "game_mode": "normal",
             "generator": {"type": "random", "settings": None},
@@ -66,7 +67,7 @@ async def test_multiplayer_single_player_flow(
 
         await receive_type(lobby_ws, "round_countdown")
 
-        await fake_scheduler.skip(timedelta=timedelta(seconds=10))
+        await fake_scheduler.skip(timedelta(seconds=10))
 
         start_msg = await receive_type(lobby_ws, "round_start")
         start_field = tuple(start_msg["start_field"])
@@ -80,12 +81,10 @@ async def test_multiplayer_single_player_flow(
         )
         msg = await receive_type(lobby_ws, "remove_flag")
 
-        await fake_scheduler.skip(timedelta=timedelta(seconds=60))
+        await fake_scheduler.skip(timedelta(seconds=60))
         await receive_type(lobby_ws, "game_over")
         msg = await receive_type(lobby_ws, "round_end")
         assert msg["type"] == "round_end"
-
-        fake_scheduler.reset()
 
         await lobby_ws.send_json({"type": "ready"})
         msg = await receive_type(lobby_ws, "user_ready")
@@ -106,7 +105,7 @@ async def test_multiplayer_single_player_flow(
         await receive_type(lobby_ws, "round_ready")
         await receive_type(lobby_ws, "round_countdown")
 
-        await fake_scheduler.skip(timedelta=timedelta(seconds=10))
+        await fake_scheduler.skip(timedelta(seconds=10))
         msg = await receive_type(lobby_ws, "round_start")
         assert msg["type"] == "round_start"
 
@@ -114,12 +113,10 @@ async def test_multiplayer_single_player_flow(
         await lobby_ws.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
         await receive_type(lobby_ws, "flag")
 
-        await fake_scheduler.skip(timedelta=timedelta(seconds=60))
+        await fake_scheduler.skip(timedelta(seconds=60))
         await receive_type(lobby_ws, "game_over")
         msg = await receive_type(lobby_ws, "round_end")
         assert msg["type"] == "round_end"
-
-        fake_scheduler.reset()
 
         await lobby_ws.send_json({"type": "ready"})
         await receive_type(lobby_ws, "user_ready")
@@ -127,10 +124,10 @@ async def test_multiplayer_single_player_flow(
         await receive_type(lobby_ws, "round_ready")
         await receive_type(lobby_ws, "round_countdown")
 
-        await fake_scheduler.skip(timedelta=timedelta(seconds=10))
+        await fake_scheduler.skip(timedelta(seconds=10))
         await receive_type(lobby_ws, "round_start")
 
-        await fake_scheduler.skip(timedelta=timedelta(seconds=60))
+        await fake_scheduler.skip(timedelta(seconds=60))
         await receive_type(lobby_ws, "game_over")
         await receive_type(lobby_ws, "round_end")
         await receive_type(lobby_ws, "session_over")

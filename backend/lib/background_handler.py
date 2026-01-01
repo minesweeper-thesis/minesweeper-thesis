@@ -6,7 +6,6 @@ from typing import Optional
 from backend.core.board import Board
 from backend.core.multi import create_multiplayer_round
 from backend.db import async_session_maker
-from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis_client
 from backend.lib.session_lock import SessionLock
 from backend.lib.session_runtime_store import RedisSessionRuntimeStore
@@ -32,7 +31,6 @@ class BackgroundRoundHandler:
         async with async_session_maker() as db_session:
             board_repo = BoardRepository(db_session)
             multi_repo = RedisMultiplayerRepository(db_session, redis_client)
-            pending_store = RedisPendingStore(redis_client)
             session_runtime_store = RedisSessionRuntimeStore(redis_client)
 
             try:

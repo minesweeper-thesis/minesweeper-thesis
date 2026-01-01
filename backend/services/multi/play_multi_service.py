@@ -71,7 +71,6 @@ class PlayMultiService:
         logger.debug(
             f"execute_action(user_id={self.user.id}, action={type(action).__name__})"
         )
-        logger.debug(f"User {self.user.id} executing action: {type(action).__name__}")
 
         async with self.session_lock.acquire(self.session.id):
             self.session = await self.multi_repo.get_session(self.session.id)

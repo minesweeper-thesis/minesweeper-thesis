@@ -1,4 +1,5 @@
 import uuid
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any
 
@@ -8,6 +9,7 @@ from backend.core.game.game_actions import GameAction
 from backend.core.multi.config import GameConfig
 from backend.core.multi.multi_gameplay import *
 from backend.core.multi.round import *
+from backend.core.multi.score import SessionScoreboard, SessionScoreItem
 from backend.core.user import *
 
 
@@ -60,7 +62,9 @@ class MultiplayerSession:
         )
 
     def is_started(self) -> bool:
-        return len(self.rounds) > 0 and self.rounds[0].state != "not_started"
+        return (
+            len(self.rounds) > 0 and self.rounds[0].state != "not_started"
+        ) or self.ready_locked
 
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
@@ -127,10 +131,9 @@ class MultiplayerSession:
         self.clear_ready_players()
         self.ready_locked = False
 
-        if round.state == "playing":
-            round.end()
-            self._consume_round_events()
-            self._update_scoreboard(round)
+        round.end()
+        self._consume_round_events()
+        self._update_scoreboard(round)
 
         if self.is_over():
             self.scoreboard.sort()
@@ -146,17 +149,14 @@ class MultiplayerSession:
                     session_item.score = round_item.score
                     break
 
-    def start_next_round(self, start_at: datetime):
-        if self.current_round_index != -1:
-            if not self._current_round.all_gameplays_finished():
-                raise RoundNotAvailable()
-
+    def start_next_round(self):
         self.current_round_index += 1
-        session_scores = {item.user_id: item.score for item in self.scoreboard.items}
-        self._current_round.start(start_at, session_scores)
+        self._current_round.start()
         self._consume_round_events()
-        self.clear_ready_players()
-        self.ready_locked = False
+
+    def prepare_next_round(self, start_at: datetime):
+        session_scores = {item.user_id: item.score for item in self.scoreboard.items}
+        self.next_round.prepare(start_at, session_scores)
 
     def is_over(self) -> bool:
         return (

@@ -10,10 +10,6 @@ type OnBoardGeneratedCallback = Callable[
 ]
 
 
-class GenerationNotFound(Exception):
-    pass
-
-
 class BoardGenerator(Protocol):
     async def generate_board(
         self,
@@ -32,7 +28,6 @@ class MultiBoardGenerator(BoardGenerator, Protocol):
 
 __all__ = [
     "GenerationID",
-    "GenerationNotFound",
     "OnBoardGeneratedCallback",
     "BoardGenerator",
     "SingleBoardGenerator",

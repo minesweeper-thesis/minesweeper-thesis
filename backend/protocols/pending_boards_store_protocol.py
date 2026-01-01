@@ -1,7 +1,25 @@
 import uuid
+from dataclasses import dataclass
 from typing import Optional, Protocol
 
-from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
+from backend.core.board import DifficultyLevel, GenerationSettings
+from backend.core.game.types import GameMode
+
+
+@dataclass
+class PendingBoardMetadata:
+    generation_settings: GenerationSettings
+    difficulty_level: DifficultyLevel
+    mode: GameMode
+    gameplay_id: Optional[uuid.UUID] = None
+    user_id: Optional[uuid.UUID] = None
+
+
+@dataclass
+class PendingBoard:
+    generation_id: uuid.UUID
+    metadata: PendingBoardMetadata
+    board_id: Optional[uuid.UUID] = None
 
 
 class PendingBoardsStore(Protocol):

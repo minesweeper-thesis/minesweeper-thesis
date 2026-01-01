@@ -77,6 +77,7 @@ class StartRoundService:
                 should_notify = True
 
         if should_notify:
+            await self.round_scheduler.cancel_start(session.id)
             transport = self.lobby_transport_factory.get(lobby_id)
             next_round_index = session.current_round_index + 1
             await transport.broadcast(UserNotReady(user.id, next_round_index))
@@ -149,38 +150,26 @@ class StartRoundService:
 
         board_ready = round_index < len(session.rounds)
         is_generating = await self.session_runtime_store.is_generating(session.id)
+        schedule = await self.session_runtime_store.get_round_schedule(session.id)
 
-        start_at = None
-        end_at = None
-        countdown_to = None
         round_state: Literal[
             "not_ready", "generating", "countdown", "ready_lock", "playing"
         ]
 
         if board_ready and session.rounds[round_index].state == "playing":
             round_state = "playing"
-            start_at = session.rounds[round_index].start_at
-            end_at = session.rounds[round_index].end_at
         elif session.ready_locked:
             round_state = "ready_lock"
-            countdown_to, start_at, end_at = (
-                await self.session_runtime_store.get_round_schedule(session.id)
-            )
         elif not board_ready and is_generating:
             round_state = "generating"
         elif session.all_players_ready() and board_ready:
             round_state = "countdown"
-            countdown_to, start_at, end_at = (
-                await self.session_runtime_store.get_round_schedule(session.id)
-            )
         else:
             round_state = "not_ready"
 
         round_data = SessionStateRoundData(
             round_number=round_index + 1,
-            start_at=start_at,
-            end_at=end_at,
-            countdown_to=countdown_to,
+            schedule=schedule,
             state=round_state,
         )
 

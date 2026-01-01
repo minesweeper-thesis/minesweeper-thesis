@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from backend.core.board import Board
@@ -102,20 +103,25 @@ class MultiplayerGameplay(Gameplay):
 
         return self._gameplay.remove_flag(cell)
 
-    def start_game_if_not_started(self):
-        self._gameplay._start_game_if_not_started()
+    def start_game_if_not_started(self, start_time: datetime):
+        self._gameplay._start_game_if_not_started(start_time.timestamp())
 
     def get_game_state(self):
         return self._gameplay.get_game_state()
 
     def use_hint(self):
-        raise RuntimeError("Hints are not available in multiplayer mode")
+        raise InvalidAction("Hints are not available in multiplayer mode")
 
     def is_game_over(self):
         return self.status == "finished"
 
-    def finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
+    def finish_game(
+        self,
+        result: GameResult,
+        loss_cause: Optional[LossCause] = None,
+        now: Optional[float] = None,
+    ):
         if self.status != "in_progress":
             raise GameplayNotInProgress()
 
-        self._gameplay._finish_game(result, loss_cause)
+        self._gameplay._finish_game(result, loss_cause, now=now)

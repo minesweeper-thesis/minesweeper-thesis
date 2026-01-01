@@ -11,7 +11,6 @@ from backend.lib.pending_boards import RedisPendingStore
 from backend.lib.redis_client import get_redis_client
 from backend.lib.scheduler import get_scheduler
 from backend.lib.session_lock import SessionLock
-from backend.lib.session_runtime_store import RedisSessionRuntimeStore
 from backend.repositories import *
 
 
@@ -42,6 +41,8 @@ def _get_pending_boards_store(redis=Depends(get_redis_client)):
 
 
 def _get_session_runtime_store(redis=Depends(get_redis_client)):
+    from backend.lib.session_runtime_store import RedisSessionRuntimeStore
+
     return RedisSessionRuntimeStore(redis)
 
 

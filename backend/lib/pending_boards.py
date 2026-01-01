@@ -6,7 +6,10 @@ from redis.asyncio import Redis
 
 from backend import protocols
 from backend.lib.redis_client import decode, encode
-from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
+from backend.protocols.pending_boards_store_protocol import (
+    PendingBoard,
+    PendingBoardMetadata,
+)
 
 logger = logging.getLogger(__name__)
 

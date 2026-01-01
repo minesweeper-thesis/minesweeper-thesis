@@ -1,6 +1,6 @@
 import time
 import uuid
-from typing import Optional
+from typing import Callable, Optional
 
 from algorithms.boards.functions.moore import moore_neighborhood
 from algorithms.boards.grid import Grid
@@ -21,6 +21,7 @@ class SingleplayerGameplay(Gameplay):
         used_hints: bool = False,
         elapsed_time: float = 0,
         mode: GameMode = "normal",
+        timer: Callable[[], float] = time.monotonic,
     ):
         if revealed_cells is None:
             revealed_cells = []
@@ -31,7 +32,8 @@ class SingleplayerGameplay(Gameplay):
         self.id = id
         self.board = board
 
-        self._time_start = None
+        self._timer = timer
+        self._time_start: Optional[float] = None
 
         self.grid = Grid(
             rows=board.difficulty_level.rows,
@@ -72,24 +74,29 @@ class SingleplayerGameplay(Gameplay):
         self.used_hints = True
         return self._get_safe_cells()[0] if self._get_safe_cells() else None
 
-    def _start_game_if_not_started(self):
+    def _start_game_if_not_started(self, start_time: Optional[float] = None):
         if self.status == "not_started":
             self.status = "in_progress"
 
         if self._time_start is None:
-            self._time_start = time.monotonic()
+            self._time_start = start_time if start_time is not None else self._timer()
 
-    def update_elapsed_time(self):
+    def update_elapsed_time(self, now: float):
         if self._time_start is None:
             raise RuntimeError("Game not started")
 
-        self.elapsed_time += time.monotonic() - self._time_start
+        self.elapsed_time += now - self._time_start
 
-    def _finish_game(self, result: GameResult, loss_cause: Optional[LossCause] = None):
+    def _finish_game(
+        self,
+        result: GameResult,
+        loss_cause: Optional[LossCause] = None,
+        now: Optional[float] = None,
+    ):
         if self.status == "finished":
             return
 
-        self.update_elapsed_time()
+        self.update_elapsed_time(self._timer() if now is None else now)
         self.status = "finished"
         self.result = result
         self.loss_cause = loss_cause

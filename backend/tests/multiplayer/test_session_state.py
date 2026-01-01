@@ -1,5 +1,5 @@
 from contextlib import AsyncExitStack
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -7,6 +7,7 @@ from backend.tests.conftest import AuthenticatedClientBundle
 from backend.tests.multiplayer.ws_helpers import receive_type
 
 
+@pytest.mark.time_machine(datetime.now())
 @pytest.mark.asyncio(loop_scope="session")
 async def test_session_state_flow(
     authenticated_clients: list[AuthenticatedClientBundle], fake_scheduler

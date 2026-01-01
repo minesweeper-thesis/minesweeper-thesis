@@ -8,7 +8,7 @@ from fastapi import Depends
 from backend.core.game import *
 from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import *
-from backend.services.dto import RoundCountdown
+from backend.services.dto import RoundCountdown, RoundSchedule
 from backend.services.exceptions import *
 from backend.services.multi.constants import COUNTDOWN_DELAY, START_DELAY
 from backend.services.multi.session_renewer import SessionRenewer
@@ -41,29 +41,40 @@ class RoundScheduler:
     async def _lock_ready_and_schedule_start(
         self, session_id: uuid.UUID, start_at: datetime
     ):
-        logger.debug(f"Locking ready and scheduling start for session {session_id}")
+        logger.debug(
+            f"_lock_ready_and_schedule_start(session_id={session_id}, start_at={start_at})"
+        )
+        should_schedule = False
+
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
+            logger.debug(
+                f"Session {session_id} acquired for locking round {session.current_round_index + 1}"
+            )
             if session.all_players_ready():
                 session.lock_ready()
+                session.prepare_next_round(start_at)
                 await self.multi_repo.save_session(session)
+                should_schedule = True
 
-                self.scheduler.schedule(
-                    self.start_round,
-                    start_at,
-                    session_id=session_id,
-                    start_at=start_at,
-                )
+        if should_schedule:
+            self.scheduler.schedule(
+                self._start_round,
+                start_at,
+                session_id=session_id,
+                start_at=start_at,
+            )
 
     async def _end_round(self, session_id: uuid.UUID, round_index: int):
-        logger.debug(f"Ending round {round_index} in session {session_id}")
+        logger.debug(f"_end_round(session_id={session_id}, round_index={round_index})")
+        session_over = False
+        await self.session_runtime_store.delete_round_schedule(session_id)
+
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
 
-            if session.rounds[round_index].state != "playing":
-                return
-
-            session.end_round(round_index)
+            if not session._current_round.all_gameplays_finished():
+                session.end_round(round_index)
 
             events_by_user = session.consume_events()
             session_over = session.is_over()
@@ -79,31 +90,25 @@ class RoundScheduler:
 
             await self.session_renewer.renew_session(session.lobby_id)
 
-    async def start_round(self, session_id: uuid.UUID, start_at: datetime):
-        logger.debug(f"Starting round in session {session_id}")
-        await self.session_runtime_store.delete_round_schedule(session_id)
+    async def _start_round(self, session_id: uuid.UUID, start_at: datetime):
+        logger.debug(f"_start_round(session_id={session_id})")
 
         async with self.session_lock.acquire(session_id):
             session = await self.multi_repo.get_session(session_id)
-            if not session.all_players_ready():
-                return
-
-            end_at = start_at + timedelta(seconds=session.game_config.max_round_time)
-
-            session.start_next_round(start_at)
+            session.start_next_round()
 
             events_by_user = session.consume_events()
-
             await self.multi_repo.save_session(session)
 
-            await self._publish_events(session.lobby_id, events_by_user)
+        await self._publish_events(session.lobby_id, events_by_user)
 
-            self.scheduler.schedule(
-                self._end_round,
-                end_at,
-                session_id=session_id,
-                round_index=session.current_round_index,
-            )
+        end_at = start_at + timedelta(seconds=session.game_config.max_round_time)
+        self.scheduler.schedule(
+            self._end_round,
+            end_at,
+            session_id=session_id,
+            round_index=session.current_round_index,
+        )
 
     async def _send_countdown(
         self,
@@ -135,22 +140,43 @@ class RoundScheduler:
                 await transport.send(user_id, event)
 
     async def schedule_start(self, session: MultiplayerSession):
-        logger.debug(f"Scheduling start of round in session {session.id}")
+        logger.debug(f"schedule_start(session_id={session.id})")
         countdown_to, start_at = calc_round_start_times()
         end_at = start_at + timedelta(seconds=session.game_config.max_round_time)
 
         await self.session_runtime_store.set_round_schedule(
-            session.id, countdown_to, start_at, end_at
+            session.id, RoundSchedule(countdown_to, start_at, end_at)
         )
 
         await self._send_countdown(session, start_at, countdown_to)
 
-        self.scheduler.schedule(
+        lock_job_id = self.scheduler.schedule(
             self._lock_ready_and_schedule_start,
             countdown_to,
             session_id=session.id,
             start_at=start_at,
         )
+        await self.session_runtime_store.set_lock_job_id(session.id, lock_job_id)
+
+    async def cancel_start(self, session_id: uuid.UUID):
+        logger.debug(f"cancel_start(session_id={session_id})")
+        can_cancel = False
+
+        async with self.session_lock.acquire(session_id):
+            session = await self.multi_repo.get_session(session_id)
+            if not session.ready_locked:
+                can_cancel = True
+                session.next_round.prepare(None, {})
+                await self.multi_repo.save_session(session)
+
+        if can_cancel:
+            schedule = await self.session_runtime_store.get_round_schedule(session_id)
+            if schedule is not None:
+                await self.session_runtime_store.delete_round_schedule(session_id)
+
+            lock_job_id = await self.session_runtime_store.get_lock_job_id(session_id)
+            if lock_job_id is not None:
+                self.scheduler.cancel(lock_job_id)
 
 
 def calc_round_start_times():

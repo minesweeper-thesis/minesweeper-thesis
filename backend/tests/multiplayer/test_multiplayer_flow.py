@@ -1,13 +1,14 @@
 import random
 import uuid
 from contextlib import AsyncExitStack
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
 from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 
 
+@pytest.mark.time_machine(datetime.now())
 @pytest.mark.parametrize(
     "authenticated_clients",
     [
@@ -145,7 +146,7 @@ async def test_multiplayer_full_flow_many_players(
             assert ready_msg["value"] is True
 
         for ws in (host_lobby, g1_lobby, g2_lobby):
-            msg = await receive_type(ws, "round_ready")
+            await receive_type(ws, "round_ready")
             await receive_type(ws, "round_countdown")
 
         await fake_scheduler.skip(timedelta(seconds=10))
@@ -176,8 +177,6 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
             await receive_type(ws, "round_end")
-
-        fake_scheduler.reset()
 
         await host_lobby.send_json({"type": "ready"})
         for ws in (host_lobby, g1_lobby, g2_lobby):
@@ -239,8 +238,6 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_end")
 
-        fake_scheduler.reset()
-
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await ws.send_json({"type": "ready"})
 
@@ -260,8 +257,6 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
             await receive_type(ws, "round_end")
-
-        fake_scheduler.reset()
 
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "session_over")

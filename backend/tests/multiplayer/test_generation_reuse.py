@@ -1,12 +1,13 @@
 import uuid
 from contextlib import AsyncExitStack
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 
 from backend.tests.multiplayer.ws_helpers import receive_type
 
 
+@pytest.mark.time_machine(datetime.now())
 @pytest.mark.parametrize(
     "authenticated_clients",
     [

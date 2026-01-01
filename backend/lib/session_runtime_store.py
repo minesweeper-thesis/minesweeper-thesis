@@ -1,11 +1,12 @@
 import uuid
-from datetime import datetime
 from typing import Optional
 
 from redis.asyncio import Redis
 
 from backend.lib.redis_client import decode, encode
+from backend.protocols.scheduler_protocol import JobID
 from backend.protocols.session_runtime_store_protocol import SessionRuntimeStore
+from backend.services.dto import RoundSchedule
 
 
 class RedisSessionRuntimeStore(SessionRuntimeStore):
@@ -16,27 +17,19 @@ class RedisSessionRuntimeStore(SessionRuntimeStore):
     async def set_round_schedule(
         self,
         session_id: uuid.UUID,
-        countdown_to: datetime,
-        start_at: datetime,
-        end_at: datetime,
+        round_schedule: RoundSchedule,
     ) -> None:
         key = f"{self.prefix}{session_id}:schedule"
-        data = {
-            "countdown_to": countdown_to,
-            "start_at": start_at,
-            "end_at": end_at,
-        }
-        await self.redis.set(key, encode(data))
+        await self.redis.set(key, encode(round_schedule))
 
     async def get_round_schedule(
         self, session_id: uuid.UUID
-    ) -> tuple[Optional[datetime], Optional[datetime], Optional[datetime]]:
+    ) -> Optional[RoundSchedule]:
         key = f"{self.prefix}{session_id}:schedule"
         data = await self.redis.get(key)
         if not data:
-            return None, None, None
-        decoded = decode(data)
-        return decoded["countdown_to"], decoded["start_at"], decoded["end_at"]
+            return None
+        return decode(data)
 
     async def delete_round_schedule(self, session_id: uuid.UUID) -> None:
         key = f"{self.prefix}{session_id}:schedule"
@@ -74,3 +67,19 @@ class RedisSessionRuntimeStore(SessionRuntimeStore):
         key = f"{self.prefix}{session_id}:generating"
         count = await self.redis.scard(key)  # type: ignore[misc]
         return count > 0
+
+    async def set_lock_job_id(
+        self, session_id: uuid.UUID, job_id: JobID | None
+    ) -> None:
+        key = f"{self.prefix}{session_id}:lock_job"
+        if job_id is None:
+            await self.redis.delete(key)
+        else:
+            await self.redis.set(key, encode(job_id))
+
+    async def get_lock_job_id(self, session_id: uuid.UUID) -> Optional[JobID]:
+        key = f"{self.prefix}{session_id}:lock_job"
+        data = await self.redis.get(key)
+        if not data:
+            return None
+        return decode(data)

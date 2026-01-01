@@ -148,18 +148,18 @@ class SessionStateResponse(Response):
     @classmethod
     def build(cls, message: SessionState) -> Self:
         start_at = (
-            int(message.round.start_at.timestamp() * 1000)
-            if message.round.start_at
+            int(message.round.schedule.start_at.timestamp() * 1000)
+            if message.round.schedule
             else None
         )
         end_at = (
-            int(message.round.end_at.timestamp() * 1000)
-            if message.round.end_at
+            int(message.round.schedule.end_at.timestamp() * 1000)
+            if message.round.schedule
             else None
         )
         countdown_to = (
-            int(message.round.countdown_to.timestamp() * 1000)
-            if message.round.countdown_to
+            int(message.round.schedule.countdown_to.timestamp() * 1000)
+            if message.round.schedule
             else None
         )
 
