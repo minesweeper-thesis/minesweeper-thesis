@@ -7,6 +7,7 @@ from fastapi import BackgroundTasks, Depends
 
 from backend.core.game import *
 from backend.core.multi.multi_gameplay import GameplayNotInProgress
+from backend.core.multi.round import InvalidRoundState
 from backend.core.user import User
 from backend.di.dependencies import *
 from backend.protocols.multiplayer_repo_protocol import SessionNotFound
@@ -74,7 +75,7 @@ class PlayMultiService:
 
         async with self.session_lock.acquire(self.session.id):
             self.session = await self.multi_repo.get_session(self.session.id)
-            with suppress(InvalidAction, GameplayNotInProgress):
+            with suppress(InvalidAction, GameplayNotInProgress, InvalidRoundState):
                 self.session.execute_action_for_user(self.user.id, action)
 
             events_by_user = self.session.consume_events()

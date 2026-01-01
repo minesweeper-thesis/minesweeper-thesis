@@ -90,14 +90,15 @@ class UserConnectionService:
         lobby = await self.lobby_repo.get_user_lobby(user.id)
         if lobby is not None:
             session = await self.multi_repo.get_for_lobby(lobby.id)
+            transport = self.lobby_transport_factory.get(lobby.id)
+            next_round_index = session.current_round_index + 1
             for user_id in session.player_ids:
-                data: UserReady | UserNotReady
                 if session.is_user_ready(user_id):
-                    data = UserReady(user_id, 0)
+                    await transport.send(user.id, UserReady(user_id, next_round_index))
                 else:
-                    data = UserNotReady(user_id, 0)
-                    transport = self.lobby_transport_factory.get(lobby.id)
-                    await transport.send(user.id, data)
+                    await transport.send(
+                        user.id, UserNotReady(user_id, next_round_index)
+                    )
 
     async def _notify_user_online_status(self, user: User):
         logger.debug(f"_notify_user_online_status(user_id={user.id})")
