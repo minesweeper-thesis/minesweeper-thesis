@@ -40,5 +40,9 @@ class SingleplayerRepository(Protocol):
         self, gameplay: SingleplayerGameplay
     ) -> SingleplayerGameplay: ...
 
+    async def get_user_gameplay_on_board(
+        self, user_id: uuid.UUID, board_id: uuid.UUID
+    ) -> SingleplayerGameplay: ...
+
 
 __all__ = ["SingleplayerRepository"]

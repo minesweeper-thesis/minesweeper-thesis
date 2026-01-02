@@ -28,6 +28,12 @@ game_exceptions = {
     exceptions.SolvedAllBoards: HTTPException(
         400, "User solved all boards for this difficulty type"
     ),
+    exceptions.BoardAlreadyPlayed: HTTPException(
+        400, "User has already played this board"
+    ),
+    exceptions.SpecificBoardAnonymousUser: HTTPException(
+        400, "Anonymous users cannot play specific boards"
+    ),
 }
 
 

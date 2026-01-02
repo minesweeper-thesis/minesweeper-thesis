@@ -27,6 +27,14 @@ class BoardNotExists(Exception):
     pass
 
 
+class SpecificBoardAnonymousUser(Exception):
+    pass
+
+
+class BoardAlreadyPlayed(Exception):
+    pass
+
+
 class RequestedFriendNotExists(Exception):
     pass
 
@@ -103,4 +111,7 @@ __all__ = [
     "SessionAlreadyOver",
     "InvitationNotExists",
     "GenerationError",
+    "SessionActive",
+    "BoardAlreadyPlayed",
+    "SpecificBoardAnonymousUser",
 ]

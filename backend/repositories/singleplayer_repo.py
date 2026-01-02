@@ -130,3 +130,32 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
         await self.session.commit()
         logger.debug(f"Singleplayer gameplay {gameplay.id} updated")
         return gameplay
+
+    async def get_user_gameplay_on_board(
+        self, user_id: uuid.UUID, board_id: uuid.UUID
+    ) -> SingleplayerGameplay:
+        try:
+            logger.debug(
+                f"has_user_played_board(user_id={user_id}, board_id={board_id})"
+            )
+            stmt = (
+                select(SingleplayerGameplayORM)
+                .options(
+                    selectinload(SingleplayerGameplayORM.board).selectinload(
+                        BoardORM.difficulty_level
+                    ),
+                    selectinload(SingleplayerGameplayORM.user),
+                )
+                .where(
+                    SingleplayerGameplayORM.user_id == user_id,
+                    SingleplayerGameplayORM.board_id == board_id,
+                )
+            )
+
+            result = await self.session.execute(stmt)
+            gameplay_orm = result.scalar_one()
+
+            return gameplay_orm.to_gameplay()
+
+        except NoResultFound:
+            raise GameplayNotFound() from None
