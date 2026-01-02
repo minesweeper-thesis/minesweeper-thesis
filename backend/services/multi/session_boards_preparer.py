@@ -35,23 +35,17 @@ class SessionBoardsPreparer:
     async def prepare(self, session: MultiplayerSession):
         to_generate = session.rounds_number - len(session.rounds)
 
-        for round_index in range(to_generate):
-            await self._prepare_round_board(session, round_index)
+        for _ in range(to_generate):
+            await self._prepare_round_board(session)
 
-    async def _prepare_round_board(
-        self,
-        session: MultiplayerSession,
-        round_index: int,
-    ):
-        board = await self._get_unsolved_or_generate_board(session, round_index)
+    async def _prepare_round_board(self, session: MultiplayerSession):
+        board = await self._get_unsolved_or_generate_board(session)
 
         if board is not None:
             await self.background_handler.on_board_generated(session.id, None, board)
 
     async def _get_unsolved_or_generate_board(
-        self,
-        session: MultiplayerSession,
-        round_index: int,
+        self, session: MultiplayerSession
     ) -> Board | None:
         try:
             return await self.board_repo.get_unsolved_board(
@@ -60,10 +54,10 @@ class SessionBoardsPreparer:
                 user_ids=session.player_ids,
             )
         except UnsolvedBoardNotFound:
-            await self._generate_board(session, round_index)
+            await self._generate_board(session)
             return None
 
-    async def _generate_board(self, session: MultiplayerSession, round_index: int):
+    async def _generate_board(self, session: MultiplayerSession):
         async def on_completed(generation_id: uuid.UUID, board: Board):
             await self.background_handler.on_board_generated(
                 session.id, generation_id, board

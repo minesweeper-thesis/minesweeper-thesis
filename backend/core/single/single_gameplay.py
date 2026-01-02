@@ -81,9 +81,12 @@ class SingleplayerGameplay(Gameplay):
         if self._time_start is None:
             self._time_start = start_time if start_time is not None else self._timer()
 
-    def update_elapsed_time(self, now: float):
+    def update_elapsed_time(self, now: Optional[float] = None):
         if self._time_start is None:
             raise RuntimeError("Game not started")
+
+        if now is None:
+            now = self._timer()
 
         self.elapsed_time += now - self._time_start
 
@@ -96,7 +99,7 @@ class SingleplayerGameplay(Gameplay):
         if self.status == "finished":
             return
 
-        self.update_elapsed_time(self._timer() if now is None else now)
+        self.update_elapsed_time(now)
         self.status = "finished"
         self.result = result
         self.loss_cause = loss_cause

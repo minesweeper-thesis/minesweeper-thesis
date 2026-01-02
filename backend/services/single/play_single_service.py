@@ -31,9 +31,8 @@ class PlaySingleService:
 
     async def load_gameplay(self, gameplay_id: uuid.UUID):
         logger.debug(f"load_gameplay(gameplay_id={gameplay_id})")
-        logger.debug(f"Loading singleplayer gameplay {gameplay_id}")
-        pending = await self.pending_store.get_pending_gameplay(gameplay_id)
 
+        pending = await self.pending_store.get_pending_gameplay(gameplay_id)
         if pending is not None:
             pending = await self.pending_store.wait_for_ready(pending.generation_id)
             if pending is None or pending.board_id is None:
@@ -49,6 +48,8 @@ class PlaySingleService:
             await self.game_repo.add_gameplay(
                 gameplay, board.id, pending.metadata.user_id
             )
+
+            await self.pending_store.delete_pending(pending.generation_id)
 
         try:
             await self._set_gameplay(gameplay_id)
@@ -96,6 +97,8 @@ class PlaySingleService:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
+        if self.gameplay.status == "in_progress":
+            self.gameplay.update_elapsed_time()
         return self.gameplay.get_game_state()
 
     async def is_game_over(self) -> bool:

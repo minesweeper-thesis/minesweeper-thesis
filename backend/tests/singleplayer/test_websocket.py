@@ -1,6 +1,10 @@
+import asyncio
+
 import pytest
 from httpx_ws import WebSocketDisconnect
 
+from backend.tests.conftest import AuthenticatedClientBundle
+from backend.tests.multiplayer.ws_helpers import receive_type
 from backend.tests.singleplayer.helpers import create_game
 
 
@@ -123,3 +127,34 @@ async def test_websocket_board_state_shows_revealed_cell(authenticated_clients):
                 pass
     except WebSocketDisconnect:
         pass
+
+
+@pytest.mark.asyncio(loop_scope="session")
+async def test_websocket_measures_only_time_connected(
+    authenticated_clients: list[AuthenticatedClientBundle],
+):
+    bundle = authenticated_clients[0]
+
+    gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=3)
+
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
+        initial = await ws.receive_json()
+        assert initial["type"] == "game_state"
+        await ws.send_json({"type": "reveal_one", "cell": initial["start_field"]})
+        await receive_type(ws, "reveal")
+        await asyncio.sleep(0.1)
+        await ws.send_json({"type": "get_state"})
+        msg = await ws.receive_json()
+        assert msg["type"] == "game_state"
+        assert (
+            msg["elapsed_time"] >= 0.1
+        ), f"Elapsed time error, got {initial['elapsed_time']}"
+
+    await asyncio.sleep(0.1)
+
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
+        initial = await ws.receive_json()
+        assert initial["type"] == "game_state"
+        assert (
+            0.1 <= initial["elapsed_time"] <= 0.3
+        ), f"Elapsed time error, got {initial['elapsed_time']}"

@@ -96,5 +96,11 @@ class RedisPendingStore(protocols.PendingBoardsStore):
                 return decode(data)
         return None
 
+    async def delete_pending(self, generation_id: uuid.UUID) -> None:
+        logger.debug(f"delete_pending(generation_id={generation_id})")
+        key = f"{self.prefix}{generation_id}"
+        await self.redis.delete(key)
+        logger.info(f"Pending board {generation_id} deleted")
+
 
 __all__ = ["RedisPendingStore"]
