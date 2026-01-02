@@ -1,6 +1,5 @@
 import logging
 import uuid
-from dataclasses import asdict
 from typing import Optional
 
 from sqlalchemy import select
@@ -100,16 +99,22 @@ class BoardRepository(protocols.BoardRepository):
                 args.append(BoardORM.minefields == normalized)
 
             if generation_settings is not None:
-                args.append(BoardORM.generation_settings == asdict(generation_settings))
+                args.append(BoardORM.generation_settings == generation_settings)
 
             stmt = (
                 select(BoardORM)
                 .options(selectinload(BoardORM.difficulty_level))
                 .where(*args)
             )
-
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_board()
+            row = result.first()
+
+            if row is None:
+                raise NoResultFound()
+
+            board_orm = row[0]
+
+            return board_orm.to_board()
 
         except NoResultFound:
             raise BoardNotFound(

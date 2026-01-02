@@ -24,7 +24,7 @@ class SessionRenewer:
 
         with suppress(SessionNotFound):
             existing_session = await self.multi_repo.get_for_lobby(lobby_id)
-            if existing_session.is_started() and not existing_session.is_over():
+            if existing_session.is_active():
                 logger.info(
                     f"Session for lobby {lobby_id} is still active: {existing_session.id}"
                 )

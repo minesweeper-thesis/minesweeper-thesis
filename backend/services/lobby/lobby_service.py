@@ -101,6 +101,11 @@ class LobbyService:
                     f"User {user.id} not authorized to join lobby via invitation {invitation_id}"
                 )
                 raise InvitationNotExists()
+
+            session = await self.multi_repo.get_for_lobby(lobby.id)
+            if session.is_active():
+                raise SessionActive()
+
         except InvitationNotFound:
             logger.warning(
                 f"Invitation {invitation_id} not found for user {user.id} when joining lobby"
@@ -133,7 +138,7 @@ class LobbyService:
             ensure_user_is_host(lobby, user)
 
             session = await self.multi_repo.get_for_lobby(lobby.id)
-            if session.is_started() and not session.ready_locked:
+            if session.is_active():
                 raise SessionActive()
 
             lobby.update_game_config(game_config)
@@ -219,7 +224,7 @@ class LobbyService:
     async def _sync_session_players(self, lobby: Lobby) -> None:
         session = await self.multi_repo.get_for_lobby(lobby.id)
         async with self.session_lock.acquire(session.id):
-            if not session.is_started() and not session.is_over():
+            if not session.is_active():
                 session.set_player_ids([user.id for user in lobby.users])
                 await self.multi_repo.save_session(session)
 

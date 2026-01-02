@@ -60,11 +60,7 @@ class UserConnectionService:
             session = await self.multi_repo.get_session(session.id)
             assert session is not None, "Session not found"
 
-            is_ready = session.is_user_ready(user.id)
-            is_locked = session.ready_locked
-            is_started = session.is_started()
-
-            if is_ready and not is_locked and not is_started:
+            if session.is_user_ready(user.id) and not session.is_active():
                 session.cancel_ready(user.id)
                 await self.multi_repo.save_session(session)
                 should_notify = True

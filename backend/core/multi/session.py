@@ -61,16 +61,17 @@ class MultiplayerSession:
             ]
         )
 
-    def is_started(self) -> bool:
-        return (
-            len(self.rounds) > 0 and self.rounds[0].state != "not_started"
-        ) or self.ready_locked
+    def is_active(self) -> bool:
+        started = len(self.rounds) > 0 and self.rounds[0].state != "not_started"
+        locked = self.ready_locked
+        over = self.is_over()
+        return (started or locked) and not over
 
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
 
     def set_player_ids(self, player_ids: list[uuid.UUID]) -> None:
-        if self.is_started() or self.current_round_index != -1 or len(self.rounds) > 0:
+        if self.is_active():
             raise ValueError("Cannot change players after session setup")
 
         self.player_ids = player_ids

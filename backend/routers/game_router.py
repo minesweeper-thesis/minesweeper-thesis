@@ -199,6 +199,11 @@ async def play_multi(
             code=1013, reason="Cannot change ready status at this time"
         )
 
+    except exceptions.SessionActive:
+        await websocket.close(
+            code=1014, reason="Cannot join lobby while session is active"
+        )
+
     except exceptions.InvitationNotExists:
         await websocket.close(code=1014, reason="Invitation not found")
 
