@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from backend.config import BACKEND_URL
+from backend.config import DEV
 from backend.core.board import DifficultyLevel, GeneratorParams
 from backend.core.game import *
 from backend.core.lobby import *
@@ -25,8 +25,6 @@ from backend.services.multi.session_renewer import SessionRenewer
 
 logger = logging.getLogger(__name__)
 
-DEV = "localhost" in BACKEND_URL
-
 
 DEFAULT_GAME_CONFIG = (
     GameConfig(
@@ -40,7 +38,7 @@ DEFAULT_GAME_CONFIG = (
     else GameConfig(
         rounds=3,
         max_round_time=60,
-        difficulty_level=DifficultyLevel(10, 10, 15),
+        difficulty_level=DifficultyLevel.easy(),
         game_mode="normal",
         generator=Generator(
             generator_type="ml",
