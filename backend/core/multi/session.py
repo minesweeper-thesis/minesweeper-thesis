@@ -1,6 +1,6 @@
 import uuid
 from collections import defaultdict
-from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from backend.core.board import DifficultyLevel
@@ -11,12 +11,6 @@ from backend.core.multi.multi_gameplay import *
 from backend.core.multi.round import *
 from backend.core.multi.score import SessionScoreboard, SessionScoreItem
 from backend.core.user import *
-
-
-@dataclass
-class SessionOver:
-    session_id: uuid.UUID
-    scoreboard: SessionScoreboard
 
 
 class ReadyChangeLocked(Exception):
@@ -78,23 +72,10 @@ class MultiplayerSession:
     def add_round(self, round: MultiplayerRound):
         self.rounds.append(round)
 
-    def set_player_ids(self, player_ids: list[uuid.UUID]) -> None:
-        if self.is_active():
-            raise ValueError("Cannot change players after session setup")
-
-        self.player_ids = player_ids
-        self.ready_players.intersection_update(set(player_ids))
-
-        existing = {item.user_id for item in self.scoreboard.items}
-        removed = existing - set(player_ids)
-        if removed:
-            self.scoreboard.items = [
-                item for item in self.scoreboard.items if item.user_id not in removed
-            ]
-
-        added = set(player_ids) - existing
-        for user_id in added:
-            self.scoreboard.items.append(SessionScoreItem(user_id=user_id, score=0))
+    def remove_player(self, user: User):
+        self.ensure_user_in_session(user)
+        self.player_ids.remove(user.id)
+        self.ready_players.discard(user.id)
 
     @property
     def _current_round(self) -> MultiplayerRound:
@@ -103,14 +84,14 @@ class MultiplayerSession:
         return self.rounds[self.current_round_index]
 
     @property
+    def next_round_index(self) -> int:
+        return self.current_round_index + 1
+
+    @property
     def next_round(self) -> MultiplayerRound:
         if self.current_round_index + 1 >= len(self.rounds):
             raise RoundNotAvailable()
         return self.rounds[self.current_round_index + 1]
-
-    @property
-    def is_next_round_available(self) -> bool:
-        return self.current_round_index + 1 < len(self.rounds)
 
     def set_ready(self, user: User):
         self.ensure_user_in_session(user)
@@ -129,9 +110,6 @@ class MultiplayerSession:
     def all_players_ready(self) -> bool:
         return self.ready_players == set(self.player_ids)
 
-    def clear_ready_players(self):
-        self.ready_players.clear()
-
     def is_user_ready(self, user: User) -> bool:
         self.ensure_user_in_session(user)
 
@@ -140,22 +118,19 @@ class MultiplayerSession:
     def lock_ready(self):
         self.ready_locked = True
 
-    def end_round(self, round_index: int) -> None:
-        round = self.rounds[round_index]
+    def timeout_round(self, round_index: int) -> None:
+        if not self.rounds[round_index].ended_before_timeout:
+            self.rounds[round_index].timeout()
+            self._on_round_end()
 
-        self.clear_ready_players()
+    def _on_round_end(self) -> None:
+        self.ready_players.clear()
         self.ready_locked = False
 
-        round.end()
         self._consume_round_events()
-        self._update_scoreboard(round)
+        self._update_scoreboard(self._current_round)
 
-        if self.is_over():
-            self.scoreboard.sort()
-            for user_id in self.player_ids:
-                self.events[user_id].append(
-                    SessionOver(session_id=self.id, scoreboard=self.scoreboard)
-                )
+        self.scoreboard.sort()
 
     def _update_scoreboard(self, round: MultiplayerRound) -> None:
         for round_item in round.scoreboard.items:
@@ -164,14 +139,26 @@ class MultiplayerSession:
                     session_item.score = round_item.score
                     break
 
-    def start_next_round(self):
+    def add_next_round(
+        self, start_at: datetime, board: Board, player_ids: list[uuid.UUID]
+    ) -> None:
+        session_scores = {
+            item.user_id: item.score
+            for item in self.scoreboard.items
+            if item.user_id in player_ids
+        }
+        round = create_multiplayer_round(
+            session_id=self.id,
+            round_index=len(self.rounds),
+            round_time=timedelta(seconds=self.game_config.max_round_time),
+            board=board,
+            player_ids=player_ids,
+            mode=self.game_config.game_mode,
+            start_at=start_at,
+            session_scores=session_scores,
+        )
+        self.rounds.append(round)
         self.current_round_index += 1
-        self._current_round.start()
-        self._consume_round_events()
-
-    def prepare_next_round(self, start_at: datetime):
-        session_scores = {item.user_id: item.score for item in self.scoreboard.items}
-        self.next_round.prepare(start_at, session_scores)
 
     def is_over(self) -> bool:
         return (
@@ -180,17 +167,17 @@ class MultiplayerSession:
         )
 
     def get_user_game_state(self, user: User) -> GameState:
-        self.ensure_user_in_session(user)
+        self._ensure_user_in_round(user)
         gameplay = self._current_round.gameplays[user.id]
         return gameplay.get_game_state()
 
     def execute_action_for_user(self, user: User, action: GameAction) -> None:
-        self.ensure_user_in_session(user)
+        self._ensure_user_in_round(user)
         self._current_round.execute_action_for_user(user.id, action)
         self._consume_round_events()
 
         if self._current_round.all_gameplays_finished():
-            self.end_round(self.current_round_index)
+            self._on_round_end()
 
     def _consume_round_events(self) -> None:
         for user_id, events in self._current_round.consume_events().items():
@@ -203,6 +190,10 @@ class MultiplayerSession:
 
     def ensure_user_in_session(self, user: User) -> None:
         if user.id not in self.player_ids:
+            raise UserNotInSession()
+
+    def _ensure_user_in_round(self, user: User) -> None:
+        if user.id not in self._current_round.gameplays:
             raise UserNotInSession()
 
     def is_user_in_session(self, user: User) -> bool:
@@ -227,7 +218,6 @@ class MultiplayerSession:
 
 __all__ = [
     "MultiplayerSession",
-    "SessionOver",
     "ReadyChangeLocked",
     "UserNotInSession",
     "SessionAlreadyOver",

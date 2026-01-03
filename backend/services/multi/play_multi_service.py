@@ -12,6 +12,7 @@ from backend.core.multi.session import SessionAlreadyOver
 from backend.core.user import User
 from backend.di.dependencies import *
 from backend.protocols.repos.exceptions import SessionNotFound
+from backend.services.dto import RoundEnd, SessionOver
 from backend.services.exceptions import *
 from backend.services.exceptions import SessionNotExists
 from backend.services.multi.session_renewer import SessionRenewer
@@ -67,6 +68,9 @@ class PlayMultiService:
 
         async with self.session_lock.acquire(self.session.id):
             self.session = await self.multi_repo.get_session(self.session.id)
+            if self.session._current_round.state != "playing":
+                return
+
             with suppress(InvalidAction, GameplayNotInProgress, InvalidRoundState):
                 self.session.execute_action_for_user(self.user, action)
 
@@ -77,8 +81,22 @@ class PlayMultiService:
             transport = self.lobby_transport_factory.get(self.session.lobby_id)
             await transport.send_many(events_by_user)
 
+            if self.session._current_round.state == "ended":
+                await transport.broadcast(
+                    RoundEnd(
+                        session_id=self.session.id,
+                        round_index=self.session.current_round_index,
+                        scoreboard=self.session._current_round.scoreboard,
+                    )
+                )
+
             if self.session.is_over():
                 await self.session_renewer.renew_session(self.session.lobby_id)
+                await transport.broadcast(
+                    SessionOver(
+                        session_id=self.session.id, scoreboard=self.session.scoreboard
+                    )
+                )
 
 
 __all__ = ["PlayMultiService"]

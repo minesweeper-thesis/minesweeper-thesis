@@ -1,10 +1,8 @@
 import logging
 import uuid
-from datetime import timedelta
 from typing import Optional
 
 from backend.core.board import Board
-from backend.core.multi import create_multiplayer_round
 from backend.db import async_session_maker
 from backend.lib.redis_client import get_redis_client
 from backend.lib.session_lock import SessionLock
@@ -49,25 +47,12 @@ class BackgroundRoundHandler:
                     )
                     return
 
-                round_time = timedelta(seconds=session.game_config.max_round_time)
-                round = await create_multiplayer_round(
-                    session_id=session.id,
-                    round_index=len(session.rounds),
-                    round_time=round_time,
-                    board=board,
-                    player_ids=session.player_ids,
-                    mode=session.game_config.game_mode,
-                )
-
-                session.add_round(round)
                 await multi_repo.save_session(session)
-                await session_runtime_store.notify_round_ready(session_id)
+                await session_runtime_store.add_ready_board(session_id, board.id)
 
                 if generation_id:
-                    await session_runtime_store.remove_pending_generation(
+                    await session_runtime_store.remove_generation(
                         session_id, generation_id
                     )
 
-                logger.info(
-                    f"Added round {round.round_index} to session {session_id} in background"
-                )
+                logger.info(f"Saved board {board.id} for session {session_id}")

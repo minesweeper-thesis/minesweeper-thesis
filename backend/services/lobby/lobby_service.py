@@ -124,7 +124,7 @@ class LobbyService:
 
         lobby.add_user(user)
         await self.lobby_repo.save_lobby(lobby)
-        await self._sync_session_players(lobby)
+        await self.session_renewer.renew_session(lobby.id)
         await self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
@@ -214,20 +214,18 @@ class LobbyService:
             await self.lobby_repo.delete_lobby(lobby.id)
         else:
             await self.lobby_repo.save_lobby(lobby)
-            await self._sync_session_players(lobby)
+            session = await self.multi_repo.get_for_lobby(lobby.id)
+
+            async with self.session_lock.acquire(session.id):
+                session.remove_player(user)
+                await self.multi_repo.save_session(session)
+
             transport = self.lobby_transport_factory.get(lobby.id)
             await transport.broadcast(
                 UserConnectionUpdated(
                     lobby_id=lobby.id, user=user, status="disconnected"
                 )
             )
-
-    async def _sync_session_players(self, lobby: Lobby) -> None:
-        session = await self.multi_repo.get_for_lobby(lobby.id)
-        async with self.session_lock.acquire(session.id):
-            if not session.is_active():
-                session.set_player_ids([user.id for user in lobby.users])
-                await self.multi_repo.save_session(session)
 
 
 __all__ = ["LobbyService"]

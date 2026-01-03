@@ -34,9 +34,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         raise SessionNotFound(f"Multiplayer session with id {session_id} not found")
 
     async def save_session(self, session: MultiplayerSession):
-        logger.debug(
-            f"save_session(session_id={session.id}, current_round_index={session.current_round_index})"
-        )
+        logger.debug(f"save_session(session_id={session.id})")
 
         if session.is_over():
             await self.delete(session.id)
@@ -44,9 +42,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         else:
             await self._save_ongoing(session)
 
-        logger.info(
-            f"Multiplayer session {session.id} saved with current_round_index={session.current_round_index}"
-        )
+        logger.info(f"Multiplayer session {session.id} saved")
 
     async def _save_ongoing(self, session: MultiplayerSession):
         logger.debug(
@@ -132,7 +128,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             round_orm = MultiplayerRoundORM(
                 session_id=session.id,
                 round_index=round.round_index,
-                board_id=round.board.id,
+                board_id=round.board_id,
             )
             self.session.add(round_orm)
 

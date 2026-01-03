@@ -97,8 +97,6 @@ class PlaySingleService:
         if self.gameplay is None:
             raise RuntimeError("Gameplay not loaded")
 
-        if self.gameplay.status == "in_progress":
-            self.gameplay.update_elapsed_time()
         return self.gameplay.get_game_state()
 
     async def is_game_over(self) -> bool:

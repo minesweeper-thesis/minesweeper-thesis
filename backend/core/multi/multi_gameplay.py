@@ -41,7 +41,11 @@ class MultiplayerGameplay(Gameplay):
             used_hints=False,
             elapsed_time=elapsed_time,
             mode=mode,
+            timer=self._timer,
         )
+
+    def _timer(self) -> float:
+        return datetime.now().timestamp()
 
     @property
     def time(self) -> float:

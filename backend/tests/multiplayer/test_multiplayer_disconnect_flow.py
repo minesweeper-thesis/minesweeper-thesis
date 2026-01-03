@@ -210,12 +210,10 @@ async def test_lobby_ws_reconnect(
             await host_lobby.send_json({"type": "reveal_one", "cell": [i, j]})
             msg = await receive_type(host_lobby, "reveal")
 
+            await receive_type(host_lobby, "score_update")
             if msg["game_status"] == "finished":
                 await receive_type(host_lobby, "game_over")
-                await receive_type(host_lobby, "score_update")
                 break
-
-            await receive_type(host_lobby, "score_update")
 
         g1_notif = await stack.enter_async_context(g1_bundle.ws())
         await receive_type(g1_notif, "current_lobby")
@@ -239,6 +237,10 @@ async def test_lobby_ws_reconnect(
         await fake_scheduler.skip(timedelta(seconds=60))
 
         await receive_type(g1_lobby, "game_over")
+
+        for ws in (host_lobby, g1_lobby):
+            await receive_type(ws, "score_update")
+
         for ws in (host_lobby, g1_lobby):
             await receive_type(ws, "round_end")
 

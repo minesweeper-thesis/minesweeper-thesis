@@ -68,19 +68,16 @@ class SessionBoardsPreparer:
             game_config.generation_settings, on_completed=on_completed
         )
 
-        await self.session_runtime_store.add_pending_generation(
-            session.id, generation_id
-        )
+        await self.session_runtime_store.add_generation(session.id, generation_id)
 
     async def wait_and_schedule_next_round(self, session_id: uuid.UUID):
         logger.debug(f"Waiting for pending boards to be ready in session {session_id}")
 
         session = await self.multi_repo.get_session(session_id)
-        if not session.is_next_round_available:
-            await self.session_runtime_store.wait_for_next_round(session_id)
-            session = await self.multi_repo.get_session(session_id)
+        await self.session_runtime_store.wait_for_board_ready(session_id)
 
-        await self.round_scheduler.schedule_start(session)
+        if session.all_players_ready():
+            await self.round_scheduler.schedule_start(session)
 
 
 __all__ = ["SessionBoardsPreparer"]

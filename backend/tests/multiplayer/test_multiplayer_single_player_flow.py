@@ -83,6 +83,7 @@ async def test_multiplayer_single_player_flow(
 
         await fake_scheduler.skip(timedelta(seconds=60))
         await receive_type(lobby_ws, "game_over")
+        await receive_type(lobby_ws, "score_update")
         msg = await receive_type(lobby_ws, "round_end")
         assert msg["type"] == "round_end"
 
@@ -115,6 +116,7 @@ async def test_multiplayer_single_player_flow(
 
         await fake_scheduler.skip(timedelta(seconds=60))
         await receive_type(lobby_ws, "game_over")
+        await receive_type(lobby_ws, "score_update")
         msg = await receive_type(lobby_ws, "round_end")
         assert msg["type"] == "round_end"
 
@@ -129,5 +131,6 @@ async def test_multiplayer_single_player_flow(
 
         await fake_scheduler.skip(timedelta(seconds=60))
         await receive_type(lobby_ws, "game_over")
+        await receive_type(lobby_ws, "score_update")
         await receive_type(lobby_ws, "round_end")
         await receive_type(lobby_ws, "session_over")

@@ -50,7 +50,7 @@ class StartRoundService:
             await self.set_user_ready(user, lobby_id)
 
     async def cancel_user_ready(self, user: User, lobby_id: uuid.UUID):
-        logger.debug(f"User {user.id} cancelling ready status in lobby {lobby_id}")
+        logger.debug(f"cancel_user_ready(user_id={user.id}, lobby_id={lobby_id})")
         ready_changed = False
 
         session = await self.multi_repo.get_for_lobby(lobby_id)
@@ -69,11 +69,12 @@ class StartRoundService:
         if ready_changed:
             await self.round_scheduler.cancel_start(session.id)
             transport = self.lobby_transport_factory.get(lobby_id)
-            next_round_index = session.current_round_index + 1
-            await transport.broadcast(UserReady(user.id, next_round_index, ready=False))
+            await transport.broadcast(
+                UserReady(user.id, session.next_round_index, ready=False)
+            )
 
     async def set_user_ready(self, user: User, lobby_id: uuid.UUID):
-        logger.debug(f"User {user.id} setting ready status in lobby {lobby_id}")
+        logger.debug(f"set_user_ready(user_id={user.id}, lobby_id={lobby_id})")
         ready_changed = False
         all_ready = False
 
@@ -81,6 +82,9 @@ class StartRoundService:
 
         async with self.session_lock.acquire(session.id):
             session = await self.multi_repo.get_session(session.id)
+
+            if session.is_user_ready(user):
+                return
 
             if session.can_change_ready(user):
                 session.set_ready(user)
@@ -90,18 +94,18 @@ class StartRoundService:
 
         if ready_changed:
             transport = self.lobby_transport_factory.get(lobby_id)
-            next_round_index = session.current_round_index + 1
-            await transport.broadcast(UserReady(user.id, next_round_index, ready=True))
+            await transport.broadcast(
+                UserReady(user.id, session.next_round_index, ready=True)
+            )
 
             if all_ready:
                 await self._on_all_ready(session)
 
     async def _on_all_ready(self, session: MultiplayerSession):
-        logger.info(f"All players ready in session {session.id}, starting round")
+        logger.info(f"All players ready in session {session.id}")
 
-        next_round_index = session.current_round_index + 1
         difficulty_level = session.game_config.difficulty_level
-        message = RoundReady(session.id, next_round_index, difficulty_level)
+        message = RoundReady(session.id, session.next_round_index, difficulty_level)
 
         transport = self.lobby_transport_factory.get(session.lobby_id)
         await transport.broadcast(message)
@@ -113,10 +117,11 @@ class StartRoundService:
             await self.boards_preparer.prepare(session)
             session = await self.multi_repo.get_session(session.id)
 
-        if session.is_next_round_available:
+        board_ready = await self.session_runtime_store.is_board_ready(session.id)
+        if board_ready:
             logger.info(f"Scheduling start of next round in session {session.id}")
             await self.round_scheduler.schedule_start(session)
-        else:
+        elif not await self.session_runtime_store.is_waiting_for_round(session.id):
             logger.info(
                 f"No next round available in session {session.id}, waiting for boards"
             )
@@ -147,6 +152,8 @@ class StartRoundService:
             round_state = "playing"
         elif session.ready_locked:
             round_state = "ready_lock"
+        elif schedule is not None:
+            round_state = "countdown"
         elif not board_ready and is_generating:
             round_state = "generating"
         elif session.all_players_ready() and board_ready:

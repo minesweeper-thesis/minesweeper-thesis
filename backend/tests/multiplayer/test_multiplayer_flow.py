@@ -176,6 +176,12 @@ async def test_multiplayer_full_flow_many_players(
         await fake_scheduler.skip(timedelta(seconds=60))
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
+
+        for _ in range(3):
+            for ws in (host_lobby, g1_lobby, g2_lobby):
+                await receive_type(ws, "score_update")
+
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_end")
 
         await host_lobby.send_json({"type": "ready"})
@@ -235,6 +241,10 @@ async def test_multiplayer_full_flow_many_players(
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
 
+        for _ in range(3):
+            for ws in (host_lobby, g1_lobby, g2_lobby):
+                await receive_type(ws, "score_update")
+
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_end")
 
@@ -256,6 +266,12 @@ async def test_multiplayer_full_flow_many_players(
         await fake_scheduler.skip(timedelta(seconds=60))
         for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "game_over")
+
+        for _ in range(3):
+            for ws in (host_lobby, g1_lobby, g2_lobby):
+                await receive_type(ws, "score_update")
+
+        for ws in (host_lobby, g1_lobby, g2_lobby):
             await receive_type(ws, "round_end")
 
         for ws in (host_lobby, g1_lobby, g2_lobby):

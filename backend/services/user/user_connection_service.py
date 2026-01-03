@@ -65,24 +65,24 @@ class UserConnectionService:
 
         if should_notify:
             transport = self.lobby_transport_factory.get(lobby.id)
-            next_round_index = session.current_round_index + 1
-            await transport.broadcast(UserReady(user.id, next_round_index, ready=False))
+            await transport.broadcast(
+                UserReady(user.id, session.next_round_index, ready=False)
+            )
 
     async def _notify_current_lobby(self, user: User):
         lobby = await self.lobby_repo.get_user_lobby(user.id)
         await self.notification_system.notify(user.id, UserCurrentLobby(lobby))
 
     async def notify_ready_users(self, user: User):
-        logger.debug(f"notify_ready_users(user_id={user.id}) called")
+        logger.debug(f"notify_ready_users(user_id={user.id})")
         lobby = await self.lobby_repo.get_user_lobby(user.id)
         if lobby is not None:
             session = await self.multi_repo.get_for_lobby(lobby.id)
             transport = self.lobby_transport_factory.get(lobby.id)
-            next_round_index = session.current_round_index + 1
-            for user_id in session.player_ids:
-                player = await self.user_repo.get_user(user_id)
+            for player_id in session.player_ids:
+                player = await self.user_repo.get_user(player_id)
                 is_ready = session.is_user_ready(player)
-                data = UserReady(user_id, next_round_index, ready=is_ready)
+                data = UserReady(player_id, session.next_round_index, ready=is_ready)
                 await transport.send(user.id, data)
 
     async def _notify_user_online_status(self, user: User):

@@ -68,6 +68,7 @@ async def test_generation_reuse(authenticated_clients, fake_scheduler):
         msg = await receive_type(p1_ws, "game_over")
         minefields_1 = msg["full_board"]
 
+        await receive_type(p1_ws, "score_update")
         await receive_type(p1_ws, "round_end")
         await receive_type(p1_ws, "session_over")
 
@@ -102,10 +103,11 @@ async def test_generation_reuse(authenticated_clients, fake_scheduler):
         await fake_scheduler.skip(timedelta(seconds=10))
         await receive_type(p2_ws, "round_start")
 
-        await fake_scheduler.skip(timedelta=timedelta(seconds=60))
+        await fake_scheduler.skip(timedelta(seconds=60))
         msg = await receive_type(p2_ws, "game_over")
         minefields_2 = msg["full_board"]
 
+        await receive_type(p2_ws, "score_update")
         await receive_type(p2_ws, "round_end")
         await receive_type(p2_ws, "session_over")
 
