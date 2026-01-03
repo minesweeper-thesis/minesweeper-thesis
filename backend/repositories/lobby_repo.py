@@ -11,7 +11,7 @@ from redis.asyncio.client import Pipeline
 from backend import protocols
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
 from backend.lib.redis_client import decode, encode
-from backend.protocols.lobby_repo_protocol import InvitationNotFound, LobbyNotFound
+from backend.protocols.repos.exceptions import InvitationNotFound, LobbyNotFound
 
 logger = logging.getLogger(__name__)
 

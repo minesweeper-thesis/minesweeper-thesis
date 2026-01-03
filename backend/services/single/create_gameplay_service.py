@@ -8,9 +8,12 @@ from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
 from backend.protocols.pending_boards_store_protocol import PendingBoardMetadata
-from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
+from backend.protocols.repos.exceptions import (
+    BoardNotFound,
+    GameplayNotFound,
+    UnsolvedBoardNotFound,
+)
 from backend.services.dto import *
 from backend.services.exceptions import *
 

@@ -12,7 +12,7 @@ from backend import protocols
 from backend.core.game.types import GameMode, GameResult, GameStatus
 from backend.core.single.single_gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
-from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
+from backend.protocols.repos.exceptions import GameplayNotFound
 
 from .orm import *
 

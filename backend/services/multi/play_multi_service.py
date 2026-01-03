@@ -11,7 +11,7 @@ from backend.core.multi.round import InvalidRoundState
 from backend.core.multi.session import SessionAlreadyOver
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.multiplayer_repo_protocol import SessionNotFound
+from backend.protocols.repos.exceptions import SessionNotFound
 from backend.services.exceptions import *
 from backend.services.exceptions import SessionNotExists
 from backend.services.multi.session_renewer import SessionRenewer

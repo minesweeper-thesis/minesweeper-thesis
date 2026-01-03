@@ -4,7 +4,7 @@ from contextlib import suppress
 
 from backend.core.lobby.create_session import create_session
 from backend.di.dependencies import LobbyRepositoryDep, MultiplayerRepositoryDep
-from backend.protocols.multiplayer_repo_protocol import SessionNotFound
+from backend.protocols.repos.exceptions import SessionNotFound
 
 logger = logging.getLogger(__name__)
 

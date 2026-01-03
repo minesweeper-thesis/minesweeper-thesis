@@ -4,17 +4,17 @@ from typing import Optional
 
 from redis.asyncio import Redis
 
-from backend import protocols
 from backend.lib.redis_client import decode, encode
 from backend.protocols.pending_boards_store_protocol import (
     PendingBoard,
     PendingBoardMetadata,
+    PendingBoardsStore,
 )
 
 logger = logging.getLogger(__name__)
 
 
-class RedisPendingStore(protocols.PendingBoardsStore):
+class RedisPendingStore(PendingBoardsStore):
     def __init__(self, redis: Redis):
         self.redis = redis
         self.prefix = "pending_board:"

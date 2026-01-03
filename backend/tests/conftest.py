@@ -10,7 +10,7 @@ from httpx_ws.transport import ASGIWebSocketTransport
 from sqlalchemy.exc import IntegrityError
 
 from backend.core.board import Board, DifficultyLevel, GenerationSettings
-from backend.protocols.board_repo_protocol import BoardNotFound
+from backend.protocols.repos.exceptions import BoardNotFound
 
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 

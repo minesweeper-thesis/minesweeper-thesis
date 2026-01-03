@@ -10,7 +10,7 @@ from backend.core.game.game_actions import GameAction, GameActionResult
 from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
+from backend.protocols.repos.exceptions import GameplayNotFound
 from backend.services.dto import *
 from backend.services.exceptions import *
 

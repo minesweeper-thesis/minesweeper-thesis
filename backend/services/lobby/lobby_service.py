@@ -11,8 +11,11 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.lobby_repo_protocol import InvitationNotFound, LobbyNotFound
-from backend.protocols.multiplayer_repo_protocol import SessionNotFound
+from backend.protocols.repos.exceptions import (
+    InvitationNotFound,
+    LobbyNotFound,
+    SessionNotFound,
+)
 from backend.services.dto import (
     GameConfigUpdated,
     KickedFromLobby,

@@ -10,7 +10,7 @@ from sqlalchemy.sql.expression import func
 from backend import protocols
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
 from backend.db import DBSession
-from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
+from backend.protocols.repos.exceptions import BoardNotFound, UnsolvedBoardNotFound
 
 from .orm import *
 

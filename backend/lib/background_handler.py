@@ -9,8 +9,7 @@ from backend.db import async_session_maker
 from backend.lib.redis_client import get_redis_client
 from backend.lib.session_lock import SessionLock
 from backend.lib.session_runtime_store import RedisSessionRuntimeStore
-from backend.protocols import SessionNotFound
-from backend.protocols.board_repo_protocol import BoardNotFound
+from backend.protocols.repos.exceptions import BoardNotFound, SessionNotFound
 
 logger = logging.getLogger(__name__)
 
