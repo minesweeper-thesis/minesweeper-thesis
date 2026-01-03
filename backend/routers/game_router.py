@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.core.game.game_actions import *
-from backend.core.multi.session import ReadyChangeLocked
+from backend.core.multi import ReadyChangeLocked, SessionAlreadyOver, UserNotInSession
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.lobby_websockets import lobby_websockets
@@ -185,13 +185,13 @@ async def play_multi(
             await play.load_session(user, lobby_id)
             await handle_multi(user, lobby_id, data, play, start)
 
-    except exceptions.UserNotInSession:
+    except UserNotInSession:
         await websocket.close(code=1010, reason="User not in multiplayer session")
 
     except exceptions.SessionNotExists:
         await websocket.close(code=1011, reason="Multiplayer session not found")
 
-    except exceptions.SessionAlreadyOver:
+    except SessionAlreadyOver:
         await websocket.close(code=1012, reason="Multiplayer session is already over")
 
     except ReadyChangeLocked:

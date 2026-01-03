@@ -19,19 +19,20 @@ logger = logging.getLogger(__name__)
 class RoundScheduler:
     def __init__(
         self,
-        multi_repo: MultiplayerRepositoryDep,
         scheduler: SchedulerDep,
-        lobby_transport_factory: LobbyTransportFactoryDep,
+        session_lock: SessionLockDep,
         board_repo: BoardRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
+        multi_repo: MultiplayerRepositoryDep,
         pending_store: PendingBoardsStoreDep,
         session_runtime_store: SessionRuntimeStoreDep,
-        session_lock: SessionLockDep,
+        lobby_transport_factory: LobbyTransportFactoryDep,
         session_renewer: Annotated[SessionRenewer, Depends()],
     ):
         self.multi_repo = multi_repo
         self.scheduler = scheduler
         self.lobby_transport_factory = lobby_transport_factory
-
+        self.lobby_repo = lobby_repo
         self.board_repo = board_repo
         self.pending_store = pending_store
         self.session_runtime_store = session_runtime_store
@@ -84,10 +85,6 @@ class RoundScheduler:
         await self._publish_events(session.lobby_id, events_by_user)
 
         if session_over:
-            transport = self.lobby_transport_factory.get(session.lobby_id)
-            for user_id in session.player_ids:
-                await transport.close(user_id)
-
             await self.session_renewer.renew_session(session.lobby_id)
 
     async def _start_round(self, session_id: uuid.UUID, start_at: datetime):
@@ -117,27 +114,21 @@ class RoundScheduler:
         countdown_to: datetime,
     ):
         transport = self.lobby_transport_factory.get(session.lobby_id)
-        sender = transport.send
-
-        for user_id in session.player_ids:
-            await sender(
-                user_id,
-                RoundCountdown(
-                    session.id,
-                    session.current_round_index + 1,
-                    countdown_to,
-                    round_start_time,
-                    session.next_round.board.start_field,
-                ),
-            )
+        await transport.broadcast(
+            RoundCountdown(
+                session.id,
+                session.current_round_index + 1,
+                countdown_to,
+                round_start_time,
+                session.next_round.board.start_field,
+            ),
+        )
 
     async def _publish_events(
         self, lobby_id: uuid.UUID, events_by_user: dict[uuid.UUID, list[Any]]
     ):
         transport = self.lobby_transport_factory.get(lobby_id)
-        for user_id, events in events_by_user.items():
-            for event in events:
-                await transport.send(user_id, event)
+        await transport.send_many(events_by_user)
 
     async def schedule_start(self, session: MultiplayerSession):
         logger.debug(f"schedule_start(session_id={session.id})")

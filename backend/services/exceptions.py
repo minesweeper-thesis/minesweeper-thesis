@@ -69,15 +69,7 @@ class LobbyNotExists(Exception):
     pass
 
 
-class UserNotInSession(Exception):
-    pass
-
-
 class SessionNotExists(Exception):
-    pass
-
-
-class SessionAlreadyOver(Exception):
     pass
 
 
@@ -107,8 +99,6 @@ __all__ = [
     "UserNotExists",
     "UserNotHost",
     "LobbyNotExists",
-    "UserNotInSession",
-    "SessionAlreadyOver",
     "InvitationNotExists",
     "GenerationError",
     "SessionActive",

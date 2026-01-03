@@ -3,12 +3,7 @@ from datetime import datetime, timedelta
 
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.services.dto import (
-    UserCurrentLobby,
-    UserNotReady,
-    UserOnlineUpdated,
-    UserReady,
-)
+from backend.services.dto import UserCurrentLobby, UserOnlineUpdated, UserReady
 
 logger = logging.getLogger(__name__)
 
@@ -60,15 +55,18 @@ class UserConnectionService:
             session = await self.multi_repo.get_session(session.id)
             assert session is not None, "Session not found"
 
-            if session.is_user_ready(user.id) and not session.is_active():
-                session.cancel_ready(user.id)
+            if not session.is_user_ready(user):
+                return
+
+            if session.can_change_ready(user):
+                session.cancel_ready(user)
                 await self.multi_repo.save_session(session)
                 should_notify = True
 
         if should_notify:
             transport = self.lobby_transport_factory.get(lobby.id)
             next_round_index = session.current_round_index + 1
-            await transport.broadcast(UserNotReady(user.id, next_round_index))
+            await transport.broadcast(UserReady(user.id, next_round_index, ready=False))
 
     async def _notify_current_lobby(self, user: User):
         lobby = await self.lobby_repo.get_user_lobby(user.id)
@@ -82,12 +80,10 @@ class UserConnectionService:
             transport = self.lobby_transport_factory.get(lobby.id)
             next_round_index = session.current_round_index + 1
             for user_id in session.player_ids:
-                if session.is_user_ready(user_id):
-                    await transport.send(user.id, UserReady(user_id, next_round_index))
-                else:
-                    await transport.send(
-                        user.id, UserNotReady(user_id, next_round_index)
-                    )
+                player = await self.user_repo.get_user(user_id)
+                is_ready = session.is_user_ready(player)
+                data = UserReady(user_id, next_round_index, ready=is_ready)
+                await transport.send(user.id, data)
 
     async def _notify_user_online_status(self, user: User):
         logger.debug(f"_notify_user_online_status(user_id={user.id})")

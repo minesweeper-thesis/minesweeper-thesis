@@ -78,27 +78,14 @@ class UserReadyResponse(Response):
     ws_type: Literal["user_ready"] = "user_ready"
     round: int
     user_id: uuid.UUID
-    value: bool = True
+    value: bool
 
     @classmethod
     def build(cls, message: "UserReady") -> Self:
         return cls(
             round=message.round_index + 1,
             user_id=message.user_id,
-        )
-
-
-class UserNotReadyResponse(Response):
-    ws_type: Literal["user_ready"] = "user_ready"
-    round: int
-    user_id: uuid.UUID
-    value: bool = False
-
-    @classmethod
-    def build(cls, message: "UserNotReady") -> Self:
-        return cls(
-            round=message.round_index + 1,
-            user_id=message.user_id,
+            value=message.ready,
         )
 
 
@@ -183,7 +170,6 @@ __all__ = [
     "RoundCountdownResponse",
     "RoundReadyResponse",
     "UserReadyResponse",
-    "UserNotReadyResponse",
     "ScoreUpdateResponse",
     "SessionStateResponse",
 ]

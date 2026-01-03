@@ -27,6 +27,14 @@ class RoundNotAvailable(Exception):
     pass
 
 
+class UserNotInSession(Exception):
+    pass
+
+
+class SessionAlreadyOver(Exception):
+    pass
+
+
 class MultiplayerSession:
     def __init__(
         self,
@@ -104,15 +112,19 @@ class MultiplayerSession:
     def is_next_round_available(self) -> bool:
         return self.current_round_index + 1 < len(self.rounds)
 
-    def set_ready(self, user_id: uuid.UUID):
-        if self.ready_locked:
-            raise ReadyChangeLocked()
-        self.ready_players.add(user_id)
+    def set_ready(self, user: User):
+        self.ensure_user_in_session(user)
 
-    def cancel_ready(self, user_id: uuid.UUID):
-        if self.ready_locked:
+        if not self.can_change_ready(user):
             raise ReadyChangeLocked()
-        self.ready_players.discard(user_id)
+        self.ready_players.add(user.id)
+
+    def cancel_ready(self, user: User):
+        self.ensure_user_in_session(user)
+
+        if not self.can_change_ready(user):
+            raise ReadyChangeLocked()
+        self.ready_players.discard(user.id)
 
     def all_players_ready(self) -> bool:
         return self.ready_players == set(self.player_ids)
@@ -120,8 +132,10 @@ class MultiplayerSession:
     def clear_ready_players(self):
         self.ready_players.clear()
 
-    def is_user_ready(self, user_id: uuid.UUID) -> bool:
-        return user_id in self.ready_players
+    def is_user_ready(self, user: User) -> bool:
+        self.ensure_user_in_session(user)
+
+        return user.id in self.ready_players
 
     def lock_ready(self):
         self.ready_locked = True
@@ -165,12 +179,14 @@ class MultiplayerSession:
             and self.rounds[-1].all_gameplays_finished()
         )
 
-    def get_user_game_state(self, user_id: uuid.UUID) -> GameState:
-        gameplay = self._current_round.gameplays[user_id]
+    def get_user_game_state(self, user: User) -> GameState:
+        self.ensure_user_in_session(user)
+        gameplay = self._current_round.gameplays[user.id]
         return gameplay.get_game_state()
 
-    def execute_action_for_user(self, user_id: uuid.UUID, action: GameAction) -> None:
-        self._current_round.execute_action_for_user(user_id, action)
+    def execute_action_for_user(self, user: User, action: GameAction) -> None:
+        self.ensure_user_in_session(user)
+        self._current_round.execute_action_for_user(user.id, action)
         self._consume_round_events()
 
         if self._current_round.all_gameplays_finished():
@@ -185,5 +201,34 @@ class MultiplayerSession:
         self.events = defaultdict(list)
         return events
 
+    def ensure_user_in_session(self, user: User) -> None:
+        if user.id not in self.player_ids:
+            raise UserNotInSession()
 
-__all__ = ["MultiplayerSession", "SessionOver"]
+    def is_user_in_session(self, user: User) -> bool:
+        return user.id in self.player_ids
+
+    def can_change_ready(self, user: User) -> bool:
+        self.ensure_user_in_session(user)
+
+        if self.is_over():
+            raise SessionAlreadyOver()
+
+        return not self.ready_locked
+
+    def toggle_ready(self, user: User) -> None:
+        self.ensure_user_in_session(user)
+
+        if self.is_user_ready(user):
+            self.cancel_ready(user)
+        else:
+            self.set_ready(user)
+
+
+__all__ = [
+    "MultiplayerSession",
+    "SessionOver",
+    "ReadyChangeLocked",
+    "UserNotInSession",
+    "SessionAlreadyOver",
+]

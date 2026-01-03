@@ -2,7 +2,7 @@ import logging
 import uuid
 from typing import Annotated, Literal
 
-from fastapi import BackgroundTasks, Depends
+from fastapi import Depends
 
 from backend.core.game import *
 from backend.core.multi import *
@@ -20,7 +20,6 @@ class StartRoundService:
     def __init__(
         self,
         multi_repo: MultiplayerRepositoryDep,
-        background_tasks: BackgroundTasks,
         lobby_transport_factory: LobbyTransportFactoryDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
         boards_preparer: Annotated[SessionBoardsPreparer, Depends()],
@@ -29,7 +28,6 @@ class StartRoundService:
         session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
-        self.background_tasks = background_tasks
         self.lobby_transport_factory = lobby_transport_factory
         self.round_scheduler = round_scheduler
         self.boards_preparer = boards_preparer
@@ -37,13 +35,6 @@ class StartRoundService:
         self.session_lock = session_lock
         self.pending_store = pending_store
         self.session_runtime_store = session_runtime_store
-
-    def _ensure_user_in_session(self, session: MultiplayerSession, user: User):
-        if user.id not in session.player_ids:
-            raise UserNotInSession()
-
-        if session.is_over():
-            raise SessionAlreadyOver()
 
     async def toggle_user_ready(
         self,
@@ -53,58 +44,54 @@ class StartRoundService:
         logger.debug(f"User {user.id} toggling ready status in lobby {lobby_id}")
         session = await self.multi_repo.get_for_lobby(lobby_id)
 
-        self._ensure_user_in_session(session, user)
-        if session.is_user_ready(user.id):
+        if session.is_user_ready(user):
             await self.cancel_user_ready(user, lobby_id)
         else:
             await self.set_user_ready(user, lobby_id)
 
     async def cancel_user_ready(self, user: User, lobby_id: uuid.UUID):
         logger.debug(f"User {user.id} cancelling ready status in lobby {lobby_id}")
-        should_notify = False
+        ready_changed = False
 
         session = await self.multi_repo.get_for_lobby(lobby_id)
 
         async with self.session_lock.acquire(session.id):
             session = await self.multi_repo.get_session(session.id)
-            assert session is not None, "Session not found"
 
-            self._ensure_user_in_session(session, user)
+            if not session.is_user_ready(user):
+                return
 
-            if session.is_user_ready(user.id) and not session.ready_locked:
-                session.cancel_ready(user.id)
+            if session.can_change_ready(user):
+                session.cancel_ready(user)
                 await self.multi_repo.save_session(session)
-                should_notify = True
+                ready_changed = True
 
-        if should_notify:
+        if ready_changed:
             await self.round_scheduler.cancel_start(session.id)
             transport = self.lobby_transport_factory.get(lobby_id)
             next_round_index = session.current_round_index + 1
-            await transport.broadcast(UserNotReady(user.id, next_round_index))
+            await transport.broadcast(UserReady(user.id, next_round_index, ready=False))
 
     async def set_user_ready(self, user: User, lobby_id: uuid.UUID):
         logger.debug(f"User {user.id} setting ready status in lobby {lobby_id}")
-        should_notify = False
+        ready_changed = False
         all_ready = False
 
         session = await self.multi_repo.get_for_lobby(lobby_id)
 
         async with self.session_lock.acquire(session.id):
             session = await self.multi_repo.get_session(session.id)
-            assert session is not None, "Session not found"
 
-            self._ensure_user_in_session(session, user)
-
-            if not session.is_user_ready(user.id) and not session.ready_locked:
-                session.set_ready(user.id)
+            if session.can_change_ready(user):
+                session.set_ready(user)
                 await self.multi_repo.save_session(session)
-                should_notify = True
+                ready_changed = True
                 all_ready = session.all_players_ready()
 
-        if should_notify:
+        if ready_changed:
             transport = self.lobby_transport_factory.get(lobby_id)
             next_round_index = session.current_round_index + 1
-            await transport.broadcast(UserReady(user.id, next_round_index))
+            await transport.broadcast(UserReady(user.id, next_round_index, ready=True))
 
             if all_ready:
                 await self._on_all_ready(session)

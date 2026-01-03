@@ -30,9 +30,4 @@ class InvitationAnswer:
     answer: Literal["accepted", "rejected"]
 
 
-@dataclass
-class InvitationsQuery:
-    pass
-
-
-__all__ = ["Invitation", "InvitationAnswer", "InvitationsQuery"]
+__all__ = ["Invitation", "InvitationAnswer"]

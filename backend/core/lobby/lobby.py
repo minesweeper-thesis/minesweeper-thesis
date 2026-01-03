@@ -57,8 +57,7 @@ class Lobby:
     def update_game_config(self, new_config: GameConfig) -> None:
         self.game_config = new_config
 
-    def reset_ready_for_new_session(self):
-        self._ready_users.clear()
+    # def validate_invitation(self, invitation: Invitation, session: MultiplayerSession):
 
 
 __all__ = ["Lobby", "LobbyChatMessage"]
