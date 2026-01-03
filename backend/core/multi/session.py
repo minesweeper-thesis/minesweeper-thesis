@@ -75,7 +75,10 @@ class MultiplayerSession:
     def remove_player(self, user: User):
         self.ensure_user_in_session(user)
         self.player_ids.remove(user.id)
-        self.ready_players.discard(user.id)
+        if self.ready_locked:
+            self.ready_players.discard(user.id)
+        else:
+            self.ready_players.clear()
 
     @property
     def _current_round(self) -> MultiplayerRound:

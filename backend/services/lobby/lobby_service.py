@@ -22,6 +22,7 @@ from backend.services.dto import (
     KickedFromLobby,
     UserConnectionUpdated,
 )
+from backend.services.dto.round import UserReady
 from backend.services.exceptions import *
 from backend.services.exceptions import UserNotExists
 from backend.services.multi.session_renewer import SessionRenewer
@@ -226,6 +227,12 @@ class LobbyService:
                     lobby_id=lobby.id, user=user, status="disconnected"
                 )
             )
+
+            if not session.ready_locked:
+                for player_id in session.player_ids:
+                    await transport.broadcast(
+                        UserReady(player_id, session.current_round_index, False)
+                    )
 
 
 __all__ = ["LobbyService"]
