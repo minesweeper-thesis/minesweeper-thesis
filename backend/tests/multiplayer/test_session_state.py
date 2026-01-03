@@ -56,6 +56,7 @@ async def test_session_state_flow(
 
         await lobby_ws.send_json({"type": "get_session_state"})
         state = await receive_type(lobby_ws, "session_state")
+        assert "lobby" in state
         assert state["round"]["state"] == "ready_lock"
         assert state["round"]["start_at"] is not None
 

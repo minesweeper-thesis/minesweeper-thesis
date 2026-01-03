@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Optional
 
-from backend.core.game.types import Cell
-from backend.core.multi import SessionScoreboard
-from backend.core.multi.score import RoundScoreboard
+from backend.core.game import Cell
+from backend.core.lobby import Lobby
+from backend.core.multi import RoundScoreboard, SessionScoreboard
 from backend.protocols.session_runtime_store_protocol import RoundSchedule
 
 
@@ -21,6 +21,7 @@ class SessionState:
     session_id: uuid.UUID
     round: SessionStateRoundData
     scoreboard: SessionScoreboard
+    lobby: Lobby
 
 
 @dataclass

@@ -20,6 +20,7 @@ class StartRoundService:
     def __init__(
         self,
         multi_repo: MultiplayerRepositoryDep,
+        lobby_repo: LobbyRepositoryDep,
         lobby_transport_factory: LobbyTransportFactoryDep,
         round_scheduler: Annotated[RoundScheduler, Depends()],
         boards_preparer: Annotated[SessionBoardsPreparer, Depends()],
@@ -28,6 +29,7 @@ class StartRoundService:
         session_lock: SessionLockDep,
     ):
         self.multi_repo = multi_repo
+        self.lobby_repo = lobby_repo
         self.lobby_transport_factory = lobby_transport_factory
         self.round_scheduler = round_scheduler
         self.boards_preparer = boards_preparer
@@ -130,6 +132,7 @@ class StartRoundService:
     async def get_session_state(self, user: User, lobby_id: uuid.UUID):
         logger.debug(f"get_session_state(lobby_id={lobby_id})")
 
+        lobby = await self.lobby_repo.get_lobby(lobby_id)
         session = await self.multi_repo.get_for_lobby(lobby_id)
 
         current_idx = session.current_round_index
@@ -167,7 +170,7 @@ class StartRoundService:
             state=round_state,
         )
 
-        session_state = SessionState(session.id, round_data, session.scoreboard)
+        session_state = SessionState(session.id, round_data, session.scoreboard, lobby)
 
         transport = self.lobby_transport_factory.get(session.lobby_id)
         await transport.send(user.id, session_state)
