@@ -5,11 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params
 
 from backend import services
-from backend.core.lobby.lobby import UserNotInLobby
+from backend.core.lobby import SessionActive, UserNotHost, UserNotInLobby
 from backend.lib.auth import CurrentUser
 from backend.schemas.lobby import *
 from backend.services.exceptions import *
-from backend.services.exceptions import SessionActive
 
 PaginationParams = Annotated[Params, Depends()]
 

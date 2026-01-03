@@ -2,7 +2,9 @@ import uuid
 from dataclasses import dataclass
 from datetime import datetime
 
+from backend.core.lobby.exceptions import SessionActive
 from backend.core.multi.config import GameConfig
+from backend.core.multi.session import MultiplayerSession
 from backend.core.user import User
 
 
@@ -15,6 +17,10 @@ class LobbyChatMessage:
 
 
 class UserNotInLobby(Exception):
+    pass
+
+
+class UserNotHost(Exception):
     pass
 
 
@@ -46,6 +52,12 @@ class Lobby:
             else:
                 self.host = None  # type: ignore
 
+    def kick_user(self, current_user: User, target_user: User) -> None:
+        self.ensure_user_is_host(current_user)
+        self.ensure_user_in_lobby(target_user)
+
+        self.remove_user(target_user)
+
     def is_empty(self) -> bool:
         return not len(self.users)
 
@@ -54,10 +66,27 @@ class Lobby:
             return False
         return self.id == value.id
 
-    def update_game_config(self, new_config: GameConfig) -> None:
+    def update_game_config(
+        self, user: User, new_config: GameConfig, session: MultiplayerSession
+    ) -> None:
+        self.ensure_user_is_host(user)
+        if session.is_active():
+            raise SessionActive()
         self.game_config = new_config
 
-    # def validate_invitation(self, invitation: Invitation, session: MultiplayerSession):
+    def ensure_user_in_lobby(self, user: User):
+        if user not in self.users:
+            raise UserNotInLobby()
+
+    def ensure_user_is_host(self, user: User):
+        if self.host != user:
+            raise UserNotHost()
 
 
-__all__ = ["Lobby", "LobbyChatMessage"]
+__all__ = [
+    "Lobby",
+    "LobbyChatMessage",
+    "UserNotInLobby",
+    "SessionActive",
+    "UserNotHost",
+]

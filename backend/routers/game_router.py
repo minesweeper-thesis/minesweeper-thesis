@@ -7,6 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.core.game.game_actions import *
+from backend.core.lobby import NotAuthorizedToJoinLobby, SessionActive
 from backend.core.multi import ReadyChangeLocked, SessionAlreadyOver, UserNotInSession
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
@@ -199,13 +200,18 @@ async def play_multi(
             code=1013, reason="Cannot change ready status at this time"
         )
 
-    except exceptions.SessionActive:
+    except SessionActive:
         await websocket.close(
             code=1014, reason="Cannot join lobby while session is active"
         )
 
+    except NotAuthorizedToJoinLobby:
+        await websocket.close(
+            code=1015, reason="User not authorized to join this lobby"
+        )
+
     except exceptions.InvitationNotExists:
-        await websocket.close(code=1014, reason="Invitation not found")
+        await websocket.close(code=1016, reason="Invitation not found")
 
     except WebSocketDisconnect:
         pass
