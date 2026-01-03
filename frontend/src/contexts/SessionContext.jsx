@@ -66,13 +66,38 @@ export function SessionProvider({ children }) {
                 setSessionId(msg.session_id);
                 setRound(msg.round ?? 1);
                 setBoardData(msg.difficulty_level);
+                localStorage.setItem("difficulty", msg.difficulty_level);
+                localStorage.setItem("lobby", lobby.id);
                 break;
             case "round_countdown":
                 setStartAt(msg.start_at ?? null);
                 // setLeaveLobbyAt(msg.countdown_to ?? null)
                 setStatus("game");
-
                 break
+            case "session_state":
+                if (msg.round.state === "not_ready" || msg.round.state === "generating"){
+                    break;
+                }
+
+                if (sessionId !== msg.session_id) {
+                    setSessionId(msg.session_id);
+                }
+                setSessionId(msg.session_id);
+                updateScoreFromMessage(msg.scoreboard);
+                setRound(msg.round.number);
+                setStartAt(msg.round.start_at);
+                setEndAt(msg.round.end_at);
+                if ( boardRef === null) {
+                    boardDataRef.current = localStorage.getItem("difficulty");
+                }
+
+                if (msg.round.state === "playing" || msg.round.state === "countdown" || msg.round.state === "ready_lock") {
+                    setStatus("game");
+                }else {
+                    setStatus("lobby");
+                }
+
+                break;
             default:
                 break;
         }
@@ -99,7 +124,11 @@ export function SessionProvider({ children }) {
                 setRound(msg.round);
                 setStartAt(msg.start_at);
                 setEndAt(msg.end_at);
-                const difficulty = boardDataRef.current;
+                let difficulty = boardDataRef.current;
+                // if( difficulty === null ) {
+                //     difficulty = localStorage.getItem("difficulty");
+                // }
+                console.log("[Session ]: ", difficulty);
 
 
                 boardRef.current?.dispatchCommand({
@@ -147,6 +176,8 @@ export function SessionProvider({ children }) {
                 setStartAt(msg.start_at ?? null);
                 setStatus("game");
                 break;
+
+
             default:
                 return false;
         }
@@ -189,7 +220,7 @@ export function SessionProvider({ children }) {
     useEffect(() => {
         if (!sessionId) return;
 
-        const socketUrl = `api/game/multi/${sessionId}`;
+        const socketUrl = `api/game/multi/${lobby.id}`;
         ws.open(socketUrl);
 
         setSend(() => ws.send);
