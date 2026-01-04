@@ -1,10 +1,38 @@
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
 from starlette.config import Config
 from starlette.datastructures import Secret
 
 config = Config("backend/.env")
 
-DATABASE_URL = config("DATABASE_URL", default="sqlite+aiosqlite:///minesweeper.db")
-REDIS_URL = config("REDIS_URL", default=None)
+
+def add_sql_driver(url: str):
+    if not url.startswith("postgres"):
+        return url
+
+    parsed = urlparse(url)
+    return urlunparse(parsed._replace(scheme="postgresql+psycopg"))
+
+
+def add_ssl_none(url: str):
+    if url.startswith("redis://"):
+        return url
+
+    parsed = urlparse(url)
+
+    path = "/"
+    params = dict(parse_qsl(parsed.query))
+    params["ssl_cert_reqs"] = "none"
+
+    new_query = urlencode(params)
+
+    return urlunparse(parsed._replace(path=path, query=new_query))
+
+
+DATABASE_URL = add_sql_driver(
+    config("DATABASE_URL", default="sqlite+aiosqlite:///minesweeper.db")
+)
+REDIS_URL = add_ssl_none(config("REDIS_URL", default="redis://localhost:6379"))
 
 AUTH_SECRET = config("AUTH_SECRET", cast=Secret, default="RePeEwSeNiM")
 

@@ -1,17 +1,15 @@
-import json
-
 import pytest
-from fastapi import WebSocketDisconnect
+from httpx_ws import WebSocketDisconnect
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_connect_returns_current_lobby_response(
     authenticated_clients,
 ):
     bundle = authenticated_clients[0]
 
-    with bundle.get_ws() as ws:
-        data = json.loads(ws.receive_text())
+    async with bundle.ws() as ws:
+        data = await ws.receive_json()
 
     assert data["type"] == "current_lobby"
     assert "lobby" in data
@@ -24,26 +22,29 @@ async def test_notifications_websocket_connect_returns_current_lobby_response(
         assert "game_config" in lobby
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_connect_with_active_lobby(authenticated_clients):
     bundle = authenticated_clients[0]
 
-    create_resp = await bundle.http.post("/api/lobbies")
+    create_resp = await bundle.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    with bundle.get_ws() as ws:
-        data = json.loads(ws.receive_text())
+    async with bundle.ws() as ws:
+        data = await ws.receive_json()
 
     assert data["type"] == "current_lobby"
 
     lobby = data["lobby"]
     if lobby is not None:
         assert lobby["id"] == lobby_id
-        assert lobby["host"]["nickname"] == "test"
+        assert lobby["host"]["nickname"] == bundle.user_data["nickname"]
 
 
-@pytest.mark.asyncio
-async def test_notifications_websocket_without_auth_fails(ws_client_no_auth):
-    with pytest.raises(WebSocketDisconnect):
-        with ws_client_no_auth.websocket_connect("/api/ws"):
+@pytest.mark.asyncio(loop_scope="session")
+async def test_notifications_websocket_without_auth_fails(client_no_auth):
+    try:
+        async with client_no_auth.ws():
             pass
+        pytest.fail("Expected WebSocketDisconnect")
+    except* WebSocketDisconnect:
+        pass

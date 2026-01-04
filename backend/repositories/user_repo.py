@@ -6,6 +6,8 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import case, func, select
 from sqlalchemy.exc import NoResultFound
 
+from backend.protocols.user_repo_protocol import UserNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend import protocols
@@ -16,7 +18,6 @@ from backend.lib.avatar_storage import get_avatar_storage
 from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 
-from .exceptions import *
 from .orm import *
 
 

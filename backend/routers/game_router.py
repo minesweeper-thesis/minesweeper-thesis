@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.core.game.game_actions import *
+from backend.core.multi.session import ReadyChangeLocked
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.session_websockets import session_websockets
@@ -27,6 +28,11 @@ game_exceptions = {
         400, "Gameplay is already finished"
     ),
     exceptions.GameplayNotExists: HTTPException(404, "Gameplay not found"),
+    exceptions.UserNotInSession: HTTPException(403, "User not in multiplayer session"),
+    exceptions.SessionAlreadyOver: HTTPException(
+        400, "Multiplayer session is already over"
+    ),
+    ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
 }
 
 
@@ -114,13 +120,13 @@ async def handle_multi(
             await play.get_game_state()
 
         case "ready":
-            await start_round.set_user_ready(session_id, user)
+            await start_round.set_user_ready(user, session_id=session_id)
 
         case "not_ready":
-            await start_round.cancel_user_ready(session_id, user)
+            await start_round.cancel_user_ready(user, session_id=session_id)
 
         case "toggle_ready":
-            await start_round.toggle_user_ready(session_id, user)
+            await start_round.toggle_user_ready(user, session_id=session_id)
 
         case _:
             action = _create_action_from_data_multi(data)
@@ -151,11 +157,12 @@ async def play_multi(
 ):
     try:
         await websocket.accept()
+        await play.validate_session(session_id, user)
         session_websockets.add(session_id, user.id, websocket)
 
         while True:
             data = await websocket.receive_json()
-            await play.set_session(session_id, user)
+            await play.reload(user)
             await handle_multi(user, session_id, data, play, start)
 
             if play.is_session_over():

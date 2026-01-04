@@ -1,3 +1,4 @@
+import uuid
 from typing import Annotated
 
 from fastapi import Depends
@@ -10,8 +11,8 @@ from backend.di.dependencies import (
     BoardRepositoryDep,
     PendingBoardsStoreDep,
 )
+from backend.protocols.board_repo_protocol import UnsolvedBoardNotFound
 from backend.protocols.pending_boards import PendingBoardMetadata
-from backend.repositories.exceptions import UnsolvedBoardNotFound
 from backend.services.multi.round_scheduler import RoundScheduler
 
 
@@ -44,7 +45,7 @@ class SessionBoardsPreparer:
         board = await self._get_unsolved_or_generate_board(session, round_index)
 
         if board is not None:
-            await self.round_scheduler.on_board_generated(session.id, None, board)
+            await self.background_handler.on_board_generated(session.id, None, board)
 
     async def _get_unsolved_or_generate_board(
         self,
@@ -62,12 +63,14 @@ class SessionBoardsPreparer:
             return None
 
     async def _generate_board(self, session: MultiplayerSession, round_index: int):
+        async def on_completed(generation_id: uuid.UUID, board: Board):
+            await self.background_handler.on_board_generated(
+                session.id, generation_id, board
+            )
+
         game_config = session.game_config
         generation_id = await self.board_generator.generate_board(
-            game_config.generation_settings,
-            on_completed=lambda generation_id, board: self.background_handler.on_board_generated(
-                session.id, generation_id, board
-            ),
+            game_config.generation_settings, on_completed=on_completed
         )
 
         await self.pending_store.create_pending(
@@ -79,7 +82,6 @@ class SessionBoardsPreparer:
                 session_id=session.id,
                 round_index=round_index,
             ),
-            24 * 3600,
         )
 
 

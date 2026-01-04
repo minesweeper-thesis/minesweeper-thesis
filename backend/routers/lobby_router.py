@@ -1,12 +1,15 @@
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params
 
 from backend import services
+from backend.core.lobby.lobby import UserNotInLobby
+from backend.core.multi.session import ReadyChangeLocked
 from backend.lib.auth import CurrentUser
 from backend.schemas.lobby import *
+from backend.services.exceptions import *
 
 PaginationParams = Annotated[Params, Depends()]
 
@@ -17,6 +20,19 @@ StartRoundService = Annotated[services.StartRoundService, Depends()]
 
 lobby_router = APIRouter(prefix="/lobbies", tags=["lobby"])
 invitations_router = APIRouter(prefix="/invitations", tags=["game-invitations"])
+
+lobby_exceptions: dict[type[Exception], HTTPException] = {
+    UserNotExists: HTTPException(status_code=404, detail="User not found."),
+    UserNotHost: HTTPException(
+        status_code=403, detail="User is not the host of the lobby."
+    ),
+    UserNotInLobby: HTTPException(
+        status_code=403, detail="User is not a member of the lobby."
+    ),
+    LobbyNotExists: HTTPException(status_code=404, detail="Lobby not found."),
+    InvitationNotExists: HTTPException(status_code=404, detail="Invitation not found."),
+    ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
+}
 
 
 @lobby_router.post("")
@@ -101,7 +117,7 @@ async def set_user_ready(
     user: CurrentUser,
 ):
     """Sets the user as ready in the lobby."""
-    await service.set_user_ready(lobby_id, user)
+    await service.set_user_ready(user, lobby_id=lobby_id)
 
 
 @lobby_router.post("/{lobby_id}/ready/cancel")
@@ -111,7 +127,7 @@ async def cancel_user_ready(
     service: StartRoundService,
 ):
     """Sets the user as not ready in the lobby."""
-    await service.cancel_user_ready(lobby_id, user)
+    await service.cancel_user_ready(user, lobby_id=lobby_id)
 
 
 @lobby_router.post("/{lobby_id}/ready/toggle")
@@ -120,7 +136,7 @@ async def toggle_user_ready(
     user: CurrentUser,
     service: StartRoundService,
 ):
-    await service.toggle_user_ready(lobby_id, user)
+    await service.toggle_user_ready(user, lobby_id=lobby_id)
 
 
 @lobby_router.post("/{lobby_id}/chat-messages")

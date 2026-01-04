@@ -5,6 +5,8 @@ from typing import Optional
 
 from fastapi_pagination import Params
 
+from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend.core.game import *
@@ -12,7 +14,6 @@ from backend.core.game.game_actions import GameAction, GameActionResult
 from backend.core.single import SingleplayerGameplay
 from backend.di.dependencies import *
 from backend.lib.auth import CurrentUser
-from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
 from backend.services.single.single_exceptions import GenerationTimeout
@@ -30,19 +31,13 @@ class PlaySingleService:
         self.pending_store = pending_store
         self.gameplay: Optional[SingleplayerGameplay] = None
 
-    async def load_gameplay(
-        self,
-        gameplay_id: uuid.UUID,
-        timeout: float = 120.0,
-    ):
-        logger.debug(f"load_gameplay(gameplay_id={gameplay_id}, timeout={timeout})")
+    async def load_gameplay(self, gameplay_id: uuid.UUID):
+        logger.debug(f"load_gameplay(gameplay_id={gameplay_id})")
         logger.debug(f"Loading singleplayer gameplay {gameplay_id}")
         pending = await self.pending_store.get_pending_gameplay(gameplay_id)
 
         if pending is not None:
-            pending = await self.pending_store.wait_for_ready(
-                pending.generation_id, timeout=timeout
-            )
+            pending = await self.pending_store.wait_for_ready(pending.generation_id)
             if pending is None or pending.board_id is None:
                 raise GenerationTimeout()
 

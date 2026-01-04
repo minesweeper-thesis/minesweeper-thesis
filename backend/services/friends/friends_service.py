@@ -4,9 +4,14 @@ from contextlib import suppress
 
 from fastapi_pagination import Params
 
+from backend.protocols.friends_repo_protocol import (
+    FriendRequestNotFound,
+    FriendshipNotFound,
+)
+from backend.protocols.user_repo_protocol import UserNotFound
+
 logger = logging.getLogger(__name__)
 
-import backend.repositories.exceptions as repo_exceptions
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship, User
 from backend.di.dependencies import (
     FriendsRepositoryDep,
@@ -50,7 +55,7 @@ class FriendsService:
     async def _check_if_requested_friend_exists(self, friend_id: uuid.UUID):
         try:
             await self.user_repo.get_user(friend_id)
-        except repo_exceptions.UserNotFound:
+        except UserNotFound:
             raise RequestedFriendNotExists() from None
 
     async def make_friend_request(self, user: User, friend_id: uuid.UUID):
@@ -60,7 +65,7 @@ class FriendsService:
 
         await self._check_if_requested_friend_exists(friend_id)
 
-        with suppress(repo_exceptions.FriendshipNotFound):
+        with suppress(FriendshipNotFound):
             existing_friendship = await self.friends_repo.get_friendship(
                 user.id,
                 friend_id,
@@ -68,7 +73,7 @@ class FriendsService:
             if existing_friendship:
                 raise UsersAlreadyFriends()
 
-        with suppress(repo_exceptions.FriendRequestNotFound):
+        with suppress(FriendRequestNotFound):
             friend_request = await self.friends_repo.get_friend_request(
                 user_id=user.id,
                 friend_id=friend_id,
@@ -105,10 +110,16 @@ class FriendsService:
             await self.friends_repo.add_friendship(
                 Friendship(user=friend_request.friend, friend=friend_request.user)
             )
+
+            friend_request.status = FriendRequestStatus.accepted
             await self.friends_repo.change_friend_request_status(
                 friend_request.id, FriendRequestStatus.accepted
             )
-        except repo_exceptions.FriendRequestNotFound:
+
+            await self.notification_system.notify(
+                friend_request.user.id, friend_request
+            )
+        except FriendRequestNotFound:
             raise FriendRequestNotExists() from None
 
     async def reject_friend_request(self, user: User, friend_request_id: uuid.UUID):
@@ -119,10 +130,15 @@ class FriendsService:
                 status=FriendRequestStatus.pending,
             )
 
+            friend_request.status = FriendRequestStatus.rejected
             await self.friends_repo.change_friend_request_status(
                 friend_request.id, FriendRequestStatus.rejected
             )
-        except repo_exceptions.FriendRequestNotFound:
+
+            await self.notification_system.notify(
+                friend_request.user.id, friend_request
+            )
+        except FriendRequestNotFound:
             raise FriendRequestNotExists() from None
 
     async def remove_friend(self, user: User, friend_id: uuid.UUID):
@@ -130,7 +146,7 @@ class FriendsService:
             await self.friends_repo.remove_friendship(user.id, friend_id)
             await self.friends_repo.remove_friendship(friend_id, user.id)
 
-        except repo_exceptions.FriendshipNotFound:
+        except FriendshipNotFound:
             raise UsersNotFriends() from None
 
 

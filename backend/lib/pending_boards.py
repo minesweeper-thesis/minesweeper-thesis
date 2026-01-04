@@ -1,11 +1,11 @@
 import asyncio
 import logging
-import pickle
-import time
 import uuid
 from typing import Optional
 
 from redis.asyncio import Redis
+
+from backend.lib.redis_client import decode, encode
 
 logger = logging.getLogger(__name__)
 
@@ -19,89 +19,88 @@ class RedisPendingStore(protocols.PendingBoardsStore):
         self.prefix = "pending_board:"
 
     async def create_pending(
-        self,
-        generation_id: uuid.UUID,
-        metadata: PendingBoardMetadata,
-        ttl_seconds: int,
+        self, generation_id: uuid.UUID, metadata: PendingBoardMetadata
     ) -> PendingBoard:
-        logger.debug(
-            f"create_pending(generation_id={generation_id}, ttl_seconds={ttl_seconds})"
-        )
+        logger.debug(f"create_pending(generation_id={generation_id})")
         pending = PendingBoard(
             generation_id=generation_id,
             metadata=metadata,
         )
-        data = pickle.dumps(pending)
+        data = encode(pending)
 
         async with self.redis.pipeline() as pipe:
-            await pipe.set(f"{self.prefix}{generation_id}", data, ex=ttl_seconds)
+            await pipe.set(f"{self.prefix}{generation_id}", data)
 
             if metadata.gameplay_id:
                 await pipe.set(
                     f"{self.prefix}lookup:gameplay:{metadata.gameplay_id}",
-                    str(generation_id),
-                    ex=ttl_seconds,
+                    encode(generation_id),
                 )
 
             if metadata.session_id and metadata.round_index is not None:
                 pipe.set(
                     f"{self.prefix}lookup:round:{metadata.session_id}:{metadata.round_index}",
-                    str(generation_id),
-                    ex=ttl_seconds,
+                    encode(generation_id),
                 )
 
             await pipe.execute()
 
-        logger.debug(f"Created pending board {generation_id} with TTL {ttl_seconds}s")
+        logger.debug(f"Created pending board {generation_id}")
         return pending
 
     async def mark_ready(self, generation_id: uuid.UUID, board_id: uuid.UUID) -> None:
         logger.debug(f"mark_ready(generation_id={generation_id}, board_id={board_id})")
         key = f"{self.prefix}{generation_id}"
+        channel = f"{self.prefix}ready:{generation_id}"
         data = await self.redis.get(key)
         if data:
-            pending = pickle.loads(data)
+            pending = decode(data)
             pending.board_id = board_id
 
-            ttl = await self.redis.ttl(key)
-            if ttl > 0:
-                await self.redis.set(key, pickle.dumps(pending), ex=ttl)
+            await self.redis.set(key, encode(pending))
+            await self.redis.publish(channel, "ready")
         logger.info(
             f"Pending board {generation_id} marked as ready with board_id {board_id}"
         )
 
-    async def wait_for_ready(
-        self, generation_id: uuid.UUID, timeout: float | None = None
-    ) -> Optional[PendingBoard]:
-        logger.debug(
-            f"wait_for_ready(generation_id={generation_id}, timeout={timeout})"
-        )
-        start_time = time.time()
+    async def wait_for_ready(self, generation_id: uuid.UUID) -> Optional[PendingBoard]:
+        logger.debug(f"wait_for_ready(generation_id={generation_id})")
         key = f"{self.prefix}{generation_id}"
+        channel = f"{self.prefix}ready:{generation_id}"
 
-        while True:
-            data = await self.redis.get(key)
-            if not data:
-                return None
+        data = await self.redis.get(key)
+        if not data:
+            return None
 
-            pending = pickle.loads(data)
-            if pending.board_id:
-                return pending
+        pending = decode(data)
+        if pending.board_id:
+            return pending
 
-            if timeout is not None and (time.time() - start_time) >= timeout:
-                return None
+        pubsub = self.redis.pubsub()
+        try:
+            await pubsub.subscribe(channel)
 
-            await asyncio.sleep(0.1)
+            async def wait():
+                async for message in pubsub.listen():
+                    if message["type"] == "message":
+                        data = await self.redis.get(key)
+                        return decode(data) if data else None
+
+            result = await wait()
+            return result
+        except asyncio.TimeoutError:
+            return None
+        finally:
+            await pubsub.aclose()
 
     async def get_pending_gameplay(self, id: uuid.UUID) -> Optional[PendingBoard]:
         logger.debug(f"get_pending_gameplay(id={id})")
-        gen_id_str = await self.redis.get(f"{self.prefix}lookup:gameplay:{id}")
-        if gen_id_str:
-            if isinstance(gen_id_str, bytes):
-                gen_id_str = gen_id_str.decode("utf-8")
+        gen_id_bytes = await self.redis.get(f"{self.prefix}lookup:gameplay:{id}")
+        if gen_id_bytes:
+            gen_id_str = decode(gen_id_bytes)
             data = await self.redis.get(f"{self.prefix}{gen_id_str}")
             if data:
-                return pickle.loads(data)
+                return decode(data)
         return None
 
     async def get_pending_round(
@@ -110,15 +109,14 @@ class RedisPendingStore(protocols.PendingBoardsStore):
         logger.debug(
             f"get_pending_round(session_id={session_id}, round_index={round_index})"
         )
-        gen_id_str = await self.redis.get(
+        gen_id_bytes = await self.redis.get(
             f"{self.prefix}lookup:round:{session_id}:{round_index}"
         )
-        if gen_id_str:
-            if isinstance(gen_id_str, bytes):
-                gen_id_str = gen_id_str.decode("utf-8")
+        if gen_id_bytes:
+            gen_id_str = decode(gen_id_bytes)
             data = await self.redis.get(f"{self.prefix}{gen_id_str}")
             if data:
-                return pickle.loads(data)
+                return decode(data)
         return None
 
 

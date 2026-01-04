@@ -2,6 +2,8 @@ import logging
 import uuid
 from typing import Optional
 
+from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend.core.board import Board, GenerationSettings
@@ -17,7 +19,6 @@ from backend.di.dependencies import (
 )
 from backend.lib.auth import OptionalCurrentUser
 from backend.protocols.pending_boards import PendingBoardMetadata
-from backend.repositories.exceptions import *
 from backend.services.dto import *
 from backend.services.exceptions import *
 
@@ -180,7 +181,6 @@ class CreateSingleGameplayService:
                 mode=game_settings.mode,
                 user_id=user.id if user else None,
             ),
-            ttl_seconds=180,
         )
 
 

@@ -1,3 +1,6 @@
+import logging
+from datetime import datetime, timedelta
+
 from backend.core.user import User
 from backend.di.dependencies import (
     LobbyRepositoryDep,
@@ -11,6 +14,10 @@ from backend.services.dto import (
     UserOnlineUpdated,
     UserReady,
 )
+
+logger = logging.getLogger(__name__)
+
+REMOVE_OFFLINE_USER_DELAY = timedelta(seconds=10)
 
 
 class UserConnectionService:
@@ -39,9 +46,7 @@ class UserConnectionService:
 
     async def _notify_current_lobby(self, user: User):
         lobby = await self.lobby_repo.get_user_lobby(user.id)
-        session = (
-            await self.multi_repo.get_pending_for_lobby(lobby.id) if lobby else None
-        )
+        session = await self.multi_repo.get_for_lobby(lobby.id) if lobby else None
         await self.notification_system.notify(user.id, UserCurrentLobby(lobby))
 
         if session is not None:
@@ -62,6 +67,13 @@ class UserConnectionService:
             data = UserOnlineUpdated(lobby_id=user_lobby.id, user=user)
             for lobby_user in user_lobby.users:
                 await self.notification_system.notify(lobby_user.id, data)
+
+            if user.is_online:
+                kick_at = None
+            else:
+                kick_at = datetime.now() + REMOVE_OFFLINE_USER_DELAY
+
+            await self.lobby_repo.set_kick_at(user.id, user_lobby.id, kick_at)
 
 
 __all__ = ["UserConnectionService"]

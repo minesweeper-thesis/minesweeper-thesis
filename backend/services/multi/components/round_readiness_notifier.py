@@ -1,13 +1,13 @@
 import uuid
-from collections.abc import Awaitable, Callable
-from typing import Any
+from collections.abc import Callable
+from typing import Any, Coroutine
 
 from backend.core.lobby.lobby import Lobby
 from backend.core.multi import MultiplayerSession
 from backend.core.user import User
 from backend.services.dto.round import RoundReady, UserNotReady, UserReady
 
-type Sender = Callable[[uuid.UUID, Any], Awaitable[None]]
+type Sender = Callable[[uuid.UUID, Any], Coroutine[Any, Any, None]]
 
 
 class RoundReadinessNotifier:

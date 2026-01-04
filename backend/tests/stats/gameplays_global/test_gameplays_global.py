@@ -1,10 +1,12 @@
+import uuid
+
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_gameplays_global_ranking_returns_paginated_response(client_no_auth):
     resp = await client_no_auth.get(
-        "/api/stats/gameplays/global",
+        "/stats/gameplays/global",
         params={
             "rows": 10,
             "cols": 10,
@@ -24,11 +26,11 @@ async def test_get_gameplays_global_ranking_returns_paginated_response(client_no
     assert isinstance(data["items"], list)
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_gameplays_global_ranking_validates_schema(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.get(
-        "/api/stats/gameplays/global",
+    resp = await client.http.get(
+        "/stats/gameplays/global",
         params={
             "rows": 10,
             "cols": 10,
@@ -54,7 +56,7 @@ async def test_get_gameplays_global_ranking_validates_schema(authenticated_clien
         assert "email" in user
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_get_gameplays_global_ranking_missing_params_returns_422(client_no_auth):
-    resp = await client_no_auth.get("/api/stats/gameplays/global")
+    resp = await client_no_auth.get("/stats/gameplays/global")
     assert resp.status_code == 422

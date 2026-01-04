@@ -1,104 +1,166 @@
 import os
-import tempfile
+import random
+import uuid
+from contextlib import asynccontextmanager, suppress
 
 import pytest
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
+from httpx_ws import AsyncWebSocketSession, aconnect_ws
+from httpx_ws.transport import ASGIWebSocketTransport
+from sqlalchemy.exc import IntegrityError
 
-_test_db_file = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-_test_db_path = _test_db_file.name
-_test_db_file.close()
+from backend.core.board import Board, DifficultyLevel, GenerationSettings
+from backend.lib.board_generator import LocalBoardGenerator
+from backend.protocols.board_repo_protocol import BoardNotFound
 
-os.environ["DATABASE_URL"] = (
-    f"sqlite+aiosqlite:///{_test_db_path}?check_same_thread=False&timeout=30"
-)
-os.environ["AUTH_SECRET"] = "test-secret-key"
+os.environ["DATABASE_URL"] = "sqlite+aiosqlite://"
 
 from backend.db import db
+from backend.main import api, app, lifespan
+from backend.repositories.board_repo import BoardRepository
 
-db.engine = create_async_engine(os.environ["DATABASE_URL"], poolclass=NullPool)
-db.async_session_maker = async_sessionmaker(db.engine, expire_on_commit=False)
 
-from backend.db.db import engine, get_async_session
-from backend.main import app
-from backend.repositories.orm import Base
+async def create_or_get_board(
+    difficulty: DifficultyLevel,
+    minefields: list[tuple[int, int]],
+    start_field: tuple[int, int],
+    generation_settings: GenerationSettings,
+) -> Board:
+    async with db.async_session_maker() as session:
+        repo = BoardRepository(session)
+        with suppress(BoardNotFound):
+            return await repo.get_board(
+                difficulty_level=difficulty,
+                minefields=minefields,
+            )
+
+        board = Board(
+            id=uuid.uuid4(),
+            minefields=minefields,
+            start_field=start_field,
+            generation_settings=generation_settings,
+        )
+        try:
+            await repo.add_board(board)
+            return board
+        except IntegrityError:
+            await session.rollback()
+            return await repo.get_board(
+                difficulty_level=difficulty,
+                minefields=minefields,
+            )
+
+
+def generate_board_data(
+    difficulty_level: DifficultyLevel,
+) -> tuple[list[tuple[int, int]], tuple[int, int]]:
+
+    rows = difficulty_level.rows
+    cols = difficulty_level.columns
+    mines = difficulty_level.mine_count
+
+    rng = random.Random(0)
+    start_field = (0, 0)
+    cells = [(i, j) for i in range(rows) for j in range(cols) if (i, j) != start_field]
+    minefields = sorted(rng.sample(cells, k=mines))
+    return minefields, start_field
+
+
+class HTTPClient:
+    def __init__(self, test_app, auth_cookie: str | None = None):
+        self._test_app = test_app
+        self._auth_cookie = auth_cookie
+
+    def _headers(self, extra_headers: dict | None = None) -> dict:
+        if self._auth_cookie:
+            headers = {"Cookie": f"auth={self._auth_cookie}"}
+        else:
+            headers = {"Cookie": ""}
+        if extra_headers:
+            headers.update(extra_headers)
+        return headers
+
+    @asynccontextmanager
+    async def _client(self):
+        transport = ASGITransport(self._test_app)
+        async with AsyncClient(
+            transport=transport, base_url="https://testserver/api"
+        ) as client:
+            yield client
+
+    @asynccontextmanager
+    async def _ws_client(self):
+        transport = ASGIWebSocketTransport(self._test_app)
+        async with AsyncClient(
+            transport=transport, base_url="https://testserver/api"
+        ) as client:
+            yield client
+
+    @asynccontextmanager
+    async def ws(self, path: str = "/ws"):
+        async with self._ws_client() as client:
+            headers = (
+                {"Cookie": f"auth={self._auth_cookie}"} if self._auth_cookie else {}
+            )
+            ws: AsyncWebSocketSession
+            async with aconnect_ws(
+                f"https://testserver/api{path}",
+                client,
+                headers=headers,
+            ) as ws:
+                yield ws
+
+    async def _request(self, method: str, url: str, **kwargs):
+        async with self._client() as client:
+            kwargs["headers"] = self._headers(kwargs.get("headers"))
+            func = getattr(client, method)
+            return await func(url, **kwargs)
+
+    async def get(self, url: str, **kwargs):
+        return await self._request("get", url, **kwargs)
+
+    async def post(self, url: str, **kwargs):
+        return await self._request("post", url, **kwargs)
+
+    async def put(self, url: str, **kwargs):
+        return await self._request("put", url, **kwargs)
+
+    async def patch(self, url: str, **kwargs):
+        return await self._request("patch", url, **kwargs)
+
+    async def delete(self, url: str, **kwargs):
+        return await self._request("delete", url, **kwargs)
 
 
 class AuthenticatedClientBundle:
-    def __init__(
-        self,
-        http_client: AsyncClient,
-        ws_client: TestClient,
-        user_data: dict,
-        auth_cookie: str = "",
-    ):
-        self.http = http_client
-        self.ws_client = ws_client
+    def __init__(self, test_app, user_data: dict, auth_cookie: str):
+        self._test_app = test_app
         self.user_data = user_data
-        self.auth_cookie = auth_cookie or http_client.cookies.get("auth")
+        self.auth_cookie = auth_cookie
         self.user_id = None
+        self._http = HTTPClient(test_app, auth_cookie)
+
+    @property
+    def http(self):
+        return self._http
 
     async def set_user_id(self):
         if not self.user_id:
-            resp = await self.http.get("/api/auth/me")
+            resp = await self.http.get("/auth/me")
             if resp.status_code == 200:
                 self.user_id = resp.json().get("id")
         return self.user_id
 
-    def get_ws(self):
-        return self.ws_client.websocket_connect(
-            "/api/ws", headers={"Cookie": f"auth={self.auth_cookie}"}
-        )
-
-    def get_ws_game(self, game_id: str):
-        return self.ws_client.websocket_connect(
-            f"/api/game/single/{game_id}",
-            headers={"Cookie": f"auth={self.auth_cookie}"},
-        )
-
-    def get_ws_multi_game(self, session_id: str):
-        return self.ws_client.websocket_connect(
-            f"/api/game/multi/{session_id}",
-            headers={"Cookie": f"auth={self.auth_cookie}"},
-        )
-
-    def get_ws_client(self):
-        return self.ws_client
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *args):
-        return await self.http.__aexit__(*args)
-
-    def __getattr__(self, name):
-        return getattr(self.http, name)
+    @asynccontextmanager
+    async def ws(self, path: str = "/ws"):
+        async with self._http.ws(path) as ws:
+            yield ws
 
 
-@pytest.fixture(autouse=True)
-async def test_db():
-    async with engine.begin() as conn:
-        await conn.execute(text("PRAGMA journal_mode=WAL"))
-        await conn.execute(text("PRAGMA busy_timeout=30000"))
-        await conn.run_sync(Base.metadata.drop_all)
-        await conn.run_sync(Base.metadata.create_all)
-
-    yield
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
-
-    await engine.dispose()
-
-    try:
-        os.unlink(_test_db_path)
-        os.unlink(_test_db_path + "-wal")
-        os.unlink(_test_db_path + "-shm")
-    except:
-        pass
+@pytest.fixture(scope="session")
+async def test_app():
+    async with lifespan(app):
+        yield app
 
 
 @pytest.fixture
@@ -107,72 +169,34 @@ async def session():
         yield session
 
 
-@pytest.fixture(autouse=True)
-async def override_dependency(session):
-    from backend.config import REDIS_URL
-    from backend.lib.redis_client import get_redis, reset_test_redis
-
-    reset_test_redis()
-
-    if REDIS_URL:
-        async for redis_client in get_redis():
-            await redis_client.flushdb()
-            break
-
-    async def _override_db():
-        yield session
-
-    async def _override_redis():
-        async for redis_client in get_redis():
-            yield redis_client
-
-    app.dependency_overrides[get_async_session] = _override_db
-    app.dependency_overrides[get_redis] = _override_redis
-    yield
-    app.dependency_overrides = {}
-
-    reset_test_redis()
-
-    if REDIS_URL:
-        async for redis_client in get_redis():
-            await redis_client.flushdb()
-            break
+@pytest.fixture
+async def client_no_auth(test_app):
+    yield HTTPClient(test_app)
 
 
 @pytest.fixture
-async def client_no_auth(test_db, override_dependency):
-    async with AsyncClient(
-        transport=ASGITransport(app), base_url="https://testserver"
-    ) as ac:
-        yield ac
-
-
-@pytest.fixture
-def ws_client_no_auth(test_db, override_dependency):
-    from fastapi.testclient import TestClient
-
-    with TestClient(app, base_url="https://testserver") as c:
-        yield c
-
-
-@pytest.fixture
-async def authenticated_clients(request, test_db, override_dependency):
+async def authenticated_clients(request, test_app):
     if hasattr(request, "param"):
         users_data = request.param
     else:
+        uid = uuid.uuid4().hex[:8]
         users_data = [
-            {"email": "test@example.com", "password": "pw", "nickname": "test"}
+            {
+                "email": f"test-{uid}@example.com",
+                "password": "pw",
+                "nickname": f"test_{uid}",
+            }
         ]
 
-    with TestClient(app, base_url="https://testserver") as shared_ws_client:
-        bundles = []
-        for user_data in users_data:
-            async_client = AsyncClient(
-                transport=ASGITransport(app), base_url="https://testserver"
-            )
+    bundles = []
 
-            reg_resp = await async_client.post(
-                "/api/auth/register",
+    transport = ASGITransport(test_app)
+    async with AsyncClient(
+        transport=transport, base_url="https://testserver/api"
+    ) as client:
+        for user_data in users_data:
+            reg_resp = await client.post(
+                "/auth/register",
                 json={
                     "email": user_data["email"],
                     "password": user_data["password"],
@@ -182,8 +206,8 @@ async def authenticated_clients(request, test_db, override_dependency):
             )
             assert reg_resp.status_code == 201, f"Registration failed: {reg_resp.text}"
 
-            login_resp = await async_client.post(
-                "/api/auth/login",
+            login_resp = await client.post(
+                "/auth/login",
                 data={
                     "username": user_data["email"],
                     "password": user_data["password"],
@@ -194,24 +218,35 @@ async def authenticated_clients(request, test_db, override_dependency):
             auth_cookie = login_resp.cookies.get("auth")
             assert auth_cookie, "Login did not set 'auth' cookie"
 
-            domain = "testserver.local"
-            async_client.cookies.set("auth", auth_cookie, domain=domain, path="/")
-
-            bundle = AuthenticatedClientBundle(
-                async_client, shared_ws_client, user_data, auth_cookie
-            )
+            bundle = AuthenticatedClientBundle(test_app, user_data, auth_cookie)
             await bundle.set_user_id()
             bundles.append(bundle)
 
-        yield bundles
-
-        for bundle in bundles:
-            await bundle.http.aclose()
+    yield bundles
 
 
-@pytest.fixture(autouse=True)
-async def clean_db(test_db):
-    yield
-    async with engine.begin() as conn:
-        for table in reversed(Base.metadata.sorted_tables):
-            await conn.execute(table.delete())
+class ImmediateBoardGenerator:
+    def __init__(self):
+        self._statuses = {}
+
+    async def generate_board(self, settings, on_completed):
+        generation_id = uuid.uuid4()
+        self._statuses[generation_id] = "completed"
+
+        minefields, start_field = generate_board_data(settings.difficulty_level)
+
+        board = await create_or_get_board(
+            difficulty=settings.difficulty_level,
+            minefields=minefields,
+            start_field=start_field,
+            generation_settings=settings,
+        )
+
+        await on_completed(generation_id, board)
+        return generation_id
+
+    async def get_generation_status(self, generation_id):
+        return self._statuses.get(generation_id, "completed")
+
+
+api.dependency_overrides[LocalBoardGenerator] = ImmediateBoardGenerator

@@ -3,10 +3,10 @@ import uuid
 import pytest
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_create_lobby_returns_lobby_response(authenticated_clients):
-    client = authenticated_clients[0]
-    resp = await client.post("/api/lobbies")
+    bundle = authenticated_clients[0]
+    resp = await bundle.http.post("/lobbies")
 
     assert resp.status_code == 200
     data = resp.json()
@@ -22,7 +22,7 @@ async def test_create_lobby_returns_lobby_response(authenticated_clients):
     host = data["host"]
     assert "id" in host
     assert "nickname" in host
-    assert host["nickname"] == "test"
+    assert host["nickname"] == bundle.user_data["nickname"]
 
     config = data["game_config"]
     assert "rounds" in config
@@ -37,7 +37,7 @@ async def test_create_lobby_returns_lobby_response(authenticated_clients):
     assert "mine_count" in dl
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_create_lobby_without_auth_returns_401(client_no_auth):
-    resp = await client_no_auth.post("/api/lobbies")
+    resp = await client_no_auth.post("/lobbies")
     assert resp.status_code == 401

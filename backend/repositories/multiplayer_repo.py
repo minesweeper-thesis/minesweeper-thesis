@@ -1,5 +1,4 @@
 import logging
-import pickle
 import uuid
 from typing import Optional
 
@@ -11,9 +10,8 @@ logger = logging.getLogger(__name__)
 from backend import protocols
 from backend.core.multi.session import MultiplayerSession
 from backend.db.db import DBSession
-from backend.lib.redis_client import decode_redis_value
+from backend.lib.redis_client import decode, encode
 
-from .exceptions import *
 from .orm import *
 
 
@@ -32,7 +30,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         logger.debug(f"get_session(session_id={session_id})")
         pending_data = await self.redis.get(f"{self.pending_prefix}{session_id}")
         if pending_data:
-            session = pickle.loads(pending_data)
+            session = decode(pending_data)
             logger.debug(
                 f"Retrieved pending session {session_id}, current_round_index={session.current_round_index}"
             )
@@ -44,7 +42,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             raise MultiplayerSessionNotFound(
                 f"Multiplayer session with id {session_id} not found"
             )
-        session = pickle.loads(data)
+        session = decode(data)
         logger.debug(
             f"Retrieved multiplayer session {session_id}, current_round_index={session.current_round_index}"
         )
@@ -54,47 +52,49 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         logger.debug(
             f"save_session(session_id={session.id}, current_round_index={session.current_round_index})"
         )
-        data = pickle.dumps(session)
-        await self.redis.set(f"{self.prefix}{session.id}", data)
+
+        if session.is_over():
+            await self.delete_pending(session.id)
+            await self._save_to_db(session)
+        else:
+            await self._save_pending(session)
+
         logger.info(
             f"Multiplayer session {session.id} saved with current_round_index={session.current_round_index}"
         )
 
-        if session.is_over():
-            await self._save_to_db(session)
-
-    async def save_pending(self, session: MultiplayerSession):
+    async def _save_pending(self, session: MultiplayerSession):
         logger.debug(
             f"save_pending(session_id={session.id}, lobby_id={session.lobby_id})"
         )
-        data = pickle.dumps(session)
+        data = encode(session)
         async with self.redis.pipeline() as pipe:
             await pipe.set(f"{self.pending_prefix}{session.id}", data)
             await pipe.set(
-                f"{self.pending_prefix}lobby:{session.lobby_id}", str(session.id)
+                f"{self.pending_prefix}lobby:{session.lobby_id}", encode(session.id)
             )
             await pipe.execute()
         logger.info(
             f"Pending multiplayer session {session.id} saved for lobby {session.lobby_id}"
         )
 
-    async def get_pending_for_lobby(
-        self, lobby_id: uuid.UUID
-    ) -> Optional[MultiplayerSession]:
+    async def get_for_lobby(self, lobby_id: uuid.UUID) -> Optional[MultiplayerSession]:
         logger.debug(f"get_pending_for_lobby(lobby_id={lobby_id})")
-        session_id_str = await self.redis.get(f"{self.pending_prefix}lobby:{lobby_id}")
-        if session_id_str:
-            session_id_str = decode_redis_value(session_id_str)
+        session_id_bytes = await self.redis.get(
+            f"{self.pending_prefix}lobby:{lobby_id}"
+        )
+        if session_id_bytes:
+            session_id_str = decode(session_id_bytes)
             data = await self.redis.get(f"{self.pending_prefix}{session_id_str}")
             if data:
-                return pickle.loads(data)
+                return decode(data)
         return None
 
     async def delete_pending(self, session_id: uuid.UUID):
         logger.debug(f"delete_pending(session_id={session_id})")
         data = await self.redis.get(f"{self.pending_prefix}{session_id}")
         if data:
-            session = pickle.loads(data)
+            session = decode(data)
             async with self.redis.pipeline() as pipe:
                 await pipe.delete(f"{self.pending_prefix}{session_id}")
                 await pipe.delete(f"{self.pending_prefix}lobby:{session.lobby_id}")

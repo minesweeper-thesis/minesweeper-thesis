@@ -1,16 +1,16 @@
-import json
 import uuid
 
 import pytest
+from httpx_ws.transport import UnhandledASGIMessageType
 
 from backend.schemas.game.single_schemas import NewGameResponse
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_validates_response(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.post(
-        "/api/game/single",
+    resp = await client.http.post(
+        "/game/single",
         json={
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 2},
             "generator": {"type": "random"},
@@ -27,21 +27,21 @@ async def test_start_game_validates_response(authenticated_clients):
     uuid.UUID(str(game_response.gameplay_id))
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_invalid_board_returns_404(authenticated_clients):
     client = authenticated_clients[0]
     fake_board_id = str(uuid.uuid4())
-    resp = await client.post(
-        "/api/game/single",
+    resp = await client.http.post(
+        "/game/single",
         json={"board_id": fake_board_id, "mode": "normal"},
     )
     assert resp.status_code == 404
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_works_without_auth(client_no_auth):
     resp = await client_no_auth.post(
-        "/api/game/single",
+        "/game/single",
         json={
             "mode": "normal",
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 3},
@@ -52,11 +52,11 @@ async def test_start_game_works_without_auth(client_no_auth):
     assert "gameplay_id" in resp.json()
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_validates_difficulty_level(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.post(
-        "/api/game/single",
+    resp = await client.http.post(
+        "/game/single",
         json={
             "difficulty_level": {"rows": 5},
             "generator": {"type": "random"},
@@ -66,11 +66,11 @@ async def test_start_game_validates_difficulty_level(authenticated_clients):
     assert resp.status_code == 422
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_start_game_validates_generator_type(authenticated_clients):
     client = authenticated_clients[0]
-    resp = await client.post(
-        "/api/game/single",
+    resp = await client.http.post(
+        "/game/single",
         json={
             "difficulty_level": {"rows": 5, "columns": 5, "mine_count": 2},
             "generator": {"type": "invalid_generator"},
@@ -80,15 +80,14 @@ async def test_start_game_validates_generator_type(authenticated_clients):
     assert resp.status_code == 422
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_invalid_gameplay_returns_error(authenticated_clients):
-    client = authenticated_clients[0]
+    bundle = authenticated_clients[0]
     fake_gameplay_id = str(uuid.uuid4())
 
     try:
-        with client.websocket_connect(f"/api/game/single/{fake_gameplay_id}") as ws:
-            data = json.loads(ws.receive_text())
-            assert data.get("type") in ["error", "game_state"]
-    except Exception:
-
+        async with bundle.ws(f"/game/single/{fake_gameplay_id}") as ws:
+            await ws.receive_json()
+        pytest.fail("Expected UnhandledASGIMessageType")
+    except* UnhandledASGIMessageType:
         pass

@@ -1,20 +1,17 @@
-import json
-
 import pytest
+from httpx_ws import WebSocketDisconnect
 
 from backend.tests.singleplayer.helpers import create_game
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_initial_game_state_schema(authenticated_clients, session):
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=5, columns=5, mine_count=2, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=2)
 
-    with bundle.get_ws_game(gameplay_id) as ws:
-        data = json.loads(ws.receive_text())
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
+        data = await ws.receive_json()
 
         assert data["type"] == "game_state"
 
@@ -37,20 +34,16 @@ async def test_websocket_initial_game_state_schema(authenticated_clients, sessio
         assert data.get("result") is None
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_websocket_game_over_loss_schema(authenticated_clients, session):
-    from starlette.websockets import WebSocketDisconnect
-
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=3, columns=3, mine_count=7, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=3, columns=3, mine_count=7)
 
     game_over = None
     finished = False
-    with bundle.get_ws_game(gameplay_id) as ws:
-        initial = json.loads(ws.receive_text())
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
+        initial = await ws.receive_json()
         start_field = initial["start_field"]
 
         for x in range(3):
@@ -61,9 +54,9 @@ async def test_websocket_game_over_loss_schema(authenticated_clients, session):
                     break
                 if (x, y) == tuple(start_field):
                     continue
-                ws.send_json({"type": "reveal_one", "cell": (x, y)})
+                await ws.send_json({"type": "reveal_one", "cell": (x, y)})
                 try:
-                    data = json.loads(ws.receive_text())
+                    data = await ws.receive_json()
                     if data["type"] == "game_over":
                         game_over = data
                         finished = True
@@ -78,25 +71,21 @@ async def test_websocket_game_over_loss_schema(authenticated_clients, session):
         assert isinstance(game_over["full_board"], list)
 
 
-@pytest.mark.asyncio
-async def test_websocket_get_game_state_returns_current_state(
-    authenticated_clients, session
-):
+@pytest.mark.asyncio(loop_scope="session")
+async def test_websocket_get_game_state_returns_current_state(authenticated_clients):
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=5, columns=5, mine_count=5, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=5)
 
-    with bundle.get_ws_game(gameplay_id) as ws:
-        initial = json.loads(ws.receive_text())
+    async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
+        initial = await ws.receive_json()
         start_field = initial["start_field"]
 
-        ws.send_json({"type": "reveal_one", "cell": start_field})
-        ws.receive_text()
+        await ws.send_json({"type": "reveal_one", "cell": start_field})
+        await ws.receive_json()
 
-        ws.send_json({"type": "get_state"})
-        data = json.loads(ws.receive_text())
+        await ws.send_json({"type": "get_state"})
+        data = await ws.receive_json()
 
         assert data["type"] == "game_state"
         assert data["status"] == "in_progress"
@@ -108,37 +97,29 @@ async def test_websocket_get_game_state_returns_current_state(
             assert len(row) == 5
 
 
-@pytest.mark.asyncio
-async def test_websocket_board_state_shows_revealed_cell(
-    authenticated_clients, session
-):
-    from starlette.websockets import WebSocketDisconnect
-
+@pytest.mark.asyncio(loop_scope="session")
+async def test_websocket_board_state_shows_revealed_cell(authenticated_clients):
     bundle = authenticated_clients[0]
 
-    gameplay_id = await create_game(
-        bundle.http, rows=5, columns=5, mine_count=3, session=session
-    )
+    gameplay_id = await create_game(bundle.http, rows=5, columns=5, mine_count=3)
 
     try:
-        with bundle.get_ws_game(gameplay_id) as ws:
-            initial = json.loads(ws.receive_text())
+        async with bundle.ws(f"/game/single/{gameplay_id}") as ws:
+            initial = await ws.receive_json()
             start_field = initial["start_field"]
 
-            ws.send_json({"type": "reveal_one", "cell": start_field})
-            reveal_data = json.loads(ws.receive_text())
+            await ws.send_json({"type": "reveal_one", "cell": start_field})
+            reveal_data = await ws.receive_json()
 
             if reveal_data["type"] == "reveal":
-                ws.send_json({"type": "get_state"})
-                state_data = json.loads(ws.receive_text())
+                await ws.send_json({"type": "get_state"})
+                state_data = await ws.receive_json()
                 board = state_data["board"]
 
                 cell_value = board[start_field[0]][start_field[1]]
 
                 assert cell_value != -3, f"Cell should be revealed, got {cell_value}"
             elif reveal_data["type"] == "game_over":
-
                 pass
     except WebSocketDisconnect:
-
         pass

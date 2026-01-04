@@ -9,6 +9,7 @@ from sqlalchemy import (
     Enum,
     ForeignKey,
     ForeignKeyConstraint,
+    PrimaryKeyConstraint,
     Table,
     event,
 )
@@ -127,12 +128,10 @@ multiplayer_session_players = Table(
 class MultiplayerRoundORM(Base):
     __tablename__ = "multiplayer_rounds"
 
-    session_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(MultiplayerSessionORM.id), primary_key=True
-    )
+    session_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(MultiplayerSessionORM.id))
     session: Mapped[MultiplayerSessionORM] = relationship(back_populates="rounds")
 
-    round_index: Mapped[int] = mapped_column(primary_key=True)
+    round_index: Mapped[int] = mapped_column()
 
     board_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(BoardORM.id), index=True)
     board: Mapped[BoardORM] = relationship()
@@ -142,6 +141,7 @@ class MultiplayerRoundORM(Base):
     )
 
     __table_args__ = (
+        PrimaryKeyConstraint("session_id", "round_index"),
         CheckConstraint("round_index >= 0", name="check_round_index_non_negative"),
     )
 
@@ -149,11 +149,9 @@ class MultiplayerRoundORM(Base):
 class MultiplayerGameplayORM(Base):
     __tablename__ = "multiplayer_gameplays"
 
-    session_id: Mapped[uuid.UUID] = mapped_column(primary_key=True)
-    round_index: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[uuid.UUID] = mapped_column(
-        ForeignKey(UserORM.id), primary_key=True, index=True
-    )
+    session_id: Mapped[uuid.UUID] = mapped_column()
+    round_index: Mapped[int] = mapped_column()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey(UserORM.id), index=True)
 
     time: Mapped[float] = mapped_column(default=0)
     status: Mapped[GameStatusEnum] = mapped_column(
@@ -169,6 +167,7 @@ class MultiplayerGameplayORM(Base):
     )
 
     __table_args__ = (
+        PrimaryKeyConstraint("session_id", "round_index", "user_id"),
         ForeignKeyConstraint(
             [session_id, round_index],
             [MultiplayerRoundORM.session_id, MultiplayerRoundORM.round_index],

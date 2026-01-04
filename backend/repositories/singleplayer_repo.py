@@ -8,13 +8,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
+
 logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.single.gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
 
-from .exceptions import *
 from .orm import *
 
 

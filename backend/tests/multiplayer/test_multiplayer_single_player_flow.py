@@ -1,41 +1,41 @@
 import random
+import uuid
+from contextlib import AsyncExitStack
+from datetime import timedelta
 
 import pytest
 
 from backend.tests.conftest import AuthenticatedClientBundle
-from backend.tests.multiplayer.ws_helpers import (
-    drain_ws,
-    random_cell,
-    recv_round_ready,
-    recv_until,
-    ws_receive_json,
-)
+from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 
 
 @pytest.mark.parametrize(
     "authenticated_clients",
     [
         [
-            {"email": "mp-host@example.com", "password": "pw", "nickname": "mp_host"},
+            {
+                "email": f"mp-host-{uuid.uuid4().hex[:8]}@example.com",
+                "password": "pw",
+                "nickname": f"mp_host_{uuid.uuid4().hex[:4]}",
+            },
         ]
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_multiplayer_single_player_flow(
-    authenticated_clients: list[AuthenticatedClientBundle], fake_scheduler, board_generator_override
+    authenticated_clients: list[AuthenticatedClientBundle], fake_scheduler
 ):
     random.seed(0)
 
     host_bundle = authenticated_clients[0]
 
-    create_resp = await host_bundle.http.post("/api/lobbies")
+    create_resp = await host_bundle.http.post("/lobbies")
     assert create_resp.status_code == 200
     lobby_id = create_resp.json()["id"]
-    session_id = lobby_id
 
     update_resp = await host_bundle.http.put(
-        f"/api/lobbies/{lobby_id}",
+        f"/lobbies/{lobby_id}",
         json={
             "rounds": 3,
             "max_round_time": 2,
@@ -44,70 +44,92 @@ async def test_multiplayer_single_player_flow(
             "generator": {"type": "random", "settings": None},
         },
     )
-    assert update_resp.status_code in [200, 204]
+    assert update_resp.status_code == 200
 
-    from contextlib import ExitStack
+    async with AsyncExitStack() as stack:
+        notif_ws = await stack.enter_async_context(host_bundle.ws())
 
-    with ExitStack() as stack:
-        notif_ws = stack.enter_context(host_bundle.get_ws())
-        game_ws = stack.enter_context(host_bundle.get_ws_multi_game(session_id))
-        game_ws.send_json({"type": "ready"})
-        assert recv_until(notif_ws, {"user_ready"})["value"] is True
+        msg = await receive_type(notif_ws, "current_lobby")
+        await receive_type(notif_ws, "user_ready")
+        await receive_type(notif_ws, "user_online_status")
 
-        recv_round_ready(notif_ws=notif_ws, game_ws=game_ws)
-        recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
+        await host_bundle.http.post(f"/lobbies/{lobby_id}/ready/set")
+        msg = await receive_type(notif_ws, "user_ready")
+        assert msg["value"] is True, f"received {msg}"
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
-        start_msg = recv_until(game_ws, {"round_start"}, timeout_s=10.0)
+        msg = await receive_type(notif_ws, "round_ready")
+        session_id = msg["session_id"]
+
+        game_ws = await stack.enter_async_context(
+            host_bundle.ws(f"/game/multi/{session_id}")
+        )
+        await receive_type(notif_ws, "round_countdown")
+
+        await fake_scheduler.skip(timedelta=timedelta(seconds=10))
+
+        start_msg = await receive_type(game_ws, "round_start")
         start_field = tuple(start_msg["start_field"])
 
         flagged = random_cell(rows=3, cols=3, exclude=start_field)
-        game_ws.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
-        recv_until(game_ws, {"flag"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "flag", "cell": [flagged[0], flagged[1]]})
+        msg = await receive_type(game_ws, "flag")
 
-        drain_ws(game_ws)
+        await game_ws.send_json(
+            {"type": "remove_flag", "cell": [flagged[0], flagged[1]]}
+        )
+        msg = await receive_type(game_ws, "remove_flag")
 
-        game_ws.send_json({"type": "reveal_one", "cell": [flagged[0], flagged[1]]})
-        with pytest.raises(TimeoutError):
-            ws_receive_json(game_ws, timeout_s=0.25)
+        await fake_scheduler.skip(timedelta=timedelta(seconds=60))
+        await receive_type(game_ws, "game_over")
+        msg = await receive_type(game_ws, "round_end")
+        assert msg["type"] == "round_end"
 
-        fake_scheduler.run_matching({"end_round"})
-        recv_until(game_ws, {"round_end"}, timeout_s=10.0)
+        fake_scheduler.reset()
 
-        game_ws.send_json({"type": "ready"})
-        recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "ready"})
+        msg = await receive_type(notif_ws, "user_ready")
+        assert msg["type"] == "user_ready"
+        assert msg["value"] is True
 
-        game_ws.send_json({"type": "not_ready"})
-        msg = recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        await receive_type(game_ws, "round_ready")
+        await receive_type(game_ws, "round_countdown")
+
+        await game_ws.send_json({"type": "not_ready"})
+        msg = await receive_type(notif_ws, "user_ready")
         assert msg["value"] is False
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
+        await game_ws.send_json({"type": "ready"})
+        msg = await receive_type(notif_ws, "user_ready")
+        assert msg["value"] is True
 
-        game_ws.send_json({"type": "ready"})
-        recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        await receive_type(game_ws, "round_ready")
+        await receive_type(game_ws, "round_countdown")
 
-        recv_until(game_ws, {"round_ready"}, timeout_s=10.0)
-        recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
-
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
-        recv_until(game_ws, {"round_start"}, timeout_s=10.0)
+        await fake_scheduler.skip(timedelta=timedelta(seconds=10))
+        msg = await receive_type(game_ws, "round_start")
+        assert msg["type"] == "round_start"
 
         cell = random_cell(rows=3, cols=3, exclude=start_field)
-        game_ws.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
-        recv_until(game_ws, {"flag"}, timeout_s=5.0)
+        await game_ws.send_json({"type": "flag", "cell": [cell[0], cell[1]]})
+        await receive_type(game_ws, "flag")
 
-        fake_scheduler.run_matching({"end_round"})
-        recv_until(game_ws, {"round_end"}, timeout_s=10.0)
+        await fake_scheduler.skip(timedelta=timedelta(seconds=60))
+        await receive_type(game_ws, "game_over")
+        msg = await receive_type(game_ws, "round_end")
+        assert msg["type"] == "round_end"
 
-        game_ws.send_json({"type": "ready"})
-        recv_until(notif_ws, {"user_ready"}, timeout_s=5.0)
+        fake_scheduler.reset()
 
-        recv_until(game_ws, {"round_ready"}, timeout_s=10.0)
-        recv_until(game_ws, {"round_countdown"}, timeout_s=10.0)
+        await game_ws.send_json({"type": "ready"})
+        await receive_type(notif_ws, "user_ready")
 
-        fake_scheduler.run_matching({"lock_ready", "start_round"})
-        recv_until(game_ws, {"round_start"}, timeout_s=10.0)
+        await receive_type(game_ws, "round_ready")
+        await receive_type(game_ws, "round_countdown")
 
-        fake_scheduler.run_matching({"end_round"})
-        recv_until(game_ws, {"round_end"}, timeout_s=10.0)
-        recv_until(game_ws, {"session_over"}, timeout_s=10.0)
+        await fake_scheduler.skip(timedelta=timedelta(seconds=10))
+        await receive_type(game_ws, "round_start")
+
+        await fake_scheduler.skip(timedelta=timedelta(seconds=60))
+        await receive_type(game_ws, "game_over")
+        await receive_type(game_ws, "round_end")
+        await receive_type(game_ws, "session_over")

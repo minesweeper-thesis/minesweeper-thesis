@@ -42,7 +42,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # Drop foreign key in multiplayer_gameplays
     with op.batch_alter_table("multiplayer_gameplays") as batch:
         if conn.dialect.name == "postgresql":
             batch.drop_constraint(

@@ -6,6 +6,10 @@ from fastapi_pagination import Page, Params
 from backend.core.single.gameplay import SingleplayerGameplay
 
 
+class GameplayNotFound(Exception):
+    pass
+
+
 class SingleplayerRepository(Protocol):
     async def add_gameplay(
         self,

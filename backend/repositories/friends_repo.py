@@ -8,6 +8,11 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
+from backend.protocols.friends_repo_protocol import (
+    FriendRequestNotFound,
+    FriendshipNotFound,
+)
+
 logger = logging.getLogger(__name__)
 
 from backend import protocols
@@ -16,7 +21,6 @@ from backend.db.db import DBSession
 from backend.lib.online_users import get_online_users_store
 from backend.repositories.helpers import get_users_transformer
 
-from .exceptions import *
 from .orm import *
 
 

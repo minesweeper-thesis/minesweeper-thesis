@@ -1,7 +1,10 @@
+import logging
 import uuid
 from typing import Annotated
 
 from fastapi import Depends
+
+logger = logging.getLogger(__name__)
 
 from backend.di.dependencies import MultiplayerRepositoryDep, PendingBoardsStoreDep
 from backend.services.multi.round_scheduler import RoundScheduler
@@ -18,11 +21,11 @@ class PendingBoardWaiter:
         self.pending_store = pending_store
         self.round_scheduler = round_scheduler
 
-    async def wait_and_schedule_next_round(
-        self, session_id: uuid.UUID, timeout_seconds: int
-    ):
+    async def wait_and_schedule_next_round(self, session_id: uuid.UUID):
+        logger.debug(f"Waiting for pending boards to be ready in session {session_id}")
         session = await self.multi_repo.get_session(session_id)
         next_round_index = session.current_round_index + 1
+        is_not_first_round = next_round_index != 0
 
         pending = await self.pending_store.get_pending_round(
             session.id, next_round_index
@@ -30,10 +33,12 @@ class PendingBoardWaiter:
         if pending is None:
             raise RuntimeError("Pending board not found")
 
-        await self.pending_store.wait_for_ready(pending.generation_id, timeout_seconds)
+        await self.pending_store.wait_for_ready(pending.generation_id)
 
         fresh_session = await self.multi_repo.get_session(session_id)
-        await self.round_scheduler.schedule_start(fresh_session)
+        await self.round_scheduler.schedule_start(
+            fresh_session, in_game=is_not_first_round
+        )
 
 
 __all__ = ["PendingBoardWaiter"]

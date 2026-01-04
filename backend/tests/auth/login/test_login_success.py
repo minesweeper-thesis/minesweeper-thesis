@@ -3,14 +3,17 @@ import uuid
 import pytest
 
 from backend.schemas.user import CurrentUserResponse
+from backend.tests.conftest import HTTPClient
 
 
-@pytest.mark.asyncio
-async def test_login_success_sets_auth_cookie_and_me_returns_user(client_no_auth):
+@pytest.mark.asyncio(loop_scope="session")
+async def test_login_success_sets_auth_cookie_and_me_returns_user(
+    client_no_auth: HTTPClient,
+):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
     await client_no_auth.post(
-        "/api/auth/register",
+        "/auth/register",
         json={
             "email": email,
             "password": "mypassword",
@@ -20,7 +23,7 @@ async def test_login_success_sets_auth_cookie_and_me_returns_user(client_no_auth
     )
 
     resp = await client_no_auth.post(
-        "/api/auth/login",
+        "/auth/login",
         data={
             "username": email,
             "password": "mypassword",
@@ -28,9 +31,11 @@ async def test_login_success_sets_auth_cookie_and_me_returns_user(client_no_auth
     )
 
     assert resp.status_code == 204 or resp.status_code == 200
-    assert "auth" in client_no_auth.cookies
+    assert "auth" in resp.cookies
 
-    me_resp = await client_no_auth.get("/api/auth/me")
+    client_no_auth._auth_cookie = resp.cookies.get("auth")
+
+    me_resp = await client_no_auth.get("/auth/me")
     assert me_resp.status_code == 200
     user = CurrentUserResponse(**me_resp.json())
     assert user.email == email

@@ -1,6 +1,8 @@
-import json
+import uuid
 
 import pytest
+
+from backend.tests.conftest import AuthenticatedClientBundle
 
 
 @pytest.mark.parametrize(
@@ -8,31 +10,31 @@ import pytest
     [
         [
             {
-                "email": "notif-pending@example.com",
+                "email": f"notif-pending-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifpending",
+                "nickname": f"notifpending_{uuid.uuid4().hex[:4]}",
             },
             {
-                "email": "notif-guest@example.com",
+                "email": f"notif-guest-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifguest",
+                "nickname": f"notifguest_{uuid.uuid4().hex[:4]}",
             },
         ]
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_pending_invitations_request(
     authenticated_clients,
 ):
     bundle = authenticated_clients[0]
 
-    with bundle.get_ws() as ws:
-        ws.receive_text()
+    async with bundle.ws() as ws:
+        await ws.receive_json()
 
-        ws.send_json({"type": "pending_invitations"})
+        await ws.send_json({"type": "pending_invitations"})
 
-        data = json.loads(ws.receive_text())
+        data = await ws.receive_json()
 
     assert data["type"] == "pending_invitations"
     assert "invitations" in data
@@ -44,41 +46,40 @@ async def test_notifications_websocket_pending_invitations_request(
     [
         [
             {
-                "email": "notif-host@example.com",
+                "email": f"notif-host-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifhost",
+                "nickname": f"notifhost_{uuid.uuid4().hex[:4]}",
             },
             {
-                "email": "notif-guest2@example.com",
+                "email": f"notif-guest2-{uuid.uuid4().hex[:8]}@example.com",
                 "password": "pw",
-                "nickname": "notifguest2",
+                "nickname": f"notifguest2_{uuid.uuid4().hex[:4]}",
             },
         ]
     ],
     indirect=True,
 )
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_notifications_websocket_pending_invitations_has_invitation(
-    authenticated_clients,
+    authenticated_clients: list[AuthenticatedClientBundle],
 ):
     host_bundle = authenticated_clients[0]
     guest_bundle = authenticated_clients[1]
 
-    create_resp = await host_bundle.http.post("/api/lobbies")
+    create_resp = await host_bundle.http.post("/lobbies")
     lobby_id = create_resp.json()["id"]
 
-    guest_me = await guest_bundle.http.get("/api/auth/me")
-    guest_id = guest_me.json()["id"]
+    guest_id = guest_bundle.user_id
 
     await host_bundle.http.post(
-        f"/api/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
+        f"/lobbies/{lobby_id}/invitations", json={"user_id": guest_id}
     )
 
-    with guest_bundle.get_ws() as ws:
-        ws.receive_text()
+    async with guest_bundle.ws() as ws:
+        await ws.receive_json()
 
-        ws.send_json({"type": "pending_invitations"})
-        data = json.loads(ws.receive_text())
+        await ws.send_json({"type": "pending_invitations"})
+        data = await ws.receive_json()
 
         assert data["type"] == "pending_invitations"
         invitations = data["invitations"]
@@ -97,4 +98,4 @@ async def test_notifications_websocket_pending_invitations_has_invitation(
         assert "game_config" in lobby
 
         host = lobby["host"]
-        assert host["nickname"] == "notifhost"
+        assert "notifhost_" in host["nickname"]

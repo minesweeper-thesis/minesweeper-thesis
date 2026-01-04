@@ -5,7 +5,7 @@ import pytest
 from backend.schemas.user import CurrentUserResponse
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_register_success_validates_current_user_response(client_no_auth):
     email = f"reg-{uuid.uuid4().hex[:8]}@example.com"
     payload = {
@@ -15,7 +15,7 @@ async def test_register_success_validates_current_user_response(client_no_auth):
         "settings": {"theme": "dark"},
     }
 
-    resp = await client_no_auth.post("/api/auth/register", json=payload)
+    resp = await client_no_auth.post("/auth/register", json=payload)
 
     assert resp.status_code == 201
     data = resp.json()
@@ -33,12 +33,12 @@ async def test_register_success_validates_current_user_response(client_no_auth):
     uuid.UUID(str(user.id))
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio(loop_scope="session")
 async def test_login_success_sets_auth_cookie(client_no_auth):
     email = f"login-{uuid.uuid4().hex[:8]}@example.com"
 
     await client_no_auth.post(
-        "/api/auth/register",
+        "/auth/register",
         json={
             "email": email,
             "password": "mypassword",
@@ -48,7 +48,7 @@ async def test_login_success_sets_auth_cookie(client_no_auth):
     )
 
     resp = await client_no_auth.post(
-        "/api/auth/login",
+        "/auth/login",
         data={
             "username": email,
             "password": "mypassword",
@@ -56,4 +56,4 @@ async def test_login_success_sets_auth_cookie(client_no_auth):
     )
 
     assert resp.status_code == 204 or resp.status_code == 200
-    assert "auth" in client_no_auth.cookies
+    assert "auth" in resp.cookies

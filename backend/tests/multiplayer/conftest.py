@@ -1,129 +1,63 @@
+from datetime import datetime, timedelta
+from typing import Callable
+
 import pytest
 
+from backend.lib.scheduler import get_scheduler
 from backend.main import api
-
-
-@pytest.fixture
-def board_generator_override():
-    from backend.lib.board_generator import LocalBoardGenerator
-
-    class ImmediateBoardGenerator:
-        def __init__(self):
-            self._statuses = {}
-
-        async def generate_board(self, settings, on_completed):
-            import random
-            import uuid
-
-            from backend.core.board import Board
-
-            generation_id = uuid.uuid4()
-            self._statuses[generation_id] = "completed"
-
-            rows = settings.difficulty_level.rows
-            cols = settings.difficulty_level.columns
-            mines = settings.difficulty_level.mine_count
-
-            start_field = (0, 0)
-            cells = [
-                (i, j)
-                for i in range(rows)
-                for j in range(cols)
-                if (i, j) != start_field
-            ]
-            rng = random.Random(int.from_bytes(generation_id.bytes, "big"))
-            minefields = rng.sample(cells, k=mines)
-
-            board = Board(
-                id=uuid.uuid4(),
-                minefields=minefields,
-                start_field=start_field,
-                generation_settings=settings,
-            )
-            await on_completed(generation_id, board)
-            return generation_id
-
-        async def get_generation_status(self, generation_id):
-            return self._statuses.get(generation_id, "completed")
-
-    generator = ImmediateBoardGenerator()
-
-    def _override():
-        return generator
-
-    api.dependency_overrides[LocalBoardGenerator] = _override
-    yield
-    api.dependency_overrides.pop(LocalBoardGenerator, None)
 
 
 class FakeScheduler:
     def __init__(self):
-        self._jobs: dict[str, tuple[object, object, tuple, dict]] = {}
+        self._jobs: dict[str, tuple[datetime, Callable, tuple, dict]] = {}
         self._counter = 0
-        self._loop = None
+        self._delta = timedelta()
 
     def shutdown(self):
         self._jobs.clear()
 
     def schedule(self, func, when, *args, job_id=None, **kwargs):
-        import asyncio
-
         if job_id is None:
             job_id = f"fake-{self._counter}"
         self._counter += 1
 
-        if self._loop is None:
-            try:
-                self._loop = asyncio.get_running_loop()
-            except RuntimeError:
-                self._loop = None
-
-        self._jobs[job_id] = (when, func, args, kwargs)
+        self._jobs[job_id] = (when + self._delta, func, args, kwargs)
         return job_id
 
     def cancel(self, job_id: str) -> None:
         self._jobs.pop(job_id, None)
 
-    def run_matching(self, names: set[str]) -> None:
-        import asyncio
+    async def skip(self, timedelta: timedelta) -> None:
+        for job_id, (when, func, args, kwargs) in self._jobs.items():
+            self._jobs[job_id] = (when - timedelta, func, args, kwargs)
 
-        if self._loop is None:
-            raise RuntimeError("FakeScheduler loop not set yet")
-
-        async def _run():
+        now = datetime.now()
+        while True:
             jobs = [
                 (job_id, *payload)
                 for job_id, payload in self._jobs.items()
-                if getattr(payload[1], "__name__", "") in names
+                if payload[0] <= now
             ]
-            jobs.sort(key=lambda item: item[1])
+            jobs.sort(key=lambda item: item[1])  # type: ignore
 
             for job_id, _when, func, args, kwargs in jobs:
                 self._jobs.pop(job_id, None)
-                await func(*args, **kwargs)
+                await func(*args, **kwargs)  # type: ignore
 
-        asyncio.run_coroutine_threadsafe(_run(), self._loop).result(timeout=10)
+            for job_id, (when, func, args, kwargs) in self._jobs.items():
+                self._jobs[job_id] = (when - timedelta, func, args, kwargs)
 
-    def run_all(self) -> None:
-        import asyncio
+            if not jobs:
+                break
+        self._delta -= timedelta
 
-        if self._loop is None:
-            raise RuntimeError("FakeScheduler loop not set yet")
-
-        async def _run():
-            jobs = [(job_id, *payload) for job_id, payload in self._jobs.items()]
-            jobs.sort(key=lambda item: item[1])
-            for job_id, _when, func, args, kwargs in jobs:
-                self._jobs.pop(job_id, None)
-                await func(*args, **kwargs)
-
-        asyncio.run_coroutine_threadsafe(_run(), self._loop).result(timeout=10)
+    def reset(self):
+        self._delta = timedelta()
 
 
 @pytest.fixture
-def fake_scheduler(monkeypatch):
-    import backend.lib.scheduler as scheduler_module
-
+def fake_scheduler():
     fake = FakeScheduler()
-    monkeypatch.setattr(scheduler_module, "_scheduler_instance", fake)
-    return fake
+    api.dependency_overrides[get_scheduler] = lambda: fake
+    yield fake
+    api.dependency_overrides.pop(get_scheduler, None)
