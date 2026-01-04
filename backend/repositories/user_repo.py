@@ -11,7 +11,7 @@ from backend.core.user import User, UserChatMessage
 from backend.db.db import DBSession
 from backend.lib.avatar_storage import get_avatar_storage
 from backend.lib.online_users import get_online_users_store
-from backend.protocols.user_repo_protocol import UserNotFound
+from backend.protocols.repos.exceptions import UserNotFound
 from backend.repositories.helpers import get_users_transformer
 
 from .orm import *

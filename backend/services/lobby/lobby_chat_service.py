@@ -8,9 +8,8 @@ from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.lobby_repo_protocol import LobbyNotFound
+from backend.protocols.repos.exceptions import LobbyNotFound
 from backend.services.exceptions import *
-from backend.services.lobby.helpers import *
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +30,7 @@ class LobbyChatService:
             )
             lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-            ensure_user_in_lobby(lobby, user)
+            lobby.ensure_user_in_lobby(user)
 
             message = LobbyChatMessage(
                 lobby_id=lobby_id,
@@ -55,7 +54,7 @@ class LobbyChatService:
         try:
             logger.debug(f"get_chat_messages(lobby_id={lobby_id}, user_id={user.id})")
             lobby = await self.lobby_repo.get_lobby(lobby_id)
-            ensure_user_in_lobby(lobby, user)
+            lobby.ensure_user_in_lobby(user)
 
             return await self.lobby_repo.get_messages(lobby_id, pagination_params)
         except LobbyNotFound:

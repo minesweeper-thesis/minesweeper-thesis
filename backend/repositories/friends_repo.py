@@ -12,10 +12,7 @@ from backend import protocols
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.db.db import DBSession
 from backend.lib.online_users import get_online_users_store
-from backend.protocols.friends_repo_protocol import (
-    FriendRequestNotFound,
-    FriendshipNotFound,
-)
+from backend.protocols.repos.exceptions import FriendRequestNotFound, FriendshipNotFound
 from backend.repositories.helpers import get_users_transformer
 
 from .orm import *

@@ -7,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisco
 
 from backend import services
 from backend.core.game.game_actions import *
-from backend.core.multi.session import ReadyChangeLocked
+from backend.core.lobby import NotAuthorizedToJoinLobby, SessionActive
+from backend.core.multi import ReadyChangeLocked, SessionAlreadyOver, UserNotInSession
 from backend.lib.auth import CurrentUserWebSocket, OptionalCurrentUser
 from backend.lib.notification_system import create_game_notification
 from backend.lib.websockets.lobby_websockets import lobby_websockets
@@ -27,6 +28,12 @@ game_exceptions = {
     exceptions.BoardNotExists: HTTPException(404, "Board not found"),
     exceptions.SolvedAllBoards: HTTPException(
         400, "User solved all boards for this difficulty type"
+    ),
+    exceptions.BoardAlreadyPlayed: HTTPException(
+        400, "User has already played this board"
+    ),
+    exceptions.SpecificBoardAnonymousUser: HTTPException(
+        400, "Anonymous users cannot play specific boards"
     ),
 }
 
@@ -179,13 +186,13 @@ async def play_multi(
             await play.load_session(user, lobby_id)
             await handle_multi(user, lobby_id, data, play, start)
 
-    except exceptions.UserNotInSession:
+    except UserNotInSession:
         await websocket.close(code=1010, reason="User not in multiplayer session")
 
     except exceptions.SessionNotExists:
         await websocket.close(code=1011, reason="Multiplayer session not found")
 
-    except exceptions.SessionAlreadyOver:
+    except SessionAlreadyOver:
         await websocket.close(code=1012, reason="Multiplayer session is already over")
 
     except ReadyChangeLocked:
@@ -193,8 +200,18 @@ async def play_multi(
             code=1013, reason="Cannot change ready status at this time"
         )
 
+    except SessionActive:
+        await websocket.close(
+            code=1014, reason="Cannot join lobby while session is active"
+        )
+
+    except NotAuthorizedToJoinLobby:
+        await websocket.close(
+            code=1015, reason="User not authorized to join this lobby"
+        )
+
     except exceptions.InvitationNotExists:
-        await websocket.close(code=1014, reason="Invitation not found")
+        await websocket.close(code=1016, reason="Invitation not found")
 
     except WebSocketDisconnect:
         pass

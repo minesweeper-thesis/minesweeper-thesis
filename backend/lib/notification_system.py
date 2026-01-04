@@ -91,7 +91,6 @@ def create_game_notification(data: Notifiable) -> str:
         RemoveFlagResult: RemoveFlagResponse,
         HintResult: HintResponse,
         UserReady: UserReadyResponse,
-        UserNotReady: UserNotReadyResponse,
         ScoreUpdate: ScoreUpdateResponse,
         InvitationAnswer: InvitationAnswerResponse,
         LobbyChatMessage: LobbyChatMessageResponse,

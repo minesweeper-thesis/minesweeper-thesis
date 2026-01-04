@@ -6,15 +6,9 @@ from pydantic import BaseModel
 
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
-from backend.core.multi import (
-    RoundEnd,
-    RoundScoreItem,
-    RoundStart,
-    ScoreUpdate,
-    SessionOver,
-    SessionScoreItem,
-)
+from backend.core.multi import RoundScoreItem, ScoreUpdate, SessionScoreItem
 from backend.schemas import Response
+from backend.schemas.lobby.lobby_schemas import LobbyResponse
 from backend.services.dto import *
 
 
@@ -78,27 +72,14 @@ class UserReadyResponse(Response):
     ws_type: Literal["user_ready"] = "user_ready"
     round: int
     user_id: uuid.UUID
-    value: bool = True
+    value: bool
 
     @classmethod
     def build(cls, message: "UserReady") -> Self:
         return cls(
             round=message.round_index + 1,
             user_id=message.user_id,
-        )
-
-
-class UserNotReadyResponse(Response):
-    ws_type: Literal["user_ready"] = "user_ready"
-    round: int
-    user_id: uuid.UUID
-    value: bool = False
-
-    @classmethod
-    def build(cls, message: "UserNotReady") -> Self:
-        return cls(
-            round=message.round_index + 1,
-            user_id=message.user_id,
+            value=message.ready,
         )
 
 
@@ -144,6 +125,7 @@ class SessionStateResponse(Response):
     session_id: uuid.UUID
     round: RoundData
     scoreboard: list[SessionScoreItem]
+    lobby: LobbyResponse
 
     @classmethod
     def build(cls, message: SessionState) -> Self:
@@ -173,6 +155,7 @@ class SessionStateResponse(Response):
                 state=message.round.state,
             ),
             scoreboard=message.scoreboard.items,
+            lobby=LobbyResponse.build(message.lobby),
         )
 
 
@@ -183,7 +166,6 @@ __all__ = [
     "RoundCountdownResponse",
     "RoundReadyResponse",
     "UserReadyResponse",
-    "UserNotReadyResponse",
     "ScoreUpdateResponse",
     "SessionStateResponse",
 ]

@@ -33,7 +33,7 @@ class SingleplayerGameplay(Gameplay):
         self.board = board
 
         self._timer = timer
-        self._time_start: Optional[float] = None
+        self._timer_base: Optional[float] = None
 
         self.grid = Grid(
             rows=board.difficulty_level.rows,
@@ -78,14 +78,18 @@ class SingleplayerGameplay(Gameplay):
         if self.status == "not_started":
             self.status = "in_progress"
 
-        if self._time_start is None:
-            self._time_start = start_time if start_time is not None else self._timer()
+        if self._timer_base is None:
+            self._timer_base = start_time if start_time is not None else self._timer()
 
-    def update_elapsed_time(self, now: float):
-        if self._time_start is None:
+    def update_elapsed_time(self, now: Optional[float] = None):
+        if self._timer_base is None:
             raise RuntimeError("Game not started")
 
-        self.elapsed_time += now - self._time_start
+        if now is None:
+            now = self._timer()
+
+        self.elapsed_time += now - self._timer_base
+        self._timer_base = now
 
     def _finish_game(
         self,
@@ -96,7 +100,7 @@ class SingleplayerGameplay(Gameplay):
         if self.status == "finished":
             return
 
-        self.update_elapsed_time(self._timer() if now is None else now)
+        self.update_elapsed_time(now)
         self.status = "finished"
         self.result = result
         self.loss_cause = loss_cause
@@ -194,6 +198,8 @@ class SingleplayerGameplay(Gameplay):
         ]
 
     def get_game_state(self) -> GameState:
+        if self.status == "in_progress":
+            self.update_elapsed_time()
         return GameState(
             board_id=self.board.id,
             difficulty_level=self.board.difficulty_level,

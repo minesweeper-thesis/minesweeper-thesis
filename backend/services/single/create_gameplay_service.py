@@ -1,5 +1,6 @@
 import logging
 import uuid
+from contextlib import suppress
 from typing import Optional
 
 from backend.core.board import Board, GenerationSettings
@@ -7,8 +8,12 @@ from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
 from backend.protocols.pending_boards_store_protocol import PendingBoardMetadata
+from backend.protocols.repos.exceptions import (
+    BoardNotFound,
+    GameplayNotFound,
+    UnsolvedBoardNotFound,
+)
 from backend.services.dto import *
 from backend.services.exceptions import *
 
@@ -60,6 +65,19 @@ class CreateSingleGameplayService:
 
         try:
             if game_settings.board_id:
+                if user is None:
+                    raise SpecificBoardAnonymousUser(
+                        "Cannot use specific board_id for anonymous user"
+                    )
+
+                with suppress(GameplayNotFound):
+                    await self.game_repo.get_user_gameplay_on_board(
+                        user.id, game_settings.board_id
+                    )
+                    raise BoardAlreadyPlayed(
+                        f"User {user.id} has already played board {game_settings.board_id}"
+                    )
+
                 board = await self.board_repo.get_board_by_id(game_settings.board_id)
 
             if game_settings.difficulty_level and not game_settings.generator:

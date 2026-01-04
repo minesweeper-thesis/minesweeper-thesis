@@ -34,12 +34,13 @@ class LobbyWebsocketsTransport(LobbyTransport):
                 f"Cannot send game event to {receiver_id} in lobby {self.lobby_id}: not connected"
             )
 
-    async def close(self, receiver_id: uuid.UUID) -> None:
-        logger.debug(f"close(receiver_id={receiver_id}, lobby_id={self.lobby_id})")
-        if lobby_websockets.is_connected(self.lobby_id, receiver_id):
-            websocket = lobby_websockets.get(self.lobby_id, receiver_id)
-            logger.info(f"Closing websocket for {receiver_id} in lobby {self.lobby_id}")
-            await websocket.close()
+    async def send_many(self, events_by_receiver: dict[uuid.UUID, list[Any]]) -> None:
+        logger.debug(
+            f"send_many(events_by_receiver_keys={list(events_by_receiver.keys())}, lobby_id={self.lobby_id})"
+        )
+        for receiver_id, events in events_by_receiver.items():
+            for event in events:
+                await self.send(receiver_id, event)
 
 
 class LobbyTransportFactory:

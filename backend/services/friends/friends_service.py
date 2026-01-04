@@ -10,11 +10,11 @@ from backend.di.dependencies import (
     NotificationSystemDep,
     UserRepositoryDep,
 )
-from backend.protocols.friends_repo_protocol import (
+from backend.protocols.repos.exceptions import (
     FriendRequestNotFound,
     FriendshipNotFound,
+    UserNotFound,
 )
-from backend.protocols.user_repo_protocol import UserNotFound
 from backend.services.exceptions import *
 
 logger = logging.getLogger(__name__)

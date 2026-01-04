@@ -6,7 +6,7 @@ from fastapi_pagination import Params
 
 from backend.core.user import User, UserChatMessage
 from backend.di.dependencies import *
-from backend.protocols.user_repo_protocol import UserNotFound
+from backend.protocols.repos.exceptions import UserNotFound
 from backend.services.exceptions import *
 from backend.services.exceptions import UserNotExists
 

@@ -27,6 +27,12 @@ class PendingBoardsStore(Protocol):
         self, gameplay_id: uuid.UUID
     ) -> Optional[PendingBoard]: ...
 
+    async def create_pending(
+        self, generation_id: uuid.UUID, metadata: PendingBoardMetadata
+    ) -> PendingBoard: ...
+
+    async def delete_pending(self, generation_id: uuid.UUID) -> None: ...
+
     async def mark_ready(
         self, generation_id: uuid.UUID, board_id: uuid.UUID
     ) -> None: ...
@@ -34,10 +40,6 @@ class PendingBoardsStore(Protocol):
     async def wait_for_ready(
         self, generation_id: uuid.UUID
     ) -> Optional["PendingBoard"]: ...
-
-    async def create_pending(
-        self, generation_id: uuid.UUID, metadata: PendingBoardMetadata
-    ) -> PendingBoard: ...
 
 
 __all__ = ["PendingBoardsStore"]

@@ -1,30 +1,14 @@
 import uuid
 from collections import defaultdict
-from copy import copy
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Callable, Literal, Optional
+from typing import Any, Callable, Literal
 
 from backend.core.board import Board
 from backend.core.game import *
 from backend.core.multi.multi_gameplay import MultiplayerGameplay
 from backend.core.multi.score import *
-
-
-@dataclass
-class RoundStart:
-    session_id: uuid.UUID
-    round_index: int
-    start_at: datetime
-    end_at: datetime
-    start_field: Cell
-
-
-@dataclass
-class RoundEnd:
-    session_id: uuid.UUID
-    round_index: int
-    scoreboard: RoundScoreboard
 
 
 @dataclass
@@ -49,18 +33,20 @@ class MultiplayerRound:
         round_time: timedelta,
         board: Board,
         gameplays: list[MultiplayerGameplay],
+        start_at: datetime,
+        session_scores: dict[uuid.UUID, float],
         timer: Callable[[], datetime] = datetime.now,
     ):
         self.session_id = session_id
         self.round_index = round_index
         self.round_time = round_time
-        self.board = board
+        self.board_id = board.id
         self.gameplays = {gameplay.user_id: gameplay for gameplay in gameplays}
 
-        self.start_at: Optional[datetime] = None
-        self.end_at: Optional[datetime] = None
+        self._start_at = start_at
+        self._end_at = start_at + round_time
         self._timer = timer
-
+        self.ended_before_timeout = False
         self._events: dict[uuid.UUID, list[Any]] = defaultdict(list)
 
         self.scoreboard: RoundScoreboard = RoundScoreboard(
@@ -75,59 +61,31 @@ class MultiplayerRound:
             ]
         )
 
+        for user_id, score in session_scores.items():
+            score_item = self._get_user_score_item(user_id)
+            score_item.score = score
+            score_item.status = "in_progress"
+
+        for gameplay in gameplays:
+            gameplay.start_game_if_not_started(start_at)
+
     @property
     def state(self) -> RoundState:
         now = self._timer()
-        if self.start_at is None or self.end_at is None:
+        if now < self._start_at:
             return "not_started"
-        if now < self.start_at:
-            return "not_started"
-        if self.start_at <= now < self.end_at and not self.all_gameplays_finished():
+        if self._start_at <= now < self._end_at and not self.all_gameplays_finished():
             return "playing"
         return "ended"
 
     def all_gameplays_finished(self) -> bool:
         return all(gameplay.is_game_over() for gameplay in self.gameplays.values())
 
-    def prepare(
-        self, start_at: datetime | None, session_scores: dict[uuid.UUID, float]
-    ) -> None:
-        self.start_at = start_at
-        if self.start_at is not None:
-            self.end_at = self.start_at + self.round_time
-        else:
-            self.end_at = None
-
-        for user_id, score in session_scores.items():
-            score_item = self._get_user_score_item(user_id)
-            score_item.score = score
-            score_item.status = "in_progress"
-
-    def start(self) -> None:
-        assert self.start_at is not None
-        assert self.end_at is not None
-
-        for gameplay in self.gameplays.values():
-            gameplay.start_game_if_not_started(self.start_at)
-
-        for user_id in self.gameplays.keys():
-            self._events[user_id].append(
-                RoundStart(
-                    session_id=self.session_id,
-                    round_index=self.round_index,
-                    start_at=self.start_at,
-                    end_at=self.end_at,
-                    start_field=self.board.start_field,
-                )
-            )
-
-    def end(self) -> None:
-        assert self.end_at is not None
-
+    def timeout(self) -> None:
         for gameplay in self.gameplays.values():
             if not gameplay.is_game_over():
                 gameplay.finish_game(
-                    "loss", LossCause("time_out"), now=self.end_at.timestamp()
+                    "loss", LossCause("time_out"), now=self._end_at.timestamp()
                 )
                 self._events[gameplay.user_id].append(
                     GameOverResult(
@@ -139,18 +97,9 @@ class MultiplayerRound:
                 )
 
         for gameplay in self.gameplays.values():
-            self._update_user_score_item(gameplay.user_id)
-            self._set_final_score(gameplay.user_id)
+            self._update_user_score(gameplay.user_id)
 
-        for user_id in self.gameplays.keys():
-            self.scoreboard.sort()
-            self._events[user_id].append(
-                RoundEnd(
-                    session_id=self.session_id,
-                    round_index=self.round_index,
-                    scoreboard=self.scoreboard,
-                )
-            )
+        self.scoreboard.sort()
 
     def _get_user_score_item(self, user_id: uuid.UUID) -> RoundScoreItem:
         for item in self.scoreboard.items:
@@ -158,21 +107,22 @@ class MultiplayerRound:
                 return item
         raise RuntimeError(f"User {user_id} not found in scoreboard")
 
-    def _update_user_score_item(self, user_id: uuid.UUID):
+    def _update_user_score(self, user_id: uuid.UUID):
         gameplay = self.gameplays[user_id]
         score_item = self._get_user_score_item(user_id)
+        before = deepcopy(score_item)
 
         score_item.revealed_count = len(gameplay.revealed_cells)
         score_item.status = "finished" if gameplay.is_game_over() else "in_progress"
         score_item.result = gameplay.result
         score_item.loss_cause = gameplay.loss_cause
 
-    def _set_final_score(self, user_id: uuid.UUID):
-        gameplay = self.gameplays[user_id]
-        score_item = self._get_user_score_item(user_id)
-
         if gameplay.is_game_over() and gameplay.result == "win":
             score_item.score += self.round_time.total_seconds() - gameplay.elapsed_time
+
+        if before != score_item:
+            for player_id in self.gameplays.keys():
+                self._events[player_id].append(ScoreUpdate(score=score_item))
 
     def execute_action_for_user(self, user_id: uuid.UUID, action: GameAction) -> None:
         if self.state != "playing":
@@ -181,7 +131,12 @@ class MultiplayerRound:
         gameplay = self.gameplays[user_id]
         self._events[user_id].append(action.execute(gameplay))
 
+        self._update_user_score(user_id)
+
         if gameplay.is_game_over():
+            if self.all_gameplays_finished():
+                self.ended_before_timeout = True
+
             assert gameplay.result is not None
             self._events[user_id].append(
                 GameOverResult(
@@ -192,13 +147,7 @@ class MultiplayerRound:
                 )
             )
 
-        if not self.all_gameplays_finished():
-            before = copy(self._get_user_score_item(user_id))
-            self._update_user_score_item(user_id)
-            after = self._get_user_score_item(user_id)
-            if before != after:
-                for player_id in self.gameplays.keys():
-                    self._events[player_id].append(ScoreUpdate(score=after))
+            self.scoreboard.sort()
 
     def consume_events(self) -> dict[uuid.UUID, list[Any]]:
         events = self._events
@@ -206,13 +155,15 @@ class MultiplayerRound:
         return events
 
 
-async def create_multiplayer_round(
+def create_multiplayer_round(
     session_id: uuid.UUID,
     round_index: int,
     round_time: timedelta,
     board: Board,
     player_ids: list[uuid.UUID],
     mode: GameMode,
+    start_at: datetime,
+    session_scores: dict[uuid.UUID, float],
 ) -> MultiplayerRound:
     gameplays = [
         MultiplayerGameplay(
@@ -229,14 +180,14 @@ async def create_multiplayer_round(
         round_time=round_time,
         board=board,
         gameplays=gameplays,
+        start_at=start_at,
+        session_scores=session_scores,
     )
 
 
 __all__ = [
     "MultiplayerRound",
     "create_multiplayer_round",
-    "RoundStart",
-    "RoundEnd",
     "ScoreUpdate",
     "RoundState",
     "InvalidRoundState",

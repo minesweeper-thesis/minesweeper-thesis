@@ -8,6 +8,7 @@ from backend import protocols
 from backend.core.multi.session import MultiplayerSession
 from backend.db.db import DBSession
 from backend.lib.redis_client import decode, encode
+from backend.protocols.repos.exceptions import SessionNotFound
 
 from .orm import *
 
@@ -30,14 +31,10 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             )
             return session
 
-        raise protocols.SessionNotFound(
-            f"Multiplayer session with id {session_id} not found"
-        )
+        raise SessionNotFound(f"Multiplayer session with id {session_id} not found")
 
     async def save_session(self, session: MultiplayerSession):
-        logger.debug(
-            f"save_session(session_id={session.id}, current_round_index={session.current_round_index})"
-        )
+        logger.debug(f"save_session(session_id={session.id})")
 
         if session.is_over():
             await self.delete(session.id)
@@ -45,9 +42,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         else:
             await self._save_ongoing(session)
 
-        logger.info(
-            f"Multiplayer session {session.id} saved with current_round_index={session.current_round_index}"
-        )
+        logger.info(f"Multiplayer session {session.id} saved")
 
     async def _save_ongoing(self, session: MultiplayerSession):
         logger.debug(
@@ -71,7 +66,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             if data:
                 return decode(data)
 
-        raise protocols.SessionNotFound(
+        raise SessionNotFound(
             f"Multiplayer session for lobby with id {lobby_id} not found"
         )
 
@@ -133,7 +128,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             round_orm = MultiplayerRoundORM(
                 session_id=session.id,
                 round_index=round.round_index,
-                board_id=round.board.id,
+                board_id=round.board_id,
             )
             self.session.add(round_orm)
 

@@ -4,28 +4,30 @@ from typing import Annotated
 
 from fastapi import Depends
 
-from backend.config import BACKEND_URL
+from backend.config import DEV
 from backend.core.board import DifficultyLevel, GeneratorParams
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
-from backend.protocols.lobby_repo_protocol import InvitationNotFound, LobbyNotFound
-from backend.protocols.multiplayer_repo_protocol import SessionNotFound
+from backend.protocols.repos.exceptions import (
+    InvitationNotFound,
+    LobbyNotFound,
+    SessionNotFound,
+)
+from backend.protocols.repos.user_repo_protocol import UserNotFound
 from backend.services.dto import (
     GameConfigUpdated,
     KickedFromLobby,
     UserConnectionUpdated,
 )
+from backend.services.dto.round import UserReady
 from backend.services.exceptions import *
-from backend.services.exceptions import SessionActive, UserNotExists
-from backend.services.lobby.helpers import *
+from backend.services.exceptions import UserNotExists
 from backend.services.multi.session_renewer import SessionRenewer
 
 logger = logging.getLogger(__name__)
-
-DEV = "localhost" in BACKEND_URL
 
 
 DEFAULT_GAME_CONFIG = (
@@ -40,7 +42,7 @@ DEFAULT_GAME_CONFIG = (
     else GameConfig(
         rounds=3,
         max_round_time=60,
-        difficulty_level=DifficultyLevel(10, 10, 15),
+        difficulty_level=DifficultyLevel.easy(),
         game_mode="normal",
         generator=Generator(
             generator_type="ml",
@@ -73,7 +75,8 @@ class LobbyService:
         logger.debug(f"create_lobby(user_id={user.id})")
         lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
-            await self._remove_user(lobby_to_leave, user)
+            lobby_to_leave.remove_user(user)
+            await self._on_remove(lobby_to_leave, user)
 
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         await self.lobby_repo.save_lobby(lobby)
@@ -92,26 +95,37 @@ class LobbyService:
         logger.debug(f"join_lobby(user_id={user.id}, invitation_id={invitation_id})")
         lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
-            await self._remove_user(lobby_to_leave, user)
+            lobby_to_leave.remove_user(user)
+            await self._on_remove(lobby_to_leave, user)
 
         try:
             invitation = await self.lobby_repo.get_invitation(invitation_id)
             lobby = await self.lobby_repo.get_lobby(invitation.lobby.id)
+            session = await self.multi_repo.get_for_lobby(lobby.id)
 
-            if invitation.invitee != user or invitation.lobby != lobby:
+            try:
+                invitation.validate(user, lobby, session)
+            except NotAuthorizedToJoinLobby:
                 logger.warning(
-                    f"User {user.id} not authorized to join lobby via invitation {invitation_id}"
+                    f"User {user.id} not authorized to join lobby {lobby.id} with invitation {invitation.id}"
                 )
-                raise InvitationNotExists()
-        except InvitationNotFound:
+                raise
+            except SessionActive:
+                logger.warning(
+                    f"User {user.id} attempted to join active session for lobby {lobby.id}"
+                )
+                raise
+
+        except (InvitationNotFound, LobbyNotFound, SessionNotFound):
             logger.warning(
-                f"Invitation {invitation_id} not found for user {user.id} when joining lobby"
+                f"Invitation {invitation_id} not found for user {user.id} when joining lobby",
+                exc_info=True,
             )
             raise InvitationNotExists() from None
 
         lobby.add_user(user)
         await self.lobby_repo.save_lobby(lobby)
-        await self._sync_session_players(lobby)
+        await self.session_renewer.renew_session(lobby.id)
         await self.lobby_repo.delete_invitation(invitation.id)
 
         response = InvitationAnswer(invitation=invitation, answer="accepted")
@@ -131,14 +145,9 @@ class LobbyService:
         try:
             logger.debug(f"update_lobby(lobby_id={lobby_id}, user_id={user.id})")
             lobby = await self.lobby_repo.get_lobby(lobby_id)
-
-            ensure_user_is_host(lobby, user)
-
             session = await self.multi_repo.get_for_lobby(lobby.id)
-            if session.is_started() and not session.ready_locked:
-                raise SessionActive()
 
-            lobby.update_game_config(game_config)
+            lobby.update_game_config(user, game_config, session)
             await self.lobby_repo.save_lobby(lobby)
 
             await self.session_renewer.renew_session(lobby_id)
@@ -169,9 +178,10 @@ class LobbyService:
             )
             lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-            ensure_user_in_lobby(lobby, user)
+            lobby.ensure_user_in_lobby(user)
 
-            await self._remove_user(lobby, user)
+            lobby.remove_user(user)
+            await self._on_remove(lobby, user)
         except LobbyNotFound:
             raise LobbyNotExists() from None
 
@@ -182,17 +192,11 @@ class LobbyService:
             logger.debug(
                 f"kick_from_lobby(lobby_id={lobby_id}, user_id={user.id}, target_user_id={target_user_id})"
             )
+            target_user = await self.user_repo.get_user(target_user_id)
             lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-            ensure_user_is_host(lobby, user)
-
-            target_user = await self.user_repo.get_user(target_user_id)
-            if not target_user:
-                raise UserNotExists()
-
-            ensure_user_in_lobby(lobby, target_user)
-
-            await self._remove_user(lobby, target_user)
+            lobby.kick_user(user, target_user)
+            await self._on_remove(lobby, target_user)
 
             kicked_data = KickedFromLobby(lobby_id)
             await self.notification_system.notify(target_user.id, kicked_data)
@@ -201,16 +205,22 @@ class LobbyService:
             )
         except LobbyNotFound:
             raise LobbyNotExists() from None
+        except UserNotFound:
+            raise UserNotExists() from None
 
-    async def _remove_user(self, lobby: Lobby, user: User):
-        logger.debug(f"_remove_user(lobby_id={lobby.id}, user_id={user.id})")
-        lobby.remove_user(user)
+    async def _on_remove(self, lobby: Lobby, user: User):
+        logger.debug(f"_on_remove(lobby_id={lobby.id}, user_id={user.id})")
 
         if lobby.is_empty():
             await self.lobby_repo.delete_lobby(lobby.id)
         else:
             await self.lobby_repo.save_lobby(lobby)
-            await self._sync_session_players(lobby)
+            session = await self.multi_repo.get_for_lobby(lobby.id)
+
+            async with self.session_lock.acquire(session.id):
+                session.remove_player(user)
+                await self.multi_repo.save_session(session)
+
             transport = self.lobby_transport_factory.get(lobby.id)
             await transport.broadcast(
                 UserConnectionUpdated(
@@ -218,12 +228,11 @@ class LobbyService:
                 )
             )
 
-    async def _sync_session_players(self, lobby: Lobby) -> None:
-        session = await self.multi_repo.get_for_lobby(lobby.id)
-        async with self.session_lock.acquire(session.id):
-            if not session.is_started() and not session.is_over():
-                session.set_player_ids([user.id for user in lobby.users])
-                await self.multi_repo.save_session(session)
+            if not session.ready_locked:
+                for player_id in session.player_ids:
+                    await transport.broadcast(
+                        UserReady(player_id, session.current_round_index, False)
+                    )
 
 
 __all__ = ["LobbyService"]
