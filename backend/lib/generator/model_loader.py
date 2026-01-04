@@ -1,6 +1,6 @@
 import os
 import tempfile
-from abc import ABC
+from abc import ABC, abstractmethod
 
 from backend.config import (
     AWS_ACCESS_KEY_ID,
@@ -25,6 +25,7 @@ class _ModelLoaderABC(ABC):
 
         self._path = os.path.join("models_onnx", self._filename)
 
+    @abstractmethod
     def get_model_path(self) -> str: ...
 
 
@@ -58,6 +59,8 @@ class RemoteModelLoader(_ModelLoaderABC):
 
 
 class ModelLoader(_ModelLoaderABC):
+    _loader: _ModelLoaderABC
+
     def __init__(
         self,
         rows: int,

@@ -36,8 +36,8 @@ class OnnxClassifier(BaseClassifier):
             instance.session = rt.InferenceSession(
                 filename, providers=["CPUExecutionProvider"]
             )
-            instance.input_name = instance.session.get_inputs()[0].name
-            instance.output_name = instance.session.get_outputs()[0].name
+            instance.input_name = instance.session.get_inputs()[0].name  # type: ignore
+            instance.output_name = instance.session.get_outputs()[0].name  # type: ignore
             return instance
         except Exception as e:
             raise RuntimeError(f"Cannot load ONNX model from file '{filename}': {e}")
