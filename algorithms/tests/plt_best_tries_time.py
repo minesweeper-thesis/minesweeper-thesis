@@ -9,7 +9,7 @@ from skopt.space import Integer, Real
 from algorithms.tests.hyperparameter_optimization.hyperparameter_optimizer import (
     HyperparameterOptimizer,
 )
-from algorithms.boards.functions.variance import variance
+from algorithms.boards.functions.dispersion import dispersion
 from algorithms.generator_joblib import Generator
 from algorithms.boards.functions.all_fields import all_fields
 
@@ -126,8 +126,12 @@ def optimize(params):
 
 
 TRIES_NOW = 100
+efficient_frontier = {}
 
-"""
+for rows, cols, mines in ((10, 10, 15), (16, 16, 40), (16, 30, 99)):
+    efficient_frontier[(rows, cols, mines)] = []
+
+
 to_optimize = []
 
 for heuristic in heuristics:
@@ -195,15 +199,17 @@ for heuristic in heuristics:
             tries.append(tries_count)
             times.append(end - start)
 
-        print(variance(boards))
+        efficient_frontier[(rows, cols, mine_count)].append(
+            (heuristic, stats.mean(times), dispersion(boards))
+        )
 
         weights = [1 / len(times)] * len(times)
         plt.hist(times, bins=20, weights=weights)
 
-        plt.xlabel("Generation time (s)")
+        plt.xlabel("Generation Time (s)")
         plt.ylabel("Frequency")
         plt.title(
-            f"Histogram of generation time\n{heuristic}, {best_classifier}{best_version}, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(times)}, stdev = {stats.stdev(times)}"
+            f"Histogram of Generation Time\n{heuristic}, {best_classifier}{best_version}, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(times):.3f}, stdev = {stats.stdev(times):.3f}"
         )
         plt.grid(True)
 
@@ -219,10 +225,10 @@ for heuristic in heuristics:
 
         plt.hist(tries, bins=bins, weights=weights, rwidth=0.8)
 
-        plt.xlabel("Generation tries")
-        plt.ylabel("Frequencuy")
+        plt.xlabel("Generation Tries")
+        plt.ylabel("Frequency")
         plt.title(
-            f"Histogram of generation tries\n{heuristic}, {best_classifier}{best_version}, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(tries)}, stdev = {stats.stdev(tries)}"
+            f"Histogram of Generation Tries\n{heuristic}, {best_classifier}{best_version}, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(tries):.3f}, stdev = {stats.stdev(tries):.3f}"
         )
         bin_centers = [(b + bins[i + 1]) / 2 for i, b in enumerate(bins[:-1])]
 
@@ -234,7 +240,7 @@ for heuristic in heuristics:
             f"algorithms/tests/plots/{heuristic}_{rows},{cols},{mine_count}_hist_tries.png"
         )
 
-        plt.clf()"""
+        plt.clf()
 
 
 for rows, cols, mine_count in [(10, 10, 15), (16, 16, 40), (16, 30, 99)]:
@@ -265,14 +271,19 @@ for rows, cols, mine_count in [(10, 10, 15), (16, 16, 40), (16, 30, 99)]:
         tries.append(tries_count)
         times.append(end - start)
 
-    print(variance(boards))
+    print(dispersion(boards))
+
+    efficient_frontier[(rows, cols, mine_count)].append(
+        ("no", stats.mean(times), dispersion(boards))
+    )
+
     weights = [1 / len(times)] * len(times)
     plt.hist(times, bins=20, weights=weights)
 
-    plt.xlabel("Generation time (s)")
+    plt.xlabel("Generation Time (s)")
     plt.ylabel("Frequency")
     plt.title(
-        f"Histogram of generation time\nno heuristic, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(times)}, stdev = {stats.stdev(times)}"
+        f"Histogram of Generation Time\nno heuristic, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(times):.3f}, stdev = {stats.stdev(times):.3f}"
     )
     plt.grid(True)
 
@@ -286,10 +297,10 @@ for rows, cols, mine_count in [(10, 10, 15), (16, 16, 40), (16, 30, 99)]:
 
     plt.hist(tries, bins=bins, weights=weights, rwidth=0.8)
 
-    plt.xlabel("Generation tries")
-    plt.ylabel("Frequencuy")
+    plt.xlabel("Generation Tries")
+    plt.ylabel("Frequency")
     plt.title(
-        f"Histogram of generation tries\nno heuristic, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(tries)}, stdev = {stats.stdev(tries)}"
+        f"Histogram of Generation Tries\nno heuristic, {rows}x{cols} board, {mine_count} mines\navg = {stats.mean(tries):.3f}, stdev = {stats.stdev(tries):.3f}"
     )
     bin_centers = [(b + bins[i + 1]) / 2 for i, b in enumerate(bins[:-1])]
 
@@ -298,5 +309,26 @@ for rows, cols, mine_count in [(10, 10, 15), (16, 16, 40), (16, 30, 99)]:
 
     plt.tight_layout()
     plt.savefig(f"algorithms/tests/plots/no_{rows},{cols},{mine_count}_hist_tries.png")
+
+    plt.clf()
+
+
+for (rows, cols, mine_count), data in efficient_frontier.items():
+    names, generation_times, dispersions = zip(*data)
+
+    plt.figure(figsize=(8, 6))
+    plt.scatter(generation_times, dispersions, color="blue")
+
+    for name, x, y in zip(names, generation_times, dispersions):
+        plt.text(x, y, name, fontsize=10, ha="right", va="bottom")
+
+    plt.xlabel("Generation Time (s)")
+    plt.ylabel("Dispersion (0-1)")
+    plt.title(
+        f"Heuristic Generation Time vs Dispersion\n{rows}x{cols} board, {mine_count} mines"
+    )
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(f"algorithms/tests/plots/{rows},{cols},{mine_count}_dispersion.png")
 
     plt.clf()
