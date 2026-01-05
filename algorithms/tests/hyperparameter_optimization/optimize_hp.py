@@ -23,9 +23,9 @@ param_spaces = {
     "PSO": [
         Integer(1, 100, name="iterations"),
         Integer(1, 100, name="particle_count"),
-        Real(0.4, 0.9, prior="uniform", name="random_specimen_rate"),
-        Real(1.0, 2.5, prior="uniform", name="random_specimen_rate"),
-        Real(1.0, 2.5, prior="uniform", name="random_specimen_rate"),
+        Real(0.4, 0.9, prior="uniform", name="w_coefficient"),
+        Real(1.0, 2.5, prior="uniform", name="c1_coefficient"),
+        Real(1.0, 2.5, prior="uniform", name="c2_coefficient"),
     ],
     "SA": [
         Integer(1, 100, name="iterations"),

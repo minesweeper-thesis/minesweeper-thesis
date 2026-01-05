@@ -97,7 +97,7 @@ const LoginPage = () => {
                                 value={formData.username}
                                 onChange={handleChange}
                                 required
-                                placeholder="Enter your username or email"
+                                placeholder="Enter your email"
                                 className="px-3 py-2 rounded-md border border-border-primary bg-cell-revealed text-text-primary placeholder:text-text-secondary focus:outline-none focus:ring-2 focus:ring-accent-primary"
                             />
                         </div>
