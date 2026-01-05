@@ -10,7 +10,12 @@ from backend.core.multi import *
 from backend.schemas import Response
 from backend.schemas.common import GeneratorSchema
 from backend.schemas.user import UserResponse
-from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
+from backend.services.dto import (
+    GameConfigUpdated,
+    UserConnectionUpdated,
+    UserCurrentLobby,
+    UserOnlineUpdated,
+)
 
 
 class GameConfigResponse(BaseModel):
@@ -146,7 +151,6 @@ __all__ = [
     "GameConfigUpdatedResponse",
     "UserConnectionStatusResponse",
     "CurrentLobbyResponse",
-    "GameConfigUpdatedResponse",
     "KickUserRequest",
     "KickedResponse",
     "UserOnlineUpdatedResponse",

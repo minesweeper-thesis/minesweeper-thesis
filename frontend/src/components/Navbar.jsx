@@ -12,10 +12,12 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLogout } from '../hooks/useLogout';
 import {applyTheme} from "../contexts/ThemeProvider";
+import {useGame} from "../contexts/GameServiceContext";
 
 const Navbar = ({ children }) => {
     const { user, loading } = useAuth();
     const logout = useLogout();
+    const { isWsConnected } = useGame()
     const location = useLocation();
     const { pathname } = location;
 
@@ -70,9 +72,13 @@ const Navbar = ({ children }) => {
                 </div>
 
                 {/* User Menu */}
-                <div className="flex items-center gap-4 order-2 md:order-none">
+                <div className="flex items-center gap-4 order-2 md:order-none relative">
                     {!loading && user ? (
-                        <>
+                        <div
+                            className={`flex items-center gap-2 transition-opacity ${
+                                !isWsConnected ? 'opacity-50 pointer-events-none' : 'opacity-100'
+                            }`}
+                        >
                             {/* User info */}
                             <div className="flex items-center gap-2 text-text-primary font-medium">
                                 <img
@@ -87,15 +93,21 @@ const Navbar = ({ children }) => {
                             <button
                                 className="flex items-center gap-2 px-4 py-2 text-text-secondary border border-border-primary rounded-lg bg-bg-tertiary hover:bg-bg-primary transition"
                                 onClick={logout}
+                                disabled={!isWsConnected}
                             >
                                 <LogOut size={16} />
                                 Logout
                             </button>
-                        </>
+
+                            {/* Spinner overlay */}
+                            {!isWsConnected && (
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    <div className="w-6 h-6 border-4 border-t-accent-primary border-b-accent-primary border-l-transparent border-r-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                        </div>
                     ) : (
-                        <span className={`gap-2`}>
-
-
+                                    <span className={`gap-2`}>
                         <NavLink
                             to="/register"
                             className="px-4 py-2 mr-2 rounded-lg bg-accent-primary text-white font-semibold hover:bg-accent-secondary transition"
@@ -109,9 +121,10 @@ const Navbar = ({ children }) => {
                         >
                             Login
                         </NavLink>
-                        </span>
+                    </span>
                     )}
-                </div>
+                            </div>
+
             </div>
         </header>
     );

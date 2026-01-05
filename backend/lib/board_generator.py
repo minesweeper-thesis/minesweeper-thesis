@@ -4,16 +4,14 @@ import uuid
 
 from fastapi import BackgroundTasks
 
-logger = logging.getLogger(__name__)
-
 from backend.core.board import BoardGenerator as CoreBoardGenerator
 from backend.core.board import GenerationSettings
 from backend.protocols.board_generator_protocol import *
 
-_generation_statuses: dict[uuid.UUID, GenerationStatus] = {}
+logger = logging.getLogger(__name__)
 
 
-class LocalBoardGenerator(BoardGenerator):
+class BackgroundBoardGenerator(BoardGenerator):
     def __init__(self, background_tasks: BackgroundTasks):
         self.background_tasks = background_tasks
 
@@ -26,7 +24,6 @@ class LocalBoardGenerator(BoardGenerator):
             f"generate_board(difficulty={settings.difficulty_level}, type={settings.type})"
         )
         generation_id = uuid.uuid4()
-        _generation_statuses[generation_id] = "pending"
         logger.info(
             f"Starting board generation {generation_id} with settings: {settings.difficulty_level}"
         )
@@ -39,10 +36,8 @@ class LocalBoardGenerator(BoardGenerator):
                 settings.type,
                 settings.settings,
             )
-            _generation_statuses[generation_id] = "in_progress"
             logger.debug(f"Board generation {generation_id} in progress")
             board = generator.generate_board()
-            _generation_statuses[generation_id] = "completed"
             logger.info(f"Board generation {generation_id} completed")
             asyncio.run_coroutine_threadsafe(on_completed(generation_id, board), loop)
 
@@ -50,11 +45,35 @@ class LocalBoardGenerator(BoardGenerator):
 
         return generation_id
 
-    async def get_generation_status(
-        self, generation_id: GenerationID
-    ) -> GenerationStatus:
-        logger.debug(f"get_generation_status(generation_id={generation_id})")
-        try:
-            return _generation_statuses[generation_id]
-        except KeyError:
-            raise GenerationNotFound()
+
+class AsyncBoardGenerator(BoardGenerator):
+    def __init__(self):
+        pass
+
+    async def generate_board(
+        self,
+        settings: GenerationSettings,
+        on_completed: OnBoardGeneratedCallback,
+    ) -> GenerationID:
+        logger.debug(
+            f"generate_board(difficulty={settings.difficulty_level}, type={settings.type})"
+        )
+        generation_id = uuid.uuid4()
+        logger.info(
+            f"Starting board generation {generation_id} with settings: {settings.difficulty_level}"
+        )
+
+        async def task():
+            generator = CoreBoardGenerator(
+                settings.difficulty_level,
+                settings.type,
+                settings.settings,
+            )
+            logger.debug(f"Board generation {generation_id} in progress")
+            board = await asyncio.to_thread(generator.generate_board)
+            logger.info(f"Board generation {generation_id} completed")
+            await on_completed(generation_id, board)
+
+        asyncio.create_task(task())
+
+        return generation_id

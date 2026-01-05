@@ -1,17 +1,17 @@
 import asyncio
-from contextlib import suppress
 import logging
 import threading
 import uuid
+from contextlib import suppress
 from datetime import datetime
 from typing import Any, Callable, Coroutine
 
 from apscheduler.jobstores.base import JobLookupError
 from apscheduler.schedulers.background import BackgroundScheduler
 
-logger = logging.getLogger(__name__)
-
 from backend.protocols import JobID, Scheduler
+
+logger = logging.getLogger(__name__)
 
 
 class AsyncScheduler(Scheduler):

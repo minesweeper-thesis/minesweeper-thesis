@@ -8,8 +8,14 @@ import VictoryScreen from "../components/VictoryScreen";
 import { GameState } from "../utility";
 
 export default function GamePageSingle() {
-    const [boardData, setBoardData] = useState({ rows: 10, cols: 10, mineCount: 15, mode: "normal" });
-    const [heuristicData, setHeuristicData] = useState({ classifier: "lightgbm", heuristic: "no", heuristic_args: [] });
+    const [boardData, setBoardData] = useState({
+        difficulty_level: {
+            "rows": 10,
+            "columns": 10,
+            "mine_count": 15
+        },
+        mode: "normal" }
+    );
     const [gameState, setGameState] = useState(GameState.NOT_STARTED);
     const [mines, setMines] = useState(0);
     const [gameplayId, setGameplayId] = useState(null);
@@ -21,17 +27,12 @@ export default function GamePageSingle() {
     async function initGameRequest(storedId) {
         if (storedId) return { gameplay_id: storedId };
 
-        let REQUEST_BODY = {
-            generator: { type: "ml", settings: { ...heuristicData } },
-            difficulty_level: { rows: boardData.rows, columns: boardData.cols, mine_count: boardData.mineCount },
-            mode: boardData.mode,
-        };
-        console.log(REQUEST_BODY);
+        console.log("Initializing game request...", boardData);
 
         const res = await fetch("/api/game/single", {
             method: "POST",
             headers: { "Content-Type": "application/json", accept: "application/json" },
-            body: JSON.stringify(REQUEST_BODY),
+            body: JSON.stringify(boardData),
         });
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         return res.json();
@@ -50,7 +51,7 @@ export default function GamePageSingle() {
         } catch (err) {
             console.error("Game init error:", err);
         }
-    }, [boardData, heuristicData]);
+    }, [boardData]);
 
     useEffect(() => {
         const stored = localStorage.getItem("gameplayId");
@@ -74,7 +75,7 @@ export default function GamePageSingle() {
     const { send, socketRef } = useGameWebSocket(socketUrl, boardInterpreter, boardRef, gameState );
 
     return (
-        <div className="game flex h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
+        <div className="game flex min-h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
             <aside className="w-64 p-4">
                 <DifficultyMenu setBoardData={setBoardData} onStart={onStart} />
             </aside>

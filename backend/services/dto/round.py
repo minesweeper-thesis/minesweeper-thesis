@@ -10,12 +10,7 @@ from backend.core.game import Cell
 class UserReady:
     user_id: uuid.UUID
     round_index: int
-
-
-@dataclass
-class UserNotReady:
-    user_id: uuid.UUID
-    round_index: int
+    ready: bool
 
 
 @dataclass
@@ -34,4 +29,4 @@ class RoundCountdown:
     start_field: Cell
 
 
-__all__ = ["UserReady", "UserNotReady", "RoundReady", "RoundCountdown"]
+__all__ = ["UserReady", "RoundReady", "RoundCountdown"]

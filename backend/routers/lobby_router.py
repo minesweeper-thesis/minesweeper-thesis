@@ -5,8 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, Params
 
 from backend import services
-from backend.core.lobby.lobby import UserNotInLobby
-from backend.core.multi.session import ReadyChangeLocked
+from backend.core.lobby import SessionActive, UserNotHost, UserNotInLobby
 from backend.lib.auth import CurrentUser
 from backend.schemas.lobby import *
 from backend.services.exceptions import *
@@ -31,7 +30,9 @@ lobby_exceptions: dict[type[Exception], HTTPException] = {
     ),
     LobbyNotExists: HTTPException(status_code=404, detail="Lobby not found."),
     InvitationNotExists: HTTPException(status_code=404, detail="Invitation not found."),
-    ReadyChangeLocked: HTTPException(400, "Cannot change ready status at this time"),
+    SessionActive: HTTPException(
+        status_code=400, detail="Cannot modify lobby with active session."
+    ),
 }
 
 
@@ -67,18 +68,6 @@ async def invite_user_to_lobby(
     await service.invite_to_lobby(lobby_id, user, request.user_id)
 
 
-@lobby_router.post("/{lobby_id}/join")
-async def join_lobby(
-    lobby_id: uuid.UUID,
-    service: LobbyService,
-    user: CurrentUser,
-    request: JoinLobbyRequest,
-):
-    """Joins a lobby using an invitation."""
-    lobby = await service.join_lobby(user, request.invitation_id)
-    return LobbyResponse.build(lobby)
-
-
 @lobby_router.post("/{lobby_id}/leave")
 async def leave_lobby(
     lobby_id: uuid.UUID,
@@ -108,35 +97,6 @@ async def reject_game_invitation(
 ):
     """Rejects a game invitation."""
     await service.reject_game_invitation(invitation_id, user)
-
-
-@lobby_router.post("/{lobby_id}/ready/set")
-async def set_user_ready(
-    lobby_id: uuid.UUID,
-    service: StartRoundService,
-    user: CurrentUser,
-):
-    """Sets the user as ready in the lobby."""
-    await service.set_user_ready(user, lobby_id=lobby_id)
-
-
-@lobby_router.post("/{lobby_id}/ready/cancel")
-async def cancel_user_ready(
-    lobby_id: uuid.UUID,
-    user: CurrentUser,
-    service: StartRoundService,
-):
-    """Sets the user as not ready in the lobby."""
-    await service.cancel_user_ready(user, lobby_id=lobby_id)
-
-
-@lobby_router.post("/{lobby_id}/ready/toggle")
-async def toggle_user_ready(
-    lobby_id: uuid.UUID,
-    user: CurrentUser,
-    service: StartRoundService,
-):
-    await service.toggle_user_ready(user, lobby_id=lobby_id)
 
 
 @lobby_router.post("/{lobby_id}/chat-messages")

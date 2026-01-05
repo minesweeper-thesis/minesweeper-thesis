@@ -3,25 +3,25 @@ import uuid
 
 from fastapi_pagination import Params
 
-from backend.repositories.lobby_repo import LobbyNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend.core.game import *
 from backend.core.lobby import *
 from backend.core.multi import *
 from backend.core.user import User
 from backend.di.dependencies import *
+from backend.protocols.repos.exceptions import LobbyNotFound
 from backend.services.exceptions import *
-from backend.services.lobby.helpers import *
+
+logger = logging.getLogger(__name__)
 
 
 class LobbyChatService:
     def __init__(
-        self, lobby_repo: LobbyRepositoryDep, notification_system: NotificationSystemDep
+        self,
+        lobby_repo: LobbyRepositoryDep,
+        lobby_transport_factory: LobbyTransportFactoryDep,
     ):
         self.lobby_repo = lobby_repo
-        self.notification_system = notification_system
+        self.lobby_transport_factory = lobby_transport_factory
 
     async def send_chat_message(self, lobby_id: uuid.UUID, user: User, content: str):
         try:
@@ -30,7 +30,7 @@ class LobbyChatService:
             )
             lobby = await self.lobby_repo.get_lobby(lobby_id)
 
-            ensure_user_in_lobby(lobby, user)
+            lobby.ensure_user_in_lobby(user)
 
             message = LobbyChatMessage(
                 lobby_id=lobby_id,
@@ -41,8 +41,8 @@ class LobbyChatService:
 
             await self.lobby_repo.add_message(message)
 
-            for lobby_user in lobby.users:
-                await self.notification_system.notify(lobby_user.id, message)
+            transport = self.lobby_transport_factory.get(lobby.id)
+            await transport.broadcast(message)
 
             logger.debug(f"Chat message sent in lobby {lobby_id} by user {user.id}")
         except LobbyNotFound:
@@ -54,7 +54,7 @@ class LobbyChatService:
         try:
             logger.debug(f"get_chat_messages(lobby_id={lobby_id}, user_id={user.id})")
             lobby = await self.lobby_repo.get_lobby(lobby_id)
-            ensure_user_in_lobby(lobby, user)
+            lobby.ensure_user_in_lobby(user)
 
             return await self.lobby_repo.get_messages(lobby_id, pagination_params)
         except LobbyNotFound:

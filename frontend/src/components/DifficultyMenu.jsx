@@ -1,14 +1,31 @@
-import React, {useEffect, useState} from 'react';
-import { Settings, Zap, Target, Flame } from 'lucide-react';
+import React, { useState } from "react";
+import GeneratorSettings from "./GeneratorSettings";
 import ModeSwitch from "./ModeSwitch";
+import { Settings, Zap, Target, Flame } from 'lucide-react';
 
 const DifficultyMenu = ({ setBoardData, onStart }) => {
     const [selected, setSelected] = useState('easy');
     const [customRows, setCustomRows] = useState(9);
     const [customCols, setCustomCols] = useState(9);
     const [customMines, setCustomMines] = useState(10);
-
     const [selectedMode, setSelectedMode] = useState(false);
+    const [showGenerator, setShowGenerator] = useState(false);
+
+    const [localData, setLocalData] = useState({
+        difficulty: selected,
+        rows: customRows,
+        cols: customCols,
+        mines: customMines,
+        mode: selectedMode ? "hardcore" : "normal",
+        generator: {
+            type: "random",
+            settings: {
+                heuristic: "random",
+                heuristic_args: [],
+                classifier: "lightgbm"
+            }
+        }
+    });
 
     const difficultyInfo = {
         easy: { icon: Zap, label: 'Easy', description: '10×10 grid, 15 mines', color: 'var(--success)' },
@@ -18,23 +35,25 @@ const DifficultyMenu = ({ setBoardData, onStart }) => {
     };
 
     const handleAccept = () => {
-        if (selected === 'easy') setParams(10, 10, 15);
-        else if (selected === 'medium') setParams(16, 16, 40);
-        else if (selected === 'hard') setParams(16, 30, 99);
-        else if (selected === 'custom') setParams(customRows, customCols, customMines);
-    };
+        let rows, cols, mines;
+        if (selected === 'easy') { rows=10; cols=10; mines=15; }
+        else if (selected === 'medium') { rows=16; cols=16; mines=40; }
+        else if (selected === 'hard') { rows=16; cols=30; mines=99; }
+        else { rows=customRows; cols=customCols; mines=customMines; }
 
-    const setParams  = (rows, cols, mines) => {
-        let newData = {
-            rows: rows,
-            cols: cols,
-            mineCount: mines,
-            mode: selectedMode ? "hardcore" : "normal",
-        }
-        setBoardData(newData);
+        const updatedData = {
+            ...localData,
+            difficulty_level: {
+                "rows": rows,
+                "columns": cols,
+                "mine_count": mines
+            },
+            mode: selectedMode ? "hardcore" : "normal"
+        };
+
+        setBoardData(updatedData);
         onStart();
-    }
-
+    };
 
     return (
         <div className="difficulty-selector card p-4 bg-bg-primary rounded-lg shadow-md">
@@ -75,7 +94,8 @@ const DifficultyMenu = ({ setBoardData, onStart }) => {
                                 min="5"
                                 max="30"
                                 value={customRows}
-                                onChange={(e) => setCustomRows(Math.max(1, parseInt(e.target.value) || 1))}
+                                onChange={(e) =>
+                                    setCustomRows(Math.max(1, parseInt(e.target.value) || 1))}
                                 className="p-2 text-sm border rounded text-text-secondary bg-bg-tertiary"
                             />
                         </div>
@@ -87,7 +107,8 @@ const DifficultyMenu = ({ setBoardData, onStart }) => {
                                 min="5"
                                 max="50"
                                 value={customCols}
-                                onChange={(e) => setCustomCols(Math.max(1, parseInt(e.target.value) || 1))}
+                                onChange={(e) =>
+                                    setCustomCols(Math.max(1, parseInt(e.target.value) || 1))}
                                 className="p-2 text-sm border rounded text-text-secondary bg-bg-tertiary"
                             />
                         </div>
@@ -97,23 +118,38 @@ const DifficultyMenu = ({ setBoardData, onStart }) => {
                             <input
                                 type="number"
                                 min="1"
-                                max={Math.floor(customRows * customCols * 0.8)}
-                                value={customMines}
-                                onChange={(e) => setCustomMines(Math.max(1, parseInt(e.target.value) || 1))}
+                                max={Math.floor(customRows * customCols * 0.8)} value={customMines}
+                                onChange={(e) =>
+                                    setCustomMines(Math.max(1, parseInt(e.target.value) || 1))}
                                 className="p-2 text-sm border rounded text-text-secondary bg-bg-tertiary"
                             />
                         </div>
                     </div>
                 </div>
             )}
+
             <ModeSwitch
                 checked={selectedMode}
-                onChange={(e) => setSelectedMode(!selectedMode)}
+                onChange={() => {
+                    setSelectedMode(prev => !prev);
+                }}
             />
+
+            {/* Generator settings */}
+            <button
+                className="mb-2 text-sm text-accent-primary underline"
+                onClick={() => setShowGenerator(prev => !prev)}
+            >
+                Generator options
+            </button>
+            <br/>
+            {showGenerator && (
+                <GeneratorSettings boardData={localData} setBoardData={setLocalData} />
+            )}
 
             <button
                 onClick={handleAccept}
-                className="px-4 py-2 bg-accent-primary text-bg-primary rounded-lg font-semibold hover:opacity-90 transition"
+                className="px-4 py-2 bg-accent-primary text-bg-primary rounded-lg font-semibold hover:opacity-90 transition mt-4"
             >
                 Start
             </button>

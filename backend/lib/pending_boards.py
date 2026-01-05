@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import uuid
 from typing import Optional
@@ -6,14 +5,16 @@ from typing import Optional
 from redis.asyncio import Redis
 
 from backend.lib.redis_client import decode, encode
+from backend.protocols.pending_boards_store_protocol import (
+    PendingBoard,
+    PendingBoardMetadata,
+    PendingBoardsStore,
+)
 
 logger = logging.getLogger(__name__)
 
-from backend import protocols
-from backend.protocols.pending_boards import PendingBoard, PendingBoardMetadata
 
-
-class RedisPendingStore(protocols.PendingBoardsStore):
+class RedisPendingStore(PendingBoardsStore):
     def __init__(self, redis: Redis):
         self.redis = redis
         self.prefix = "pending_board:"
@@ -34,12 +35,6 @@ class RedisPendingStore(protocols.PendingBoardsStore):
             if metadata.gameplay_id:
                 await pipe.set(
                     f"{self.prefix}lookup:gameplay:{metadata.gameplay_id}",
-                    encode(generation_id),
-                )
-
-            if metadata.session_id and metadata.round_index is not None:
-                pipe.set(
-                    f"{self.prefix}lookup:round:{metadata.session_id}:{metadata.round_index}",
                     encode(generation_id),
                 )
 
@@ -88,8 +83,6 @@ class RedisPendingStore(protocols.PendingBoardsStore):
 
             result = await wait()
             return result
-        except asyncio.TimeoutError:
-            return None
         finally:
             await pubsub.aclose()
 
@@ -103,21 +96,11 @@ class RedisPendingStore(protocols.PendingBoardsStore):
                 return decode(data)
         return None
 
-    async def get_pending_round(
-        self, session_id: uuid.UUID, round_index: int
-    ) -> Optional[PendingBoard]:
-        logger.debug(
-            f"get_pending_round(session_id={session_id}, round_index={round_index})"
-        )
-        gen_id_bytes = await self.redis.get(
-            f"{self.prefix}lookup:round:{session_id}:{round_index}"
-        )
-        if gen_id_bytes:
-            gen_id_str = decode(gen_id_bytes)
-            data = await self.redis.get(f"{self.prefix}{gen_id_str}")
-            if data:
-                return decode(data)
-        return None
+    async def delete_pending(self, generation_id: uuid.UUID) -> None:
+        logger.debug(f"delete_pending(generation_id={generation_id})")
+        key = f"{self.prefix}{generation_id}"
+        await self.redis.delete(key)
+        logger.info(f"Pending board {generation_id} deleted")
 
 
 __all__ = ["RedisPendingStore"]

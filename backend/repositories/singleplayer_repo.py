@@ -1,6 +1,6 @@
 import logging
 import uuid
-from typing import Optional
+from typing import Literal, Optional
 
 from fastapi_pagination import Params
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -8,15 +8,15 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
-from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend import protocols
-from backend.core.single.gameplay import SingleplayerGameplay
+from backend.core.game.types import GameMode, GameResult, GameStatus
+from backend.core.single.single_gameplay import SingleplayerGameplay
 from backend.db.db import DBSession
+from backend.protocols.repos.exceptions import GameplayNotFound
 
 from .orm import *
+
+logger = logging.getLogger(__name__)
 
 
 class SingleplayerRepository(protocols.SingleplayerRepository):
@@ -39,7 +39,18 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
             f"Singleplayer gameplay {gameplay.id} added for user {user_id} with board {board_id}"
         )
 
-    async def get_gameplays(self, user_id: uuid.UUID, pagination_params: Params):
+    async def get_gameplays(
+        self,
+        user_id: uuid.UUID,
+        pagination_params: Params,
+        status: Optional[GameStatus] = None,
+        result: Optional[GameResult] = None,
+        used_hints: Optional[bool] = None,
+        min_time: Optional[float] = None,
+        max_time: Optional[float] = None,
+        mode: Optional[GameMode] = None,
+        order_by: Optional[Literal["time_asc", "time_desc"]] = None,
+    ):
         logger.debug(f"get_gameplays(user_id={user_id}, page={pagination_params.page})")
         stmt = (
             select(SingleplayerGameplayORM)
@@ -53,6 +64,25 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
                 SingleplayerGameplayORM.user_id == user_id,
             )
         )
+
+        if status:
+            stmt = stmt.where(SingleplayerGameplayORM.status == status)
+        if result:
+            stmt = stmt.where(SingleplayerGameplayORM.result == result)
+        if used_hints is not None:
+            stmt = stmt.where(SingleplayerGameplayORM.used_hints == used_hints)
+        if min_time is not None:
+            stmt = stmt.where(SingleplayerGameplayORM.time >= min_time)
+        if max_time is not None:
+            stmt = stmt.where(SingleplayerGameplayORM.time <= max_time)
+        if mode:
+            stmt = stmt.where(SingleplayerGameplayORM.mode == mode)
+
+        if order_by == "time_asc":
+            stmt = stmt.order_by(SingleplayerGameplayORM.time.asc())
+        elif order_by == "time_desc":
+            stmt = stmt.order_by(SingleplayerGameplayORM.time.desc())
+
         return await apaginate(
             self.session,
             stmt,
@@ -100,3 +130,32 @@ class SingleplayerRepository(protocols.SingleplayerRepository):
         await self.session.commit()
         logger.debug(f"Singleplayer gameplay {gameplay.id} updated")
         return gameplay
+
+    async def get_user_gameplay_on_board(
+        self, user_id: uuid.UUID, board_id: uuid.UUID
+    ) -> SingleplayerGameplay:
+        try:
+            logger.debug(
+                f"has_user_played_board(user_id={user_id}, board_id={board_id})"
+            )
+            stmt = (
+                select(SingleplayerGameplayORM)
+                .options(
+                    selectinload(SingleplayerGameplayORM.board).selectinload(
+                        BoardORM.difficulty_level
+                    ),
+                    selectinload(SingleplayerGameplayORM.user),
+                )
+                .where(
+                    SingleplayerGameplayORM.user_id == user_id,
+                    SingleplayerGameplayORM.board_id == board_id,
+                )
+            )
+
+            result = await self.session.execute(stmt)
+            gameplay_orm = result.scalar_one()
+
+            return gameplay_orm.to_gameplay()
+
+        except NoResultFound:
+            raise GameplayNotFound() from None

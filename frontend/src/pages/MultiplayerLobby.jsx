@@ -7,7 +7,7 @@ import {useNavigate} from "react-router-dom";
 import LobbySettingsPopup from "../components/LobbySettingsPopup";
 
 export default function MultiplayerLobby() {
-    const { lobby, chatMessages, leaveLobby, getLobby, addLobbyMessage, updateLobbySettings, isHost, resetReady } = useGame();
+    const { lobby, chatMessages, leaveLobby, getLobby, addLobbyMessage, updateLobbySettings, isHost, resetReady, sendToLobbySocket } = useGame();
     const { sessionId, send, round, scoreboard, resetSession } = useSession();
     const navigate = useNavigate();
     const { status } = useSession();
@@ -81,27 +81,8 @@ export default function MultiplayerLobby() {
 
 
     const sendReady = async () => {
-        if (sessionId){
-            send({ type: "ready"});
-            return;
-        }
-
-        try {
-            const res = await fetch(`api/lobbies/${lobby.id}/ready/toggle`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
-
-            if (!res.ok) {
-                const txt = await res.text();
-                console.log(`${txt}`);
-                throw new Error(txt || res.statusText);
-            }
-
-        } catch (err) {
-            console.error("Ready error:", err);
-            addLobbyMessage("Ready request failed.");
+        if (lobby){
+            sendToLobbySocket({ type: "ready"});
         }
     };
 

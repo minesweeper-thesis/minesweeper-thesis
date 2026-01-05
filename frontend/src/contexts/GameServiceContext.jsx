@@ -1,5 +1,11 @@
-import React, {createContext, useContext, useEffect, useRef, useState} from "react";
-import {useAuth} from "./AuthContext";
+import React, {
+    createContext,
+    useContext,
+    useEffect,
+    useRef,
+    useState
+} from "react";
+import { useAuth } from "./AuthContext";
 
 export const GameServiceContext = createContext({
     socket: null,
@@ -8,21 +14,39 @@ export const GameServiceContext = createContext({
 
 export function GameServiceProvider({ children }) {
     const { user } = useAuth();
-    const [socket, setSocket] = useState(null);
+
+    const [notificationSocket, setNotificationSocket] = useState(null);
+    const [isWsConnected, setIsWsConnected] = useState(false);
+
+    const [lobbySocket, setLobbySocket] = useState(null);
+
     const [lastMessage, setLastMessage] = useState(null);
     const [lobby, setLobby] = useState(null);
     const [chatMessages, setChatMessages] = useState([]);
     const [gotLobby, setGotLobby] = useState(false);
-    let creatingLobbyPromise = null;
+
+    const creatingLobbyPromise = useRef(null);
+
+    const notificationSocketRef = useRef(null);
+    const lobbySocketRef = useRef(null);
 
     const reconnectTimeout = useRef(null);
     const isUnmounted = useRef(false);
 
-    const WS_URL = "api/ws";
-
-    const socketRef = useRef(null);
-
     const msgListenersRef = useRef(new Set());
+
+
+    const WS_NOTIFICATION_URL = "api/ws";
+    const WS_GAME_BASE_URL = "api/game/multi";
+
+    function safeJsonParse(str) {
+        try {
+            return JSON.parse(str);
+        } catch (e) {
+            console.error("WS JSON parse error:", e);
+            return null;
+        }
+    }
 
     function addMessageListener(fn) {
         msgListenersRef.current.add(fn);
@@ -35,75 +59,105 @@ export function GameServiceProvider({ children }) {
 
     function notifyListeners(msg) {
         for (const fn of Array.from(msgListenersRef.current)) {
-            try { fn(msg); } catch (e) { console.error("msg listener error", e); }
+            try {
+                fn(msg);
+            } catch (e) {
+                console.error("msg listener error", e);
+            }
         }
     }
 
-    function safeJsonParse(str) {
-        try {
-            return JSON.parse(str);
-        } catch (e) {
-            console.error("WS JSON parse error:", e);
-            return null;
+    function connectNotificationSocket() {
+        if (isUnmounted.current || notificationSocketRef.current) return;
+
+        const ws = new WebSocket(WS_NOTIFICATION_URL);
+        notificationSocketRef.current = ws;
+        setNotificationSocket(ws);
+
+        ws.onopen = () => {
+            console.log("[WS /ws] connected");
+            setIsWsConnected(true);
         }
+
+        ws.onmessage = (event) => {
+            const msg = safeJsonParse(event.data);
+
+            if (!msg) return;
+            console.log("[WS /ws] msg: ", msg);
+            switch (msg.type) {
+                case "current_lobby":
+                    setGotLobby(true);
+                    setLobby(applyInitialStatuses(msg.lobby));
+                    break;
+                case "invitation":
+                case "friend_request":
+                case "user_online_status":
+                    setLastMessage(msg);
+                    break;
+
+                default:
+                    forwardToLobbySocket(msg);
+                    break;
+            }
+        };
+
+        ws.onclose = () => {
+            notificationSocketRef.current = null;
+            setNotificationSocket(null);
+            setIsWsConnected(false);
+            if (!isUnmounted.current) {
+                reconnectTimeout.current = setTimeout(
+                    connectNotificationSocket,
+                    2000
+                );
+            }
+        };
+
+        ws.onerror = (err) => {
+            console.error("[WS /ws] error", err);
+            setIsWsConnected(false);
+        };
     }
 
+    function connectLobbySocket(lobbyId, invitationId = null) {
+        if (lobbySocketRef.current) return;
 
-    function connectWebSocket() {
-        if (isUnmounted.current || socketRef.current) return;
+        const url = invitationId
+            ? `${WS_GAME_BASE_URL}/${lobbyId}?invitation_id=${invitationId}`
+            : `${WS_GAME_BASE_URL}/${lobbyId}`;
 
-        console.log("[NotificationWS] Próba połączenia...");
+        const ws = new WebSocket(url);
+        lobbySocketRef.current = ws;
+        setLobbySocket(ws);
 
-        const ws = new WebSocket(WS_URL);
-        socketRef.current = ws;
-        setSocket(ws);
-
-        ws.onopen = () => console.log("[NotificationWS] ✔ Połączono");
+        ws.onopen = () =>
+            console.log("[WS lobby] connected", lobbyId);
 
         ws.onmessage = (event) => {
             const msg = safeJsonParse(event.data);
             if (!msg) return;
-
-            console.log("[WS] Received:", msg);
+            console.log("[WS lobby] msg: ", msg);
 
             switch (msg.type) {
                 case "current_lobby":
-                    if (!msg.lobby){
-                        setGotLobby(false);
-                        createLobby();
-                        break;
-                    }
-                    console.log("[WS] Ustawiam current lobby:", msg.lobby);
                     setGotLobby(true);
                     setLobby(applyInitialStatuses(msg.lobby));
                     break;
 
                 case "game_config_updated":
-                    setLobby(prev => {
-                        if (!prev) return prev;
-
-                        return {
-                            ...prev,
-                            game_config: msg.game_config,
-                        };
-                    });
-                    break;
-
-                case "invitation":
-                case "friend_request":
-                    setLastMessage(msg);
-                    break;
-
-                case "user_connection_status":
-                    handleUserStatus(msg);
-                    break;
-
-                case "user_online_status":
-                    handleOnlineStatus(msg);
+                    setLobby(prev =>
+                        prev
+                            ? { ...prev, game_config: msg.game_config }
+                            : prev
+                    );
                     break;
 
                 case "user_ready":
                     handleUserReady(msg);
+                    break;
+
+                case "user_connection_status":
+                    handleUserStatus(msg);
                     break;
 
                 case "round_ready":
@@ -111,37 +165,49 @@ export function GameServiceProvider({ children }) {
                     notifyListeners(msg);
                     break;
 
-                case "lobby_chat_message":
-                    addLobbyMessage(msg.content, msg.sender.nickname, msg.timestamp);
+                case "session_state":
+                    notifyListeners(msg);
                     break;
+                case "lobby_chat_message":
+                    addLobbyMessage(
+                        msg.content,
+                        msg.sender?.nickname,
+                        msg.timestamp
+                    );
+                    break;
+
                 default:
                     break;
             }
-
-
         };
-        ws.onerror = (err) => console.error("[NotificationWS] Błąd websocketu:", err);
 
         ws.onclose = () => {
-            console.warn("[NotificationWS] Rozłączono. Próba ponownego połączenia w 2 sek...");
-            socketRef.current = null;
-            setSocket(null);
-            if (!isUnmounted.current) {
-                reconnectTimeout.current = setTimeout(connectWebSocket, 2000);
-            }
+            lobbySocketRef.current = null;
+            setLobbySocket(null);
+            setLobby(null);
+            setChatMessages([]);
+            setGotLobby(false);
         };
     }
 
+    function forwardToLobbySocket(msg) {
+        if (!lobbySocketRef.current) return;
+        try {
+            lobbySocketRef.current.send(JSON.stringify(msg));
+        } catch (_) {}
+    }
+
     useEffect(() => {
-        if (!user){
-            return
-        }
-        connectWebSocket();
+        if (!user) return;
+
+        connectNotificationSocket();
 
         return () => {
             isUnmounted.current = true;
-            if (reconnectTimeout.current) clearTimeout(reconnectTimeout.current);
-            if (socketRef.current) socketRef.current.close();
+            notificationSocketRef.current?.close();
+            lobbySocketRef.current?.close();
+            if (reconnectTimeout.current)
+                clearTimeout(reconnectTimeout.current);
         };
     }, [user]);
 
@@ -150,31 +216,24 @@ export function GameServiceProvider({ children }) {
 
         const fetchChatHistory = async () => {
             try {
-                const res = await fetch(`api/lobbies/${lobby.id}/chat-messages`, {
-                    method: "GET",
-                    credentials: "include",
-                });
-
-                if (!res.ok) {
-                    console.error("Failed to load chat history");
-                    return;
-                }
+                const res = await fetch(
+                    `api/lobbies/${lobby.id}/chat-messages`,
+                    { credentials: "include" }
+                );
+                if (!res.ok) return;
 
                 const data = await res.json();
-                console.log(data);
-
-                const mapped = data.items.map(msg => ({
-                    id: crypto.randomUUID(),
-                    system: false,
-                    text: msg.content,
-                    nick: msg.sender?.nickname ?? null,
-                    timestamp: msg.timestamp,
-                }));
-
-                mapped.reverse();
+                const mapped = data.items
+                    .map(msg => ({
+                        id: crypto.randomUUID(),
+                        system: false,
+                        text: msg.content,
+                        nick: msg.sender?.nickname ?? null,
+                        timestamp: msg.timestamp,
+                    }))
+                    .reverse();
 
                 setChatMessages(mapped);
-
             } catch (err) {
                 console.error("Chat history error:", err);
             }
@@ -183,49 +242,17 @@ export function GameServiceProvider({ children }) {
         fetchChatHistory();
     }, [lobby?.id]);
 
-
-
     useEffect(() => {
-        console.log("zmieniono lobby:")
-        console.log(lobby);
-    }, [lobby?.users?.status]);
-
-    const addLobbyMessage = (text, nick = null, timestamp = null, system = false) => {
-        setChatMessages(prev => [
-            ...prev,
-            {
-                id: crypto.randomUUID(),
-                system: system,
-                text,
-                nick,
-                timestamp
-            }
-        ]);
-    };
-
-
-    const leaveLobby = async () => {
         if (!lobby) return;
 
-        try {
-            await authFetch(`api/lobbies/${lobby.id}/leave`, {
-                method: "POST",
-            });
-
-            addLobbyMessage("You left the lobby.");
-
-            setLobby(null);
-
-            return true;
-        } catch (err) {
-            console.error("Error leaving lobby:", err);
-            return false;
+        if (!lobbySocketRef.current) {
+            connectLobbySocket(lobby.id);
         }
-    };
+    }, [lobby]);
+
 
     const applyInitialStatuses = (incomingLobby) => {
         if (!incomingLobby) return null;
-
         return {
             ...incomingLobby,
             users: incomingLobby.users.map(u => ({
@@ -237,94 +264,87 @@ export function GameServiceProvider({ children }) {
 
     const resetReady = () => {
         setLobby(applyInitialStatuses(lobby));
-    }
+    };
 
-
-    const handleOnlineStatus = (msg) => {
-        // if (!lobby) return;
-        addLobbyMessage(`${msg.user.is_online ? "is now online" : "has gone offline"}`, msg.user.nickname, null, true);
-        setLobby(prev => {
-            // if (!prev) return prev;
-
-            const newLobby = {
-                ...prev,
-                users: prev.users.map(u =>
-
-                    u.id === msg.user.id
-                        ? {
-                            ...u,
-                            status: msg.user.is_online ? "not_ready" : "offline",
-                            is_online: msg.user.is_online,
-
-                        }
-                        : u
-                )
-            };
-            console.log("newLobby",newLobby);
-            return newLobby;
-        });
-
-
-
-    }
+    const addLobbyMessage = (
+        text,
+        nick = null,
+        timestamp = null,
+        system = false
+    ) => {
+        setChatMessages(prev => [
+            ...prev,
+            {
+                id: crypto.randomUUID(),
+                system,
+                text,
+                nick,
+                timestamp
+            }
+        ]);
+    };
 
     const handleUserReady = (msg) => {
         setLobby(prev => {
             if (!prev) return prev;
-
-
             return {
                 ...prev,
                 users: prev.users.map(u =>
                     u.id === msg.user_id
                         ? {
                             ...u,
-                            status: msg.value ? "ready" : "not_ready"
+                            status: msg.value
+                                ? "ready"
+                                : "not_ready"
                         }
                         : u
                 )
             };
         });
-    }
+    };
 
     const handleUserStatus = (msg) => {
         if (!msg.user || !msg.status) return;
 
         setLobby(prev => {
-            if (!prev) return prev;
-
-            if (msg.lobby_id !== prev.id) return prev;
-
-            const user_ = msg.user;
+            if (!prev || msg.lobby_id !== prev.id) return prev;
 
             if (msg.status === "connected") {
-                const exists = prev.users.some(u => u.id === user_.id);
-                if (exists) return prev;
+                if (prev.users.some(u => u.id === msg.user.id))
+                    return prev;
 
-                const updated = {
+                addLobbyMessage(
+                    " joined the lobby.",
+                    msg.user.nickname,
+                    null,
+                    true
+                );
+
+                return {
                     ...prev,
-                    users: [...prev.users, user_]
+                    users: [...prev.users, msg.user]
                 };
-
-                addLobbyMessage(` joined the lobby.`, user_.nickname, null, true);
-                return updated;
             }
 
             if (msg.status === "disconnected") {
-                const updated = {
-                    ...prev,
-                    users: prev.users.filter(u => u.id !== user_.id),
-                };
+                addLobbyMessage(
+                    " left the lobby.",
+                    msg.user.nickname,
+                    null,
+                    true
+                );
 
-                addLobbyMessage(` left the lobby.`, user_.nickname, null, true);
-                return updated;
+                return {
+                    ...prev,
+                    users: prev.users.filter(
+                        u => u.id !== msg.user.id
+                    )
+                };
             }
 
             return prev;
         });
     };
-
-
 
     const authFetch = async (url, options = {}) => {
         const res = await fetch(url, {
@@ -333,7 +353,7 @@ export function GameServiceProvider({ children }) {
                 "Content-Type": "application/json",
                 ...(options.headers || {}),
             },
-            credentials: 'include',
+            credentials: "include",
         });
         if (!res.ok) {
             const text = await res.text();
@@ -342,150 +362,114 @@ export function GameServiceProvider({ children }) {
         return res.json();
     };
 
-
-
-// CREATE LOBBY
     const createLobby = async () => {
-        if (creatingLobbyPromise) {
-            return creatingLobbyPromise;
-        }
+        if (creatingLobbyPromise.current)
+            return creatingLobbyPromise.current;
 
-        creatingLobbyPromise = (async () => {
+        creatingLobbyPromise.current = (async () => {
             try {
-                const response = await authFetch("api/lobbies", { method: "POST" });
-
+                const response = await authFetch("api/lobbies", {
+                    method: "POST",
+                });
                 setLobby(response);
                 return response;
-            } catch (err) {
-                console.error("Error creating lobby:", err);
-                throw err;
             } finally {
-                creatingLobbyPromise = null;
+                creatingLobbyPromise.current = null;
             }
         })();
 
-        return creatingLobbyPromise;
+        return creatingLobbyPromise.current;
     };
 
-// SEND LOBBY INVITATION
+    const getLobby = async () => {
+        if (gotLobby && lobby === null) {
+            return await createLobby();
+        }
+        return lobby;
+    };
+
     const sendLobbyInvitation = async (userId) => {
         const currentLobby = lobby || await createLobby();
 
-        try {
-            const response = await authFetch(
-                `api/lobbies/${currentLobby.id}/invitations`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ user_id: userId })
-                }
-            );
-
-            console.log("Invitation sent:", response);
-            return response;
-        } catch (err) {
-            console.error("Error sending invitation:", err);
-            throw err;
-        }
-    };
-
-    // REJECT INVITATION
-    const rejectGameInvite = async (invitationId) => {
-        try {
-            const response = await authFetch(`api/invitations/${invitationId}`, {
-                method: "DELETE",
-            });
-            console.log("Invitation rejected:", response);
-            return response;
-        } catch (err) {
-            console.error("Error rejecting invitation:", err);
-            throw err;
-        }
-    };
-
-// ACCEPT INVITATION
-    const acceptGameInvite = async (invitationId, lobbyId) => {
-        try {
-            const response = await authFetch(`api/lobbies/${lobbyId}/join`, {
+        return authFetch(
+            `api/lobbies/${currentLobby.id}/invitations`,
+            {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ invitation_id: invitationId })
-            });
-            console.log("Invitation accepted:", response);
-
-            setLobby(response);
-
-            return response;
-        } catch (err) {
-            console.error("Error accepting invitation:", err);
-            throw err;
-        }
+                body: JSON.stringify({ user_id: userId })
+            }
+        );
     };
 
-    // UPDATE LOBBY SETTINGS
+    const rejectGameInvite = async (invitationId) => {
+        return authFetch(`api/invitations/${invitationId}`, {
+            method: "DELETE",
+        });
+    };
+
+    const acceptGameInvite = async (invitationId, lobbyId) => {
+        connectLobbySocket(lobbyId, invitationId);
+    };
+
     const updateLobbySettings = async (settings) => {
-        if (!lobby) {
-            console.warn("updateLobbySettings: No active lobby.");
-            return null;
-        }
+        if (!lobby) return null;
 
-        try {
-            console.log("[Lobby] Updating settings:", settings);
+        return authFetch(`/api/lobbies/${lobby.id}`, {
+            method: "PUT",
+            body: JSON.stringify(settings)
+        });
+    };
 
-            const response = await authFetch(
-                `/api/lobbies/${lobby.id}`,
-                {
-                    method: "PUT",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(settings)
-                }
-            );
-
-
-        } catch (err) {
-            console.error("[Lobby] Error updating settings:", err);
-            throw err;
-        }
+    const leaveLobby = () => {
+        lobbySocketRef.current?.close();
+        lobbySocketRef.current = null;
+        setLobby(null);
+        setChatMessages([]);
+        setGotLobby(false);
     };
 
     const isHost = () => {
         if (!lobby || !user) return false;
-        if (!lobby.host || !lobby.host.id) return false;
-
-        return lobby.host.id === user.id;
+        return lobby.host?.id === user.id;
     };
 
+    function sendToLobbySocket(payload) {
+        const ws = lobbySocketRef.current;
 
-
-    const getLobby = async () => {
-        if (gotLobby && lobby === null) {
-            console.log("Lobby:", lobby);
-            return await createLobby();
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.warn("[WS GAME] socket not connected");
+            return false;
         }
 
-        return lobby;
+        try {
+            ws.send(JSON.stringify(payload));
+            return true;
+        } catch (err) {
+            console.error("[WS GAME] send error", err);
+            return false;
+        }
     }
 
 
     return (
         <GameServiceContext.Provider value={{
-            socket,
+            socket: notificationSocket,
             lastMessage,
+            lobby,
+            chatMessages,
             sendLobbyInvitation,
             createLobby,
             getLobby,
             acceptGameInvite,
             rejectGameInvite,
-            lobby,
-            chatMessages,
-            addLobbyMessage,
             leaveLobby,
             authFetch,
             addMessageListener,
             removeMessageListener,
             updateLobbySettings,
             isHost,
-            resetReady
+            resetReady,
+            sendToLobbySocket,
+            isWsConnected
         }}>
             {children}
         </GameServiceContext.Provider>

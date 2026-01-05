@@ -8,19 +8,12 @@ from fastapi_pagination import Page, Params
 from redis.asyncio import Redis
 from redis.asyncio.client import Pipeline
 
-logger = logging.getLogger(__name__)
-
 from backend import protocols
 from backend.core.lobby import Invitation, Lobby, LobbyChatMessage
 from backend.lib.redis_client import decode, encode
+from backend.protocols.repos.exceptions import InvitationNotFound, LobbyNotFound
 
-
-class LobbyNotFound(Exception):
-    pass
-
-
-class InvitationNotFound(Exception):
-    pass
+logger = logging.getLogger(__name__)
 
 
 class RedisLobbyRepository(protocols.LobbyRepository):

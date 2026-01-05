@@ -1,26 +1,23 @@
 import logging
 import uuid
+from contextlib import suppress
 from typing import Optional
-
-from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
-
-logger = logging.getLogger(__name__)
 
 from backend.core.board import Board, GenerationSettings
 from backend.core.game import *
 from backend.core.single import SingleplayerGameplay
 from backend.core.user import User
-from backend.di.dependencies import (
-    BoardGeneratorDep,
-    BoardPersisterDep,
-    BoardRepositoryDep,
-    PendingBoardsStoreDep,
-    SingleplayerRepositoryDep,
+from backend.di.dependencies import *
+from backend.protocols.pending_boards_store_protocol import PendingBoardMetadata
+from backend.protocols.repos.exceptions import (
+    BoardNotFound,
+    GameplayNotFound,
+    UnsolvedBoardNotFound,
 )
-from backend.lib.auth import OptionalCurrentUser
-from backend.protocols.pending_boards import PendingBoardMetadata
 from backend.services.dto import *
 from backend.services.exceptions import *
+
+logger = logging.getLogger(__name__)
 
 
 class CreateSingleGameplayService:
@@ -28,7 +25,7 @@ class CreateSingleGameplayService:
         self,
         board_repo: BoardRepositoryDep,
         game_repo: SingleplayerRepositoryDep,
-        board_generator: BoardGeneratorDep,
+        board_generator: SingleBoardGeneratorDep,
         pending_store: PendingBoardsStoreDep,
         board_persister: BoardPersisterDep,
     ):
@@ -40,7 +37,7 @@ class CreateSingleGameplayService:
 
     async def create_singleplayer_gameplay(
         self,
-        user: OptionalCurrentUser,
+        user: Optional[User],
         game_settings: NewGameSettings,
     ) -> uuid.UUID:
         logger.info(
@@ -62,12 +59,25 @@ class CreateSingleGameplayService:
         self,
         gameplay_id: uuid.UUID,
         game_settings: NewGameSettings,
-        user: OptionalCurrentUser,
+        user: Optional[User],
     ):
         board: Optional[Board] = None
 
         try:
             if game_settings.board_id:
+                if user is None:
+                    raise SpecificBoardAnonymousUser(
+                        "Cannot use specific board_id for anonymous user"
+                    )
+
+                with suppress(GameplayNotFound):
+                    await self.game_repo.get_user_gameplay_on_board(
+                        user.id, game_settings.board_id
+                    )
+                    raise BoardAlreadyPlayed(
+                        f"User {user.id} has already played board {game_settings.board_id}"
+                    )
+
                 board = await self.board_repo.get_board_by_id(game_settings.board_id)
 
             if game_settings.difficulty_level and not game_settings.generator:
@@ -84,7 +94,7 @@ class CreateSingleGameplayService:
                     await self._generate_board(
                         gameplay_id=gameplay_id,
                         game_settings=game_settings,
-                        user=None,
+                        user=user,
                     )
                     board = None
 
@@ -125,7 +135,7 @@ class CreateSingleGameplayService:
         self,
         gameplay_id: uuid.UUID,
         game_settings: NewGameSettings,
-        user: OptionalCurrentUser,
+        user: Optional[User],
     ) -> Optional[Board]:
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
@@ -154,17 +164,19 @@ class CreateSingleGameplayService:
         self,
         gameplay_id: uuid.UUID,
         game_settings: NewGameSettings,
-        user: OptionalCurrentUser,
+        user: Optional[User],
     ):
         assert game_settings.difficulty_level is not None
         assert game_settings.generator is not None
 
+        generation_settings = GenerationSettings(
+            type=game_settings.generator.generator_type,
+            difficulty_level=game_settings.difficulty_level,
+            settings=game_settings.generator.settings,
+        )
+
         generation_id = await self.board_generator.generate_board(
-            GenerationSettings(
-                type=game_settings.generator.generator_type,
-                difficulty_level=game_settings.difficulty_level,
-                settings=game_settings.generator.settings,
-            ),
+            generation_settings,
             on_completed=self.board_persister.on_board_generated,
         )
 
@@ -172,11 +184,7 @@ class CreateSingleGameplayService:
             generation_id=generation_id,
             metadata=PendingBoardMetadata(
                 gameplay_id=gameplay_id,
-                generation_settings=GenerationSettings(
-                    type=game_settings.generator.generator_type,
-                    difficulty_level=game_settings.difficulty_level,
-                    settings=game_settings.generator.settings,
-                ),
+                generation_settings=generation_settings,
                 difficulty_level=game_settings.difficulty_level,
                 mode=game_settings.mode,
                 user_id=user.id if user else None,

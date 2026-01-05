@@ -52,7 +52,9 @@ export default function Controls({ onReset, mines, gameState, onHint, mode = "si
 
             {/* Mines */}
             <div className="counter-display">
-                {mines.toString().padStart(2, '0')}
+                {typeof mines === 'number'
+                    ? mines.toString().padStart(3, '0')
+                    : '000'}
             </div>
         </div>
     );

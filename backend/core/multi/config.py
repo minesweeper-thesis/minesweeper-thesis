@@ -1,4 +1,3 @@
-import uuid
 from dataclasses import dataclass
 from typing import Optional
 
@@ -34,10 +33,4 @@ class GameConfig:
         )
 
 
-@dataclass
-class GameConfigUpdated:
-    lobby_id: uuid.UUID
-    game_config: GameConfig
-
-
-__all__ = ["GameConfig", "GameConfigUpdated", "Generator"]
+__all__ = ["GameConfig", "Generator"]

@@ -2,17 +2,13 @@ import uuid
 from dataclasses import asdict
 from typing import Literal, Optional, Self
 
+from pydantic import BaseModel
+
 from backend.core.board import DifficultyLevel
 from backend.core.game import *
-from backend.core.multi import (
-    RoundEnd,
-    RoundScoreItem,
-    RoundStart,
-    ScoreUpdate,
-    SessionOver,
-    SessionScoreItem,
-)
+from backend.core.multi import RoundScoreItem, ScoreUpdate, SessionScoreItem
 from backend.schemas import Response
+from backend.schemas.lobby.lobby_schemas import LobbyResponse
 from backend.services.dto import *
 
 
@@ -76,27 +72,14 @@ class UserReadyResponse(Response):
     ws_type: Literal["user_ready"] = "user_ready"
     round: int
     user_id: uuid.UUID
-    value: bool = True
+    value: bool
 
     @classmethod
     def build(cls, message: "UserReady") -> Self:
         return cls(
             round=message.round_index + 1,
             user_id=message.user_id,
-        )
-
-
-class UserNotReadyResponse(Response):
-    ws_type: Literal["user_ready"] = "user_ready"
-    round: int
-    user_id: uuid.UUID
-    value: bool = False
-
-    @classmethod
-    def build(cls, message: "UserNotReady") -> Self:
-        return cls(
-            round=message.round_index + 1,
-            user_id=message.user_id,
+            value=message.ready,
         )
 
 
@@ -129,6 +112,53 @@ class ScoreUpdateResponse(Response):
         return cls(**asdict(message.score))
 
 
+class RoundData(BaseModel):
+    number: int
+    start_at: Optional[int]
+    end_at: Optional[int]
+    countdown_to: Optional[int]
+    state: Literal["not_ready", "generating", "countdown", "ready_lock", "playing"]
+
+
+class SessionStateResponse(Response):
+    ws_type: Literal["session_state"] = "session_state"
+    session_id: uuid.UUID
+    round: RoundData
+    scoreboard: list[SessionScoreItem]
+    lobby: LobbyResponse
+
+    @classmethod
+    def build(cls, message: SessionState) -> Self:
+        start_at = (
+            int(message.round.schedule.start_at.timestamp() * 1000)
+            if message.round.schedule
+            else None
+        )
+        end_at = (
+            int(message.round.schedule.end_at.timestamp() * 1000)
+            if message.round.schedule
+            else None
+        )
+        countdown_to = (
+            int(message.round.schedule.countdown_to.timestamp() * 1000)
+            if message.round.schedule
+            else None
+        )
+
+        return cls(
+            session_id=message.session_id,
+            round=RoundData(
+                number=message.round.round_number,
+                start_at=start_at,
+                end_at=end_at,
+                countdown_to=countdown_to,
+                state=message.round.state,
+            ),
+            scoreboard=message.scoreboard.items,
+            lobby=LobbyResponse.build(message.lobby),
+        )
+
+
 __all__ = [
     "RoundStartResponse",
     "RoundEndResponse",
@@ -136,6 +166,6 @@ __all__ = [
     "RoundCountdownResponse",
     "RoundReadyResponse",
     "UserReadyResponse",
-    "UserNotReadyResponse",
     "ScoreUpdateResponse",
+    "SessionStateResponse",
 ]

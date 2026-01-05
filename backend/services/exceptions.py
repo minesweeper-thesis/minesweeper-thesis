@@ -27,6 +27,14 @@ class BoardNotExists(Exception):
     pass
 
 
+class SpecificBoardAnonymousUser(Exception):
+    pass
+
+
+class BoardAlreadyPlayed(Exception):
+    pass
+
+
 class RequestedFriendNotExists(Exception):
     pass
 
@@ -53,23 +61,19 @@ class UserNotExists(Exception):
     pass
 
 
-class UserNotHost(Exception):
-    pass
-
-
 class LobbyNotExists(Exception):
     pass
 
 
-class UserNotInSession(Exception):
-    pass
-
-
-class SessionAlreadyOver(Exception):
+class SessionNotExists(Exception):
     pass
 
 
 class InvitationNotExists(Exception):
+    pass
+
+
+class GenerationError(Exception):
     pass
 
 
@@ -85,9 +89,9 @@ __all__ = [
     "GameplayAlreadyFinished",
     "GameplayNotExists",
     "UserNotExists",
-    "UserNotHost",
     "LobbyNotExists",
-    "UserNotInSession",
-    "SessionAlreadyOver",
     "InvitationNotExists",
+    "GenerationError",
+    "BoardAlreadyPlayed",
+    "SpecificBoardAnonymousUser",
 ]

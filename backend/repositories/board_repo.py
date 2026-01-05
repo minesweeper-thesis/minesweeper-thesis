@@ -1,6 +1,5 @@
 import logging
 import uuid
-from dataclasses import asdict
 from typing import Optional
 
 from sqlalchemy import select
@@ -8,15 +7,14 @@ from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 from sqlalchemy.sql.expression import func
 
-from backend.protocols.board_repo_protocol import BoardNotFound, UnsolvedBoardNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend import protocols
 from backend.core.board import Board, DifficultyLevel, GenerationSettings, Minefields
 from backend.db import DBSession
+from backend.protocols.repos.exceptions import BoardNotFound, UnsolvedBoardNotFound
 
 from .orm import *
+
+logger = logging.getLogger(__name__)
 
 
 class BoardRepository(protocols.BoardRepository):
@@ -101,16 +99,22 @@ class BoardRepository(protocols.BoardRepository):
                 args.append(BoardORM.minefields == normalized)
 
             if generation_settings is not None:
-                args.append(BoardORM.generation_settings == asdict(generation_settings))
+                args.append(BoardORM.generation_settings == generation_settings)
 
             stmt = (
                 select(BoardORM)
                 .options(selectinload(BoardORM.difficulty_level))
                 .where(*args)
             )
-
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_board()
+            row = result.first()
+
+            if row is None:
+                raise NoResultFound()
+
+            board_orm = row[0]
+
+            return board_orm.to_board()
 
         except NoResultFound:
             raise BoardNotFound(
@@ -135,7 +139,8 @@ class BoardRepository(protocols.BoardRepository):
 
         args = [BoardORM.difficulty_level_id == difficulty_level_orm.id]
         if generation_settings is not None:
-            args.append(BoardORM.generation_settings == asdict(generation_settings))
+            args.append(BoardORM.generation_settings == generation_settings)
+            logger.info(f"Searching for board with settings: {generation_settings}")
 
         try:
             stmt = (
@@ -154,11 +159,9 @@ class BoardRepository(protocols.BoardRepository):
                     & (SingleplayerGameplayORM.user_id.in_(user_ids)),
                 ).where(SingleplayerGameplayORM.id == None)
 
-                stmt = (
-                    stmt.outerjoin(
-                        MultiplayerRoundORM, MultiplayerRoundORM.board_id == BoardORM.id
-                    )
-                    .outerjoin(
+                played_multi_boards = (
+                    select(MultiplayerRoundORM.board_id)
+                    .join(
                         MultiplayerGameplayORM,
                         (
                             MultiplayerGameplayORM.session_id
@@ -167,16 +170,20 @@ class BoardRepository(protocols.BoardRepository):
                         & (
                             MultiplayerGameplayORM.round_index
                             == MultiplayerRoundORM.round_index
-                        )
-                        & (MultiplayerGameplayORM.user_id.in_(user_ids)),
+                        ),
                     )
-                    .where(MultiplayerGameplayORM.user_id == None)
+                    .where(MultiplayerGameplayORM.user_id.in_(user_ids))
                 )
 
+                stmt = stmt.where(BoardORM.id.not_in(played_multi_boards))
+
             result = await self.session.execute(stmt)
-            return result.scalar_one().to_board()
+            board = result.scalar_one().to_board()
+            logger.info(f"Found board {board.id} for settings")
+            return board
 
         except NoResultFound:
+            logger.info("No board found for settings")
             raise UnsolvedBoardNotFound(
                 f"No unsolved board found for difficulty level {difficulty_level}"
             ) from None

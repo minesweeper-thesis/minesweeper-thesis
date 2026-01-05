@@ -45,3 +45,4 @@ AWS_SECRET_ACCESS_KEY = config(
 )
 AWS_REGION = config("BUCKETEER_AWS_REGION", default=None)
 AWS_BUCKET_NAME = config("BUCKETEER_BUCKET_NAME", default=None)
+DEV = "localhost" in BACKEND_URL

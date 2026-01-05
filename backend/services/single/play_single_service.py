@@ -5,18 +5,16 @@ from typing import Optional
 
 from fastapi_pagination import Params
 
-from backend.protocols.singleplayer_repo_protocol import GameplayNotFound
-
-logger = logging.getLogger(__name__)
-
 from backend.core.game import *
 from backend.core.game.game_actions import GameAction, GameActionResult
 from backend.core.single import SingleplayerGameplay
+from backend.core.user import User
 from backend.di.dependencies import *
-from backend.lib.auth import CurrentUser
+from backend.protocols.repos.exceptions import GameplayNotFound
 from backend.services.dto import *
 from backend.services.exceptions import *
-from backend.services.single.single_exceptions import GenerationTimeout
+
+logger = logging.getLogger(__name__)
 
 
 class PlaySingleService:
@@ -33,13 +31,12 @@ class PlaySingleService:
 
     async def load_gameplay(self, gameplay_id: uuid.UUID):
         logger.debug(f"load_gameplay(gameplay_id={gameplay_id})")
-        logger.debug(f"Loading singleplayer gameplay {gameplay_id}")
-        pending = await self.pending_store.get_pending_gameplay(gameplay_id)
 
+        pending = await self.pending_store.get_pending_gameplay(gameplay_id)
         if pending is not None:
             pending = await self.pending_store.wait_for_ready(pending.generation_id)
             if pending is None or pending.board_id is None:
-                raise GenerationTimeout()
+                raise GenerationError()
 
             board = await self.board_repo.get_board_by_id(pending.board_id)
 
@@ -51,6 +48,8 @@ class PlaySingleService:
             await self.game_repo.add_gameplay(
                 gameplay, board.id, pending.metadata.user_id
             )
+
+            await self.pending_store.delete_pending(pending.generation_id)
 
         try:
             await self._set_gameplay(gameplay_id)
@@ -75,7 +74,7 @@ class PlaySingleService:
         gameplay = await self.game_repo.get_gameplay_by_id(gameplay_id)
         self.gameplay = gameplay
 
-    async def get_gameplays(self, user: CurrentUser, pagination_params: Params):
+    async def get_gameplays(self, user: User, pagination_params: Params):
         logger.debug(f"get_gameplays(user_id={user.id}, page={pagination_params.page})")
         return await self.game_repo.get_gameplays(user.id, pagination_params)
 
@@ -134,4 +133,4 @@ class PlaySingleService:
         await self.game_repo.update_gameplay(self.gameplay)
 
 
-__all__ = ["PlaySingleService", "GenerationTimeout"]
+__all__ = ["PlaySingleService", "GenerationError"]

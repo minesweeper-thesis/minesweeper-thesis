@@ -4,14 +4,11 @@ from typing import Any
 
 from fastapi import WebSocket
 
-logger = logging.getLogger(__name__)
-
 from backend.core.game import GameState
 from backend.core.game.game_actions import *
 from backend.core.lobby import *
 from backend.core.multi import *
-from backend.core.user import FriendRequest
-from backend.core.user.chat import UserChatMessage
+from backend.core.user import FriendRequest, UserChatMessage
 from backend.lib.websockets.websockets_registry import WebsocketsRegistry
 from backend.protocols import NotificationSystem
 from backend.schemas import Response
@@ -20,7 +17,8 @@ from backend.schemas.lobby import *
 from backend.schemas.lobby import UserOnlineUpdatedResponse
 from backend.schemas.user import FriendRequestResponse, UserChatMessageResponse
 from backend.services.dto import *
-from backend.services.dto.lobby import UserCurrentLobby, UserOnlineUpdated
+
+logger = logging.getLogger(__name__)
 
 
 class WSNotificationSystem(NotificationSystem):
@@ -62,19 +60,10 @@ def get_notification_system():
 
 def create_notification(data: Any) -> str:
     mapping: dict[type, type["Response"]] = {
-        GameConfigUpdated: GameConfigUpdatedResponse,
         Invitation: InvitationResponse,
-        InvitationAnswer: InvitationAnswerResponse,
-        UserConnectionUpdated: UserConnectionStatusResponse,
-        RoundReady: RoundReadyResponse,
-        RoundCountdown: RoundCountdownResponse,
-        UserReady: UserReadyResponse,
-        LobbyChatMessage: LobbyChatMessageResponse,
         FriendRequest: FriendRequestResponse,
-        UserNotReady: UserNotReadyResponse,
         KickedFromLobby: KickedResponse,
         UserChatMessage: UserChatMessageResponse,
-        UserOnlineUpdated: UserOnlineUpdatedResponse,
         UserCurrentLobby: CurrentLobbyResponse,
     }
 
@@ -87,9 +76,7 @@ def create_notification(data: Any) -> str:
 type Notifiable = RoundStart | RoundEnd | RoundCountdown | SessionOver | GameActionResult | GameState | UserReady
 
 
-def create_game_notification(
-    data: Notifiable,
-) -> str:
+def create_game_notification(data: Notifiable) -> str:
 
     mapping: dict[type[Any], type[Response]] = {
         RoundReady: RoundReadyResponse,
@@ -104,8 +91,13 @@ def create_game_notification(
         RemoveFlagResult: RemoveFlagResponse,
         HintResult: HintResponse,
         UserReady: UserReadyResponse,
-        UserNotReady: UserNotReadyResponse,
         ScoreUpdate: ScoreUpdateResponse,
+        InvitationAnswer: InvitationAnswerResponse,
+        LobbyChatMessage: LobbyChatMessageResponse,
+        UserOnlineUpdated: UserOnlineUpdatedResponse,
+        UserConnectionUpdated: UserConnectionStatusResponse,
+        GameConfigUpdated: GameConfigUpdatedResponse,
+        SessionState: SessionStateResponse,
     }
 
     if type(data) not in mapping:

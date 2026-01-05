@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from backend import services
 from backend.lib.auth import CurrentUserWebSocket
 from backend.lib.notification_system import get_notification_system
-from backend.schemas import WSRequest
 from backend.schemas.lobby import PendingInvitationsResponse
 
 UserConnectionService = Annotated[services.UserConnectionService, Depends()]
@@ -27,15 +26,15 @@ async def send_notifications(
     async def receiver():
         while True:
             data = await websocket.receive_json()
-            try:
-                _ = WSRequest.from_dict(data)
-                invitations = await lobby_invitation_service.get_pending_invitations(
-                    user
-                )
-                response = PendingInvitationsResponse.create(invitations)
-                await websocket.send_text(response)
-            except Exception as e:
-                logger.warning(f"Error processing WS request: {e}")
+            match data["type"]:
+                case "pending_invitations":
+                    invitations = (
+                        await lobby_invitation_service.get_pending_invitations(user)
+                    )
+                    response = PendingInvitationsResponse.create(invitations)
+                    await websocket.send_text(response)
+                case _:
+                    logger.warning(f"Received unknown message type: {data['type']}")
 
     try:
         await websocket.accept()

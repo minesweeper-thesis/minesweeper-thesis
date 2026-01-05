@@ -1,22 +1,18 @@
 import logging
 import uuid
-from typing import Optional
 
 from redis.asyncio import Redis
 from sqlalchemy import select
-
-logger = logging.getLogger(__name__)
 
 from backend import protocols
 from backend.core.multi.session import MultiplayerSession
 from backend.db.db import DBSession
 from backend.lib.redis_client import decode, encode
+from backend.protocols.repos.exceptions import SessionNotFound
 
 from .orm import *
 
-
-class MultiplayerSessionNotFound(Exception):
-    pass
+logger = logging.getLogger(__name__)
 
 
 class RedisMultiplayerRepository(protocols.MultiplayerRepository):
@@ -24,80 +20,66 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
         self.session = session
         self.redis = redis
         self.prefix = "multi_session:"
-        self.pending_prefix = "multi_pending:"
 
     async def get_session(self, session_id: uuid.UUID) -> MultiplayerSession:
         logger.debug(f"get_session(session_id={session_id})")
-        pending_data = await self.redis.get(f"{self.pending_prefix}{session_id}")
-        if pending_data:
-            session = decode(pending_data)
+        data = await self.redis.get(f"{self.prefix}{session_id}")
+        if data:
+            session = decode(data)
             logger.debug(
-                f"Retrieved pending session {session_id}, current_round_index={session.current_round_index}"
+                f"Retrieved session {session_id}, current_round_index={session.current_round_index}"
             )
             return session
 
-        data = await self.redis.get(f"{self.prefix}{session_id}")
-        if not data:
-            logger.warning(f"Multiplayer session {session_id} not found")
-            raise MultiplayerSessionNotFound(
-                f"Multiplayer session with id {session_id} not found"
-            )
-        session = decode(data)
-        logger.debug(
-            f"Retrieved multiplayer session {session_id}, current_round_index={session.current_round_index}"
-        )
-        return session
+        raise SessionNotFound(f"Multiplayer session with id {session_id} not found")
 
     async def save_session(self, session: MultiplayerSession):
-        logger.debug(
-            f"save_session(session_id={session.id}, current_round_index={session.current_round_index})"
-        )
+        logger.debug(f"save_session(session_id={session.id})")
 
         if session.is_over():
-            await self.delete_pending(session.id)
+            await self.delete(session.id)
             await self._save_to_db(session)
         else:
-            await self._save_pending(session)
+            await self._save_ongoing(session)
 
-        logger.info(
-            f"Multiplayer session {session.id} saved with current_round_index={session.current_round_index}"
-        )
+        logger.info(f"Multiplayer session {session.id} saved")
 
-    async def _save_pending(self, session: MultiplayerSession):
+    async def _save_ongoing(self, session: MultiplayerSession):
         logger.debug(
-            f"save_pending(session_id={session.id}, lobby_id={session.lobby_id})"
+            f"save_ongoing(session_id={session.id}, lobby_id={session.lobby_id})"
         )
         data = encode(session)
         async with self.redis.pipeline() as pipe:
-            await pipe.set(f"{self.pending_prefix}{session.id}", data)
-            await pipe.set(
-                f"{self.pending_prefix}lobby:{session.lobby_id}", encode(session.id)
-            )
+            await pipe.set(f"{self.prefix}{session.id}", data)
+            await pipe.set(f"{self.prefix}lobby:{session.lobby_id}", encode(session.id))
             await pipe.execute()
         logger.info(
-            f"Pending multiplayer session {session.id} saved for lobby {session.lobby_id}"
+            f"Ongoing multiplayer session {session.id} saved for lobby {session.lobby_id}"
         )
 
-    async def get_for_lobby(self, lobby_id: uuid.UUID) -> Optional[MultiplayerSession]:
-        logger.debug(f"get_pending_for_lobby(lobby_id={lobby_id})")
-        session_id_bytes = await self.redis.get(
-            f"{self.pending_prefix}lobby:{lobby_id}"
-        )
+    async def get_for_lobby(self, lobby_id: uuid.UUID) -> MultiplayerSession:
+        logger.debug(f"get_for_lobby(lobby_id={lobby_id})")
+        session_id_bytes = await self.redis.get(f"{self.prefix}lobby:{lobby_id}")
         if session_id_bytes:
             session_id_str = decode(session_id_bytes)
-            data = await self.redis.get(f"{self.pending_prefix}{session_id_str}")
+            data = await self.redis.get(f"{self.prefix}{session_id_str}")
             if data:
                 return decode(data)
-        return None
 
-    async def delete_pending(self, session_id: uuid.UUID):
-        logger.debug(f"delete_pending(session_id={session_id})")
-        data = await self.redis.get(f"{self.pending_prefix}{session_id}")
+        raise SessionNotFound(
+            f"Multiplayer session for lobby with id {lobby_id} not found"
+        )
+
+    async def delete(self, session_id: uuid.UUID):
+        logger.debug(f"delete(session_id={session_id})")
+        data = await self.redis.get(f"{self.prefix}{session_id}")
         if data:
             session = decode(data)
             async with self.redis.pipeline() as pipe:
-                await pipe.delete(f"{self.pending_prefix}{session_id}")
-                await pipe.delete(f"{self.pending_prefix}lobby:{session.lobby_id}")
+                await pipe.delete(f"{self.prefix}{session_id}")
+                await pipe.delete(f"{self.prefix}lobby:{session.lobby_id}")
+                await pipe.delete(f"session_runtime:{session_id}:schedule")
+                await pipe.delete(f"session_runtime:{session_id}:generating")
                 await pipe.execute()
 
     async def _save_to_db(self, session: MultiplayerSession):
@@ -146,7 +128,7 @@ class RedisMultiplayerRepository(protocols.MultiplayerRepository):
             round_orm = MultiplayerRoundORM(
                 session_id=session.id,
                 round_index=round.round_index,
-                board_id=round.board.id,
+                board_id=round.board_id,
             )
             self.session.add(round_orm)
 

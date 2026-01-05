@@ -1,9 +1,9 @@
 import logging
 import uuid
 
-logger = logging.getLogger(__name__)
-
 from . import OnlineUsersStore
+
+logger = logging.getLogger(__name__)
 
 
 class LocalOnlineUsersStore(OnlineUsersStore):

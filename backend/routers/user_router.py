@@ -1,11 +1,12 @@
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal, Optional
 
 import filetype
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile
 from fastapi_pagination import Page, Params
 
 from backend import services
+from backend.core.game import GameMode, GameResult, GameStatus
 from backend.lib.auth import CurrentUser
 from backend.schemas.user import *
 from backend.services.exceptions import UserNotExists
@@ -32,7 +33,7 @@ async def upload_avatar(file: UploadFile, user: CurrentUser, service: UserServic
     ):
         raise HTTPException(status_code=400, detail="Invalid file type.")
 
-    url = await service.set_avatar(content)
+    url = await service.set_avatar(user, content)
     return {"avatar_url": url}
 
 
@@ -42,7 +43,7 @@ async def delete_avatar(
     service: UserService,
 ):
     """Deletes the current user's avatar"""
-    await service.delete_avatar()
+    await service.delete_avatar(user)
 
 
 @user_router.get(
@@ -50,22 +51,41 @@ async def delete_avatar(
     responses={200: {"model": Page[UserResponse]}},
 )
 async def search_users(
+    user: CurrentUser,
     query: str,
     pagination_params: PaginationParams,
     service: UserService,
 ):
     page = await service.search_users(query, pagination_params)
-    page.items = [UserResponse.build(user) for user in page.items]
+    page.items = [UserResponse.build(user) for user in page.items]  # type: ignore[misc]
     return page
 
 
 @user_router.get("/gameplays", responses={200: {"model": Page[UserGameplayResponse]}})
 async def get_gameplays(
+    user: CurrentUser,
     pagination_params: PaginationParams,
     service: UserService,
+    status: Annotated[Optional[GameStatus], Query()] = None,
+    result: Annotated[Optional[GameResult], Query()] = None,
+    used_hints: Annotated[Optional[bool], Query()] = None,
+    min_time: Annotated[Optional[float], Query()] = None,
+    max_time: Annotated[Optional[float], Query()] = None,
+    mode: Annotated[Optional[GameMode], Query()] = None,
+    order_by: Annotated[Optional[Literal["time_asc", "time_desc"]], Query()] = None,
 ):
-    page = await service.get_gameplays(pagination_params)
-    page.items = [UserGameplayResponse.build(gp) for gp in page.items]
+    page = await service.get_gameplays(
+        user,
+        pagination_params,
+        status=status,
+        result=result,
+        used_hints=used_hints,
+        min_time=min_time,
+        max_time=max_time,
+        mode=mode,
+        order_by=order_by,
+    )
+    page.items = [UserGameplayResponse.build(gp) for gp in page.items]  # type: ignore[misc]
     return page
 
 

@@ -1,30 +1,21 @@
-import asyncio
 import random
 from typing import Any
 
 import pytest
-
-
-async def receive_json(ws, *, timeout_s: float = 5.0) -> dict[str, Any]:
-    try:
-        async with asyncio.timeout(timeout_s):
-            return await ws.receive_json()
-    except asyncio.TimeoutError:
-        pytest.fail(f"Timeout {timeout_s}s waiting for json")
+from httpx_ws import AsyncWebSocketSession
 
 
 async def receive_type(
-    ws, expected_type: str, *, timeout_s: float = 5.0
+    ws: AsyncWebSocketSession, expected_type: str, *, timeout: float = 5.0
 ) -> dict[str, Any]:
     try:
-        async with asyncio.timeout(timeout_s):
-            msg = await ws.receive_json()
-            assert (
-                msg.get("type") == expected_type
-            ), f"expected type {expected_type}, got {msg}"
-            return msg
-    except asyncio.TimeoutError:
-        pytest.fail(f"Timeout {timeout_s}s waiting for {expected_type}")
+        msg = await ws.receive_json(timeout=timeout)
+        assert (
+            msg.get("type") == expected_type
+        ), f"expected type {expected_type}, got {msg}"
+        return msg
+    except TimeoutError:
+        pytest.fail(f"Timeout {timeout}s waiting for {expected_type}")
 
 
 def random_cell(

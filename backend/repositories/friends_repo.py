@@ -8,20 +8,16 @@ from sqlalchemy import select
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import selectinload
 
-from backend.protocols.friends_repo_protocol import (
-    FriendRequestNotFound,
-    FriendshipNotFound,
-)
-
-logger = logging.getLogger(__name__)
-
 from backend import protocols
 from backend.core.user import FriendRequest, FriendRequestStatus, Friendship
 from backend.db.db import DBSession
 from backend.lib.online_users import get_online_users_store
+from backend.protocols.repos.exceptions import FriendRequestNotFound, FriendshipNotFound
 from backend.repositories.helpers import get_users_transformer
 
 from .orm import *
+
+logger = logging.getLogger(__name__)
 
 
 class FriendsRepository(protocols.FriendsRepository):
