@@ -10,9 +10,9 @@ const generatorOptions = {
     PSO: [
         { name: "Iterations", type: "integer", min: 1, max: 100, default: 1 },
         { name: "Particle count", type: "integer", min: 1, max: 100, default: 40 },
-        { name: "Random specimen rate 1", type: "float", min: 0.4, max: 0.9, default: 0.4 },
-        { name: "Random specimen rate 2", type: "float", min: 1.0, max: 2.5, default: 2.5 },
-        { name: "Random specimen rate 3", type: "float", min: 1.0, max: 2.5, default: 2.5 },
+        { name: "W coefficient", type: "float", min: 0.4, max: 0.9, default: 0.4 },
+        { name: "C1 coefficient", type: "float", min: 1.0, max: 2.5, default: 2.5 },
+        { name: "C2 coefficient", type: "float", min: 1.0, max: 2.5, default: 2.5 },
     ],
     SA: [
         { name: "Iterations", type: "integer", min: 1, max: 100, default: 82 },
