@@ -2,26 +2,26 @@ import React, { useState, useEffect } from "react";
 
 const generatorOptions = {
     GA: [
-        { name: "generations", type: "integer", min: 1, max: 100, default: 1 },
-        { name: "population_size", type: "integer", min: 1, max: 100, default: 1 },
-        { name: "parents_size", type: "integer", min: 1, max: 100, default: 1 },
-        { name: "random_specimen_rate", type: "float", min: 0.0, max: 1.0, default: 0.0 },
+        { name: "Generations", type: "integer", min: 1, max: 100, default: 100 },
+        { name: "Population size", type: "integer", min: 1, max: 100, default: 20 },
+        { name: "Parents size", type: "integer", min: 1, max: 100, default: 1 },
+        { name: "Random specimen rate", type: "float", min: 0.0, max: 1.0, default: 0.0 },
     ],
     PSO: [
-        { name: "iterations", type: "integer", min: 1, max: 100, default: 1 },
-        { name: "particle_count", type: "integer", min: 1, max: 100, default: 1 },
-        { name: "random_specimen_rate1", type: "float", min: 0.4, max: 0.9, default: 0.4 },
-        { name: "random_specimen_rate2", type: "float", min: 1.0, max: 2.5, default: 1.0 },
-        { name: "random_specimen_rate3", type: "float", min: 1.0, max: 2.5, default: 1.0 },
+        { name: "Iterations", type: "integer", min: 1, max: 100, default: 1 },
+        { name: "Particle count", type: "integer", min: 1, max: 100, default: 40 },
+        { name: "Random specimen rate 1", type: "float", min: 0.4, max: 0.9, default: 0.4 },
+        { name: "Random specimen rate 2", type: "float", min: 1.0, max: 2.5, default: 2.5 },
+        { name: "Random specimen rate 3", type: "float", min: 1.0, max: 2.5, default: 2.5 },
     ],
     SA: [
-        { name: "iterations", type: "integer", min: 1, max: 100, default: 1 },
-        { name: "fields_changed", type: "integer", min: 1, max: 50, default: 1 },
-        { name: "T_MAX", type: "float", min: 1.0, max: 100, default: 1.0 },
-        { name: "T_MIN", type: "float", min: 0.1, max: 1.0, default: 0.1 },
+        { name: "Iterations", type: "integer", min: 1, max: 100, default: 82 },
+        { name: "Fields Changed", type: "integer", min: 1, max: 50, default: 50 },
+        { name: "T MAX", type: "float", min: 1.0, max: 100, default: 1.0 },
+        { name: "T MIN", type: "float", min: 0.1, max: 1.0, default: 0.1 },
     ],
     naive: [
-        { name: "tries", type: "integer", min: 1, max: 1000, default: 1 },
+        { name: "Tries", type: "integer", min: 1, max: 1000, default: 503 },
     ],
 };
 
