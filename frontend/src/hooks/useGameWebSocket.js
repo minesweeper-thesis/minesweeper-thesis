@@ -1,7 +1,7 @@
 import {GameState} from "../utility";
 import {useCallback, useEffect, useRef} from "react";
 
-export default function useGameWebSocket(url, interpreter, boardRef, gameState) {
+export default function useGameWebSocket(url, interpreter, boardRef, gameState, setTime) {
     const socketRef = useRef(null);
     const reconnectTimeoutRef = useRef(null);
     const closedByEffectRef = useRef(false);
@@ -33,6 +33,11 @@ export default function useGameWebSocket(url, interpreter, boardRef, gameState) 
             try {
                 const data = JSON.parse(event.data);
                 console.log(data);
+
+                if (data.type === "game_over" && data.game_status === "win"){
+                    setTime(data.elapsed_time);
+                }
+
                 const commands = interpreter(data) || [];
                 if (Array.isArray(commands) && boardRef?.current?.dispatchCommand) {
                     boardRef.current.dispatchCommand(commands);

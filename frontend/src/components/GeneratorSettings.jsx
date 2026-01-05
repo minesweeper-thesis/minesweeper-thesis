@@ -45,7 +45,7 @@ export default function GeneratorSettings({ boardData, setBoardData }) {
             ? boardData.generator.settings.heuristic
             : "PSO";
 
-    const initialClassifier = boardData.generator?.settings?.classifier || "lightgbm";
+    const initialClassifier = boardData.generator?.settings?.classifier || "xgboost";
 
     const initialSettings = boardData.generator?.settings?.heuristic_args && generatorOptions[initialGeneratorType]
         ? Object.fromEntries(

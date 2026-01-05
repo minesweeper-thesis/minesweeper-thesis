@@ -21,6 +21,7 @@ export default function GamePageSingle() {
     const [gameplayId, setGameplayId] = useState(null);
     const [startField, setStartField] = useState(null);
     const boardRef = useRef(null);
+    const [time, setTime] = useState(0);
 
 
 
@@ -72,7 +73,7 @@ export default function GamePageSingle() {
     }, [startNewGame]);
 
     const socketUrl = gameplayId ? `api/game/single/${gameplayId}` : null;
-    const { send, socketRef } = useGameWebSocket(socketUrl, boardInterpreter, boardRef, gameState );
+    const { send, socketRef } = useGameWebSocket(socketUrl, boardInterpreter, boardRef, gameState, setTime);
 
     return (
         <div className="game flex min-h-screen justify-center bg-[linear-gradient(135deg,var(--bg-secondary)_0%,var(--bg-tertiary)_100%)] bg-fixed">
@@ -81,7 +82,7 @@ export default function GamePageSingle() {
             </aside>
 
             <main className="p-4 overflow-auto game-area relative w-full max-w-4xl">
-                {gameState === GameState.WON && <VictoryScreen onPlayAgain={startNewGame} />}
+                {gameState === GameState.WON && <VictoryScreen onPlayAgain={startNewGame} time={time} />}
 
                 <Controls
                     onReset={onReset}
