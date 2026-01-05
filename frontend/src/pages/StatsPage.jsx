@@ -185,7 +185,7 @@ export default function StatsPage() {
                 <span className="font-medium text-text-primary">
                   {(page - 1) * 10 + idx + 1}
                 </span>
-                                <span className="text-text-primary">{row.nickname || "Anonymous"}</span>
+                                <span className="text-text-primary">{row.user.nickname || "Anonymous"}</span>
                                 <span className="text-accent-primary">
                   {rankingType === "users"
                       ? `${(row.win_rate * 100).toFixed(1)}%`
