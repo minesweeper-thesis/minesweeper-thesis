@@ -13,6 +13,12 @@ class KickedFromLobby:
 
 
 @dataclass
+class NewHostAssigned:
+    lobby_id: uuid.UUID
+    host: User
+
+
+@dataclass
 class UserCurrentLobby:
     lobby: Optional[Lobby]
 
@@ -42,4 +48,5 @@ __all__ = [
     "UserOnlineUpdated",
     "UserConnectionUpdated",
     "GameConfigUpdated",
+    "NewHostAssigned",
 ]

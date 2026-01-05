@@ -24,6 +24,10 @@ class UserNotHost(Exception):
     pass
 
 
+class CannotKickHost(Exception):
+    pass
+
+
 class Lobby:
     id: uuid.UUID
     host: User
@@ -55,6 +59,9 @@ class Lobby:
     def kick_user(self, current_user: User, target_user: User) -> None:
         self.ensure_user_is_host(current_user)
         self.ensure_user_in_lobby(target_user)
+
+        if target_user == self.host:
+            raise CannotKickHost()
 
         self.remove_user(target_user)
 

@@ -12,6 +12,7 @@ from backend.schemas.common import GeneratorSchema
 from backend.schemas.user import UserResponse
 from backend.services.dto import (
     GameConfigUpdated,
+    NewHostAssigned,
     UserConnectionUpdated,
     UserCurrentLobby,
     UserOnlineUpdated,
@@ -145,6 +146,19 @@ class UserOnlineUpdatedResponse(Response):
         )
 
 
+class NewHostAssignedResponse(Response):
+    ws_type: Literal["new_host"] = "new_host"
+    lobby_id: uuid.UUID
+    host: UserResponse
+
+    @classmethod
+    def build(cls, data: NewHostAssigned) -> Self:
+        return cls(
+            lobby_id=data.lobby_id,
+            host=UserResponse.build(data.host),
+        )
+
+
 __all__ = [
     "UpdateGameConfigRequest",
     "LobbyResponse",
@@ -154,4 +168,5 @@ __all__ = [
     "KickUserRequest",
     "KickedResponse",
     "UserOnlineUpdatedResponse",
+    "NewHostAssignedResponse",
 ]
