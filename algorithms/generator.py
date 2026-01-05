@@ -1,3 +1,5 @@
+from typing import Literal
+
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.checker.checker import Checker
@@ -12,7 +14,9 @@ from algorithms.heuristics.simulated_annealing_heuristic import (
     SimulatedAnnealingHeuristic,
 )
 
-_heuristics: dict[str, type[BaseHeuristic]] = {
+type HeuristicType = Literal["no", "naive", "GA", "MCTS", "PSO", "SA"]
+
+_heuristics: dict[HeuristicType, type[BaseHeuristic]] = {
     "no": NoHeuristic,
     "naive": NaiveHeuristic,
     "GA": GeneticAlgorithmHeuristic,
@@ -26,7 +30,7 @@ class Generator:
     def __init__(
         self,
         classifier: BaseClassifier,
-        heuristic: str,
+        heuristic: HeuristicType,
         heuristic_args: tuple,
         rows: int,
         columns: int,

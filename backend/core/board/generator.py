@@ -3,6 +3,7 @@ import uuid
 from dataclasses import asdict
 from typing import Optional
 
+from algorithms.classifiers.base_classifier import BaseClassifier
 from algorithms.generator import Generator, RandomGenerator
 from backend.lib.generator.classifier_provider import get_classifier
 
@@ -16,7 +17,9 @@ class BoardGenerator:
         difficulty_level: DifficultyLevel,
         type: GeneratorType,
         settings: Optional[GeneratorParams] = None,
+        classifier: Optional[BaseClassifier] = None,
     ) -> None:
+        self.classifier = classifier
         self.difficulty_level = difficulty_level
         self.type: GeneratorType = type
         self.settings = settings
@@ -52,9 +55,9 @@ class BoardGenerator:
             )
 
         elif self.type == "ml":
-            if generator_settings is None:
+            if generator_settings is None or self.classifier is None:
                 raise ValueError(
-                    "Generator settings must be provided for deterministic generation"
+                    "Generator settings and classifier must be provided for deterministic generation"
                 )
 
             classifier = get_classifier(
@@ -63,9 +66,9 @@ class BoardGenerator:
             assert classifier is not None, "Classifier is None"
 
             return Generator(
-                classifier,
-                heuristic=generator_settings.heuristic,
-                heuristic_args=generator_settings.heuristic_args,
+                self.classifier,
+                generator_settings.heuristic,
+                generator_settings.heuristic_args,
                 **asdict(self.difficulty_level),
                 start_field=start_field,
             )

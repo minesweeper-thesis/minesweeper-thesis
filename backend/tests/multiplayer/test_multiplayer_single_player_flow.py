@@ -1,4 +1,3 @@
-import random
 import uuid
 from contextlib import AsyncExitStack
 from datetime import datetime, timedelta
@@ -27,8 +26,6 @@ from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 async def test_multiplayer_single_player_flow(
     authenticated_clients: list[AuthenticatedClientBundle], fake_scheduler
 ):
-    random.seed(0)
-
     host_bundle = authenticated_clients[0]
 
     create_resp = await host_bundle.http.post("/lobbies")

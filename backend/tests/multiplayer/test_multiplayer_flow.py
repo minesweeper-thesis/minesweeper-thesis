@@ -1,4 +1,3 @@
-import random
 import uuid
 from contextlib import AsyncExitStack
 from datetime import datetime, timedelta
@@ -36,8 +35,6 @@ from backend.tests.multiplayer.ws_helpers import random_cell, receive_type
 async def test_multiplayer_full_flow_many_players(
     authenticated_clients, fake_scheduler
 ):
-    random.seed(0)
-
     host_bundle = authenticated_clients[0]
     g1_bundle = authenticated_clients[1]
     g2_bundle = authenticated_clients[2]

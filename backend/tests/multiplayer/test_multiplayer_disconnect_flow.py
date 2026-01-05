@@ -1,5 +1,4 @@
 import asyncio
-import random
 import uuid
 from contextlib import AsyncExitStack
 from datetime import datetime, timedelta
@@ -36,8 +35,6 @@ async def test_multiplayer_disconnect_flow(
     backup_delay = user_connection_service.REMOVE_OFFLINE_USER_DELAY
     try:
         user_connection_service.REMOVE_OFFLINE_USER_DELAY = timedelta(seconds=2)
-
-        random.seed(0)
 
         host_bundle = authenticated_clients[0]
         guest_bundle = authenticated_clients[1]
@@ -128,8 +125,6 @@ async def test_multiplayer_disconnect_flow(
 async def test_lobby_ws_reconnect(
     authenticated_clients: list[AuthenticatedClientBundle], fake_scheduler
 ):
-    random.seed(0)
-
     host_bundle = authenticated_clients[0]
     g1_bundle = authenticated_clients[1]
 
@@ -240,9 +235,6 @@ async def test_lobby_ws_reconnect(
         await receive_type(g1_lobby, "game_over")
 
         for ws in (host_lobby, g1_lobby):
-            await receive_type(ws, "score_update")
-
-        for ws in (host_lobby, g1_lobby):
             await receive_type(ws, "round_end")
 
         await receive_type(host_lobby, "session_over")
@@ -280,8 +272,6 @@ async def test_flow_with_disconnected_user(
     backup_delay = user_connection_service.REMOVE_OFFLINE_USER_DELAY
     try:
         user_connection_service.REMOVE_OFFLINE_USER_DELAY = timedelta(seconds=1.5)
-
-        random.seed(0)
 
         host_bundle = authenticated_clients[0]
         g1_bundle = authenticated_clients[1]

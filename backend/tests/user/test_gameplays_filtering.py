@@ -5,6 +5,7 @@ import pytest
 from backend.core.board import Board, DifficultyLevel, GenerationSettings
 from backend.core.single.single_gameplay import SingleplayerGameplay
 from backend.db import db
+from backend.protocols.repos.board_repo_protocol import BoardNotFound
 from backend.repositories.board_repo import BoardRepository
 from backend.repositories.singleplayer_repo import SingleplayerRepository
 
@@ -19,15 +20,19 @@ async def test_get_gameplays_filtering(authenticated_clients):
         sp_repo = SingleplayerRepository(session)
 
         difficulty = DifficultyLevel(rows=3, columns=3, mine_count=1)
-        board = Board(
-            id=uuid.uuid4(),
-            minefields=[(0, 0)],
-            start_field=(1, 1),
-            generation_settings=GenerationSettings(
-                type="random", settings=None, difficulty_level=difficulty
-            ),
+        settings = GenerationSettings(
+            type="random", settings=None, difficulty_level=difficulty
         )
-        await board_repo.add_board(board)
+        try:
+            board = await board_repo.get_board(difficulty, [(0, 0)])
+        except BoardNotFound:
+            board = Board(
+                id=uuid.uuid4(),
+                minefields=[(0, 0)],
+                start_field=(1, 1),
+                generation_settings=settings,
+            )
+            await board_repo.add_board(board)
 
         gp1 = SingleplayerGameplay(
             id=uuid.uuid4(),
@@ -118,15 +123,19 @@ async def test_get_gameplays_sorting(authenticated_clients):
         sp_repo = SingleplayerRepository(session)
 
         difficulty = DifficultyLevel(rows=3, columns=3, mine_count=1)
-        board = Board(
-            id=uuid.uuid4(),
-            minefields=[(0, 0)],
-            start_field=(1, 1),
-            generation_settings=GenerationSettings(
-                type="random", settings=None, difficulty_level=difficulty
-            ),
+        settings = GenerationSettings(
+            type="random", settings=None, difficulty_level=difficulty
         )
-        await board_repo.add_board(board)
+        try:
+            board = await board_repo.get_board(difficulty, [(0, 0)])
+        except BoardNotFound:
+            board = Board(
+                id=uuid.uuid4(),
+                minefields=[(0, 0)],
+                start_field=(1, 1),
+                generation_settings=settings,
+            )
+            await board_repo.add_board(board)
 
         gp_fast = SingleplayerGameplay(id=uuid.uuid4(), board=board, elapsed_time=5.0)
         gp_slow = SingleplayerGameplay(id=uuid.uuid4(), board=board, elapsed_time=50.0)

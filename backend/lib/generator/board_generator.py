@@ -8,6 +8,7 @@ from backend import protocols as p
 from backend.core.board import Board
 from backend.core.board import BoardGenerator as CoreBoardGenerator
 from backend.core.board import GenerationSettings
+from backend.lib.generator.classifier_provider import get_classifier
 from backend.protocols.board_generator_protocol import (
     GenerationID,
     OnBoardGeneratedCallback,
@@ -19,10 +20,16 @@ logger = logging.getLogger(__name__)
 def _create_board(generation_id: GenerationID, settings: GenerationSettings) -> Board:
     logger.debug(f"Board generation {generation_id} in progress")
 
+    classifier = get_classifier(
+        settings.difficulty_level,
+        settings.settings.classifier if settings.settings else None,
+    )
+
     generator = CoreBoardGenerator(
         settings.difficulty_level,
         settings.type,
         settings.settings,
+        classifier,
     )
 
     board = generator.generate_board()

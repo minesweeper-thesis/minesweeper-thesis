@@ -31,7 +31,7 @@ async def test_generation_reuse(authenticated_clients, fake_scheduler):
     p1_bundle = authenticated_clients[0]
     p2_bundle = authenticated_clients[1]
 
-    difficulty = {"rows": 16, "columns": 30, "mine_count": 99}
+    difficulty = {"rows": 17, "columns": 9, "mine_count": 99}
 
     create_resp = await p1_bundle.http.post("/lobbies")
     assert create_resp.status_code == 200

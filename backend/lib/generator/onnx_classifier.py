@@ -1,6 +1,3 @@
-import numpy as np
-import onnxruntime as rt
-
 from algorithms.boards.base_board import BaseBoard
 from algorithms.classifiers.base_classifier import BaseClassifier
 
@@ -18,6 +15,8 @@ class OnnxClassifier(BaseClassifier):
         self.output_name = None
 
     def classify(self, board: BaseBoard) -> float:
+        import numpy as np
+
         if self.session is None:
             raise RuntimeError(
                 "Model not loaded. Call 'load' method before classification."
@@ -31,6 +30,8 @@ class OnnxClassifier(BaseClassifier):
 
     @classmethod
     def load(cls, filename: str) -> "OnnxClassifier":
+        import onnxruntime as rt
+
         instance = cls()
         try:
             instance.session = rt.InferenceSession(
