@@ -58,7 +58,7 @@ class UserGameplayResponse(Response):
             status=gameplay.status,
             result=gameplay.result,
             used_hints=gameplay.used_hints,
-            elapsed_time=gameplay.elapsed_time,
+            elapsed_time=round(gameplay.elapsed_time, 2),
             game_mode=gameplay.game_mode,
         )
 

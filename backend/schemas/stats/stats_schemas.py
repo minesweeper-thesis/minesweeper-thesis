@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 from backend.schemas.user import UserResponse
 
@@ -12,6 +12,11 @@ class GameplayRankingResponse(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+    @field_validator("time")
+    @classmethod
+    def round_average_time(cls, v):
+        return round(v, 2)
+
 
 class UserRankingResponse(BaseModel):
     user: UserResponse
@@ -21,6 +26,11 @@ class UserRankingResponse(BaseModel):
     won_games: int
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("average_time")
+    @classmethod
+    def round_average_time(cls, v):
+        return round(v, 2)
 
 
 __all__ = ["GameplayRankingResponse", "UserRankingResponse"]
