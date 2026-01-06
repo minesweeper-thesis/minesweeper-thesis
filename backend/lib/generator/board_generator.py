@@ -23,6 +23,7 @@ def _create_board(generation_id: GenerationID, settings: GenerationSettings) -> 
     classifier = get_classifier(
         settings.difficulty_level,
         settings.settings.classifier if settings.settings else None,
+        settings.settings.heuristic if settings.settings else None,
     )
 
     generator = CoreBoardGenerator(

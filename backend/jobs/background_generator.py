@@ -55,6 +55,7 @@ async def background_board_generator():
                 classifier=get_classifier(
                     generation_settings.difficulty_level,
                     generation_settings.settings.classifier,
+                    generation_settings.settings.heuristic,
                 ),
             )
             board = generator.generate_board()

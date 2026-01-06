@@ -61,7 +61,9 @@ class BoardGenerator:
                 )
 
             classifier = get_classifier(
-                self.difficulty_level, generator_settings.classifier
+                self.difficulty_level,
+                generator_settings.classifier,
+                generator_settings.heuristic,
             )
             assert classifier is not None, "Classifier is None"
 
