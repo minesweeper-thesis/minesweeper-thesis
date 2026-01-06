@@ -55,18 +55,18 @@ class GeneratorParamsSchema(BaseModel):
             if len(args) != 5:
                 raise ValueError("PSO heuristic_args must have 5 items!")
 
-            iterations, particle_count, rate1, rate2, rate3 = args
+            iterations, particle_count, w_coeff, c1_coeff, c2_coeff = args
 
             if not (1 <= iterations <= 100) or not isinstance(iterations, int):
                 raise ValueError("PSO iterations must be an int in [1, 100].")
             if not (1 <= particle_count <= 100) or not isinstance(particle_count, int):
                 raise ValueError("PSO particle_count must be an int in [1, 100].")
-            if not (0.4 <= rate1 <= 0.9):
-                raise ValueError("PSO rate1 must be in [0.4, 0.9].")
-            if not (1.0 <= rate2 <= 2.5):
-                raise ValueError("PSO rate2 must be in [1.0, 2.5].")
-            if not (1.0 <= rate3 <= 2.5):
-                raise ValueError("PSO rate3 must be in [1.0, 2.5].")
+            if not (0.4 <= w_coeff <= 0.9):
+                raise ValueError("PSO w_coeff must be in [0.4, 0.9].")
+            if not (1.0 <= c1_coeff <= 2.5):
+                raise ValueError("PSO c1_coeff must be in [1.0, 2.5].")
+            if not (1.0 <= c2_coeff <= 2.5):
+                raise ValueError("PSO c2_coeff must be in [1.0, 2.5].")
 
         elif self.heuristic == "SA":
             if len(args) != 4:
