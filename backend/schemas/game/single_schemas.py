@@ -40,6 +40,15 @@ class NewGameRequest(BaseModel):
                 raise ValueError(
                     "If generator is provided, difficulty_level must also be set."
                 )
+
+            if generator.type == "ml" and difficulty_level not in [
+                DifficultyLevel.easy(),
+                DifficultyLevel.medium(),
+                DifficultyLevel.hard(),
+            ]:
+                raise ValueError(
+                    "Custom generation is only supported for easy, medium, and hard difficulty levels."
+                )
         elif difficulty_level is None:
             raise ValueError(
                 "You must provide either board_id, difficulty_level, or both generator and difficulty_level."

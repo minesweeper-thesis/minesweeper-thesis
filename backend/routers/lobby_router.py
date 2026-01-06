@@ -6,6 +6,7 @@ from fastapi_pagination import Page, Params
 
 from backend import services
 from backend.core.lobby import SessionActive, UserNotHost, UserNotInLobby
+from backend.core.lobby.lobby import CannotKickHost
 from backend.lib.auth import CurrentUser
 from backend.schemas.lobby import *
 from backend.services.exceptions import *
@@ -32,6 +33,9 @@ lobby_exceptions: dict[type[Exception], HTTPException] = {
     InvitationNotExists: HTTPException(status_code=404, detail="Invitation not found."),
     SessionActive: HTTPException(
         status_code=400, detail="Cannot modify lobby with active session."
+    ),
+    CannotKickHost: HTTPException(
+        status_code=400, detail="Cannot kick the host from the lobby."
     ),
 }
 

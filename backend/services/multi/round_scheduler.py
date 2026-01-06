@@ -8,6 +8,7 @@ from fastapi import Depends
 from backend.core.game import *
 from backend.core.multi import MultiplayerSession
 from backend.di.dependencies import *
+from backend.protocols.repos.exceptions import SessionNotFound
 from backend.services.dto import (
     RoundCountdown,
     RoundEnd,
@@ -83,7 +84,13 @@ class RoundScheduler:
 
         await self.session_runtime_store.delete_round_schedule(session_id)
         async with self.session_lock.acquire(session_id):
-            session = await self.multi_repo.get_session(session_id)
+            try:
+                session = await self.multi_repo.get_session(session_id)
+            except SessionNotFound:
+                logger.warning(
+                    f"Session {session_id} not found in _end_round. It might have ended early."
+                )
+                return
 
             if session.rounds[round_index].ended_before_timeout:
                 logger.warning(

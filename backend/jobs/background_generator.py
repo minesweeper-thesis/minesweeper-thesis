@@ -5,6 +5,7 @@ import logging
 from backend.core.board import DifficultyLevel, GenerationSettings, GeneratorParams
 from backend.core.board.generator import BoardGenerator
 from backend.db.db import async_session_maker
+from backend.lib.generator.classifier_provider import get_classifier
 from backend.repositories.board_repo import BoardRepository
 
 logging.basicConfig(level=logging.INFO)
@@ -45,11 +46,16 @@ async def background_board_generator():
     for generation_settings in itertools.cycle(to_generate):
         try:
             logger.debug(f"Generating board: {generation_settings}")
+            assert generation_settings.settings is not None
 
             generator = BoardGenerator(
                 generation_settings.difficulty_level,
                 "ml",
                 settings=generation_settings.settings,
+                classifier=get_classifier(
+                    generation_settings.difficulty_level,
+                    generation_settings.settings.classifier,
+                ),
             )
             board = generator.generate_board()
 

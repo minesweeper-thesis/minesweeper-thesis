@@ -1,6 +1,9 @@
+from typing import Literal
+
 from algorithms.boards.base_board import BaseBoard
 from algorithms.boards.random_board import RandomBoard
 from algorithms.checker.checker import Checker
+from algorithms.classifiers.base_classifier import BaseClassifier
 from algorithms.heuristics.base_heuristic import BaseHeuristic
 from algorithms.heuristics.genetic_algorithm_heuristic import GeneticAlgorithmHeuristic
 from algorithms.heuristics.mcts_heuristic import MCTSHeuristic
@@ -10,10 +13,10 @@ from algorithms.heuristics.particle_swarm_heuristic import ParticleSwarmHeuristi
 from algorithms.heuristics.simulated_annealing_heuristic import (
     SimulatedAnnealingHeuristic,
 )
-from algorithms.model_loader import ModelLoader
-from algorithms.onnx_classifier import OnnxClassifier
 
-_heuristics: dict[str, type[BaseHeuristic]] = {
+type HeuristicType = Literal["no", "naive", "GA", "MCTS", "PSO", "SA"]
+
+_heuristics: dict[HeuristicType, type[BaseHeuristic]] = {
     "no": NoHeuristic,
     "naive": NaiveHeuristic,
     "GA": GeneticAlgorithmHeuristic,
@@ -26,20 +29,16 @@ _heuristics: dict[str, type[BaseHeuristic]] = {
 class Generator:
     def __init__(
         self,
-        classifier: str,
-        heuristic: str,
+        classifier: BaseClassifier,
+        heuristic: HeuristicType,
         heuristic_args: tuple,
         rows: int,
         columns: int,
         start_field: tuple[int, int],
         mine_count: int,
-        version: str,
     ) -> None:
-        model_loader = ModelLoader(rows, columns, mine_count, classifier, version)
-        self.classifier = OnnxClassifier.load(model_loader.get_model_path())
-
         self.heuristic = _heuristics[heuristic](
-            self.classifier, rows, columns, start_field, mine_count, *heuristic_args
+            classifier, rows, columns, start_field, mine_count, *heuristic_args
         )
 
     def generate(self) -> BaseBoard:

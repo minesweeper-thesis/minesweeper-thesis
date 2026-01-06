@@ -140,7 +140,6 @@ class BoardRepository(protocols.BoardRepository):
         args = [BoardORM.difficulty_level_id == difficulty_level_orm.id]
         if generation_settings is not None:
             args.append(BoardORM.generation_settings == generation_settings)
-            logger.info(f"Searching for board with settings: {generation_settings}")
 
         try:
             stmt = (

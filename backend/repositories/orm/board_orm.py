@@ -66,7 +66,7 @@ class GenerationSettingsColumn(TypeDecorator):
                 import json
 
                 processed_value = type_self.process_bind_param(other, None)  # type: ignore
-                json_str = json.dumps(processed_value, sort_keys=True)
+                json_str = json.dumps(processed_value)
                 return func.cast(self.expr, Text) == json_str
 
         return Comparator

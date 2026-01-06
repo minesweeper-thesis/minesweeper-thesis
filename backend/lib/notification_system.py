@@ -98,6 +98,7 @@ def create_game_notification(data: Notifiable) -> str:
         UserConnectionUpdated: UserConnectionStatusResponse,
         GameConfigUpdated: GameConfigUpdatedResponse,
         SessionState: SessionStateResponse,
+        NewHostAssigned: NewHostAssignedResponse,
     }
 
     if type(data) not in mapping:

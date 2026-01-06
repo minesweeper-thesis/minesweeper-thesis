@@ -20,9 +20,10 @@ from backend.protocols.repos.user_repo_protocol import UserNotFound
 from backend.services.dto import (
     GameConfigUpdated,
     KickedFromLobby,
+    NewHostAssigned,
     UserConnectionUpdated,
+    UserReady,
 )
-from backend.services.dto.round import UserReady
 from backend.services.exceptions import *
 from backend.services.exceptions import UserNotExists
 from backend.services.multi.session_renewer import SessionRenewer
@@ -75,8 +76,9 @@ class LobbyService:
         logger.debug(f"create_lobby(user_id={user.id})")
         lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
+            previous_host_id = lobby_to_leave.host.id
             lobby_to_leave.remove_user(user)
-            await self._on_remove(lobby_to_leave, user)
+            await self._on_remove(lobby_to_leave, user, previous_host_id)
 
         lobby = Lobby(id=uuid.uuid4(), host=user, game_config=DEFAULT_GAME_CONFIG)
         await self.lobby_repo.save_lobby(lobby)
@@ -95,8 +97,9 @@ class LobbyService:
         logger.debug(f"join_lobby(user_id={user.id}, invitation_id={invitation_id})")
         lobby_to_leave = await self.lobby_repo.get_user_lobby(user.id)
         if lobby_to_leave:
+            previous_host_id = lobby_to_leave.host.id
             lobby_to_leave.remove_user(user)
-            await self._on_remove(lobby_to_leave, user)
+            await self._on_remove(lobby_to_leave, user, previous_host_id)
 
         try:
             invitation = await self.lobby_repo.get_invitation(invitation_id)
@@ -180,8 +183,9 @@ class LobbyService:
 
             lobby.ensure_user_in_lobby(user)
 
+            previous_host_id = lobby.host.id
             lobby.remove_user(user)
-            await self._on_remove(lobby, user)
+            await self._on_remove(lobby, user, previous_host_id)
         except LobbyNotFound:
             raise LobbyNotExists() from None
 
@@ -195,44 +199,51 @@ class LobbyService:
             target_user = await self.user_repo.get_user(target_user_id)
             lobby = await self.lobby_repo.get_lobby(lobby_id)
 
+            previous_host_id = lobby.host.id
             lobby.kick_user(user, target_user)
-            await self._on_remove(lobby, target_user)
+            await self._on_remove(lobby, target_user, previous_host_id)
 
             kicked_data = KickedFromLobby(lobby_id)
             await self.notification_system.notify(target_user.id, kicked_data)
             logger.info(
                 f"User {target_user_id} kicked from lobby {lobby_id} by {user.id}"
             )
+
         except LobbyNotFound:
             raise LobbyNotExists() from None
         except UserNotFound:
             raise UserNotExists() from None
 
-    async def _on_remove(self, lobby: Lobby, user: User):
+    async def _on_remove(self, lobby: Lobby, user: User, previous_host_id: uuid.UUID):
         logger.debug(f"_on_remove(lobby_id={lobby.id}, user_id={user.id})")
 
         if lobby.is_empty():
             await self.lobby_repo.delete_lobby(lobby.id)
-        else:
-            await self.lobby_repo.save_lobby(lobby)
-            session = await self.multi_repo.get_for_lobby(lobby.id)
+            logger.info(f"Lobby {lobby.id} deleted as it became empty")
+            return
 
-            async with self.session_lock.acquire(session.id):
-                session.remove_player(user)
-                await self.multi_repo.save_session(session)
+        await self.lobby_repo.save_lobby(lobby)
+        session = await self.multi_repo.get_for_lobby(lobby.id)
 
-            transport = self.lobby_transport_factory.get(lobby.id)
-            await transport.broadcast(
-                UserConnectionUpdated(
-                    lobby_id=lobby.id, user=user, status="disconnected"
+        async with self.session_lock.acquire(session.id):
+            session.remove_player(user)
+            await self.multi_repo.save_session(session)
+
+        transport = self.lobby_transport_factory.get(lobby.id)
+        await transport.broadcast(
+            UserConnectionUpdated(lobby_id=lobby.id, user=user, status="disconnected")
+        )
+
+        if not session.ready_locked:
+            for player_id in session.player_ids:
+                await transport.broadcast(
+                    UserReady(player_id, session.current_round_index, False)
                 )
-            )
 
-            if not session.ready_locked:
-                for player_id in session.player_ids:
-                    await transport.broadcast(
-                        UserReady(player_id, session.current_round_index, False)
-                    )
+        if lobby.host.id != previous_host_id:
+            await transport.broadcast(
+                NewHostAssigned(lobby_id=lobby.id, host=lobby.host)
+            )
 
 
 __all__ = ["LobbyService"]

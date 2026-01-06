@@ -3,9 +3,20 @@ import uuid
 from typing import Literal, Optional, Self
 
 from backend.core.board import DifficultyLevel
-from backend.core.game import *
+from backend.core.game import (
+    Cell,
+    FlagResult,
+    GameOverResult,
+    GameResult,
+    GameState,
+    GameStatus,
+    HintResult,
+    LossCause,
+    RemoveFlagResult,
+    RevealedCell,
+    RevealResult,
+)
 from backend.schemas import Response
-from backend.services.dto import *
 
 
 class RevealResponse(Response):
@@ -33,7 +44,7 @@ class GameOverResponse(Response):
         return cls(
             game_status=result.result,
             full_board=result.full_board,
-            elapsed_time=result.elapsed_time,
+            elapsed_time=round(result.elapsed_time, 2),
             loss_cause=result.loss_cause,
         )
 
@@ -91,7 +102,7 @@ class GameStateResponse(Response):
             result=result.result,
             board=board if result.status != "not_started" else None,
             difficulty_level=result.difficulty_level,
-            elapsed_time=result.elapsed_time,
+            elapsed_time=round(result.elapsed_time, 2),
             loss_cause=result.loss_cause,
             start_field=result.start_field,
         )
