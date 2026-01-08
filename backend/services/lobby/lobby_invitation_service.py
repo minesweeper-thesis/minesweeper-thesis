@@ -56,7 +56,7 @@ class LobbyInvitationService:
                 invitee=invitee,
             )
             await self.notification_system.notify(invitation.invitee.id, invitation)
-            await self.lobby_repo.save_invitation(invitation, timedelta(hours=1))
+            await self.lobby_repo.save_invitation(invitation, timedelta(minutes=10))
             logger.info(f"User {user.id} invited user {invitee_id} to lobby {lobby_id}")
 
         except UserNotFound:
