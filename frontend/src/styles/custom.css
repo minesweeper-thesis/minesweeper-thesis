@@ -1,14 +1,2 @@
 /* src/styles/custom.css */
 @import "tailwindcss";
-
-/*.card {*/
-/*    @apply bg-white shadow rounded-2xl p-4 border border-gray-200;*/
-/*}*/
-
-/*.nav-link {*/
-/*    @apply flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-blue-600 transition-colors duration-200;*/
-/*}*/
-
-/*.nav-link-active {*/
-/*    @apply text-blue-600 font-medium;*/
-/*}*/

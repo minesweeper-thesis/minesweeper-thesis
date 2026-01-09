@@ -13,9 +13,6 @@ const DifficultyMenu = ({ setBoardData, onStart }) => {
 
     const [localData, setLocalData] = useState({
         difficulty: selected,
-        rows: customRows,
-        cols: customCols,
-        mines: customMines,
         mode: selectedMode ? "hardcore" : "normal",
         generator: {
             type: "random",
