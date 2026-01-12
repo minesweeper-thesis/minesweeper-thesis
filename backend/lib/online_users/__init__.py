@@ -1,6 +1,8 @@
 import uuid
 from typing import Protocol
 
+from backend.config import REDIS_URL
+
 
 class OnlineUsersStore(Protocol):
     async def is_user_online(self, user_id: uuid.UUID) -> bool: ...
@@ -9,6 +11,10 @@ class OnlineUsersStore(Protocol):
 
 
 def get_online_users_store() -> OnlineUsersStore:
+    from .local import LocalOnlineUsersStore
     from .redis import RedisOnlineUsersStore
 
-    return RedisOnlineUsersStore()
+    if REDIS_URL:
+        return RedisOnlineUsersStore()
+    else:
+        return LocalOnlineUsersStore()
